@@ -148,11 +148,11 @@ void PolarCode::pcc()
 	
 	for(int i = 0; i<K; ++i)
 	{
-		FZLookup[sorter.permuted[i]] = 255;//Bit is available for user data
+		FZLookup[sorter.permuted[i]] = true;//Bit is available for user data
 	}
 	for(int i = K; i<N; ++i)
 	{
-		FZLookup[sorter.permuted[i]] = 0;//Set frozen bit to zero
+		FZLookup[sorter.permuted[i]] = false;//Freeze bit
 	}
 }
 
@@ -345,13 +345,13 @@ bool PolarCode::decode(vector<bool> &decoded, vector<float> &initialLLR)
 		}
 	}
 
-	if(!success)//Select the most likely path, if all checks failed
+	if(!success)//Give out the most likely path, if no crc is fulfilled
 	{
 		auto bitptrA = decoded.begin();
 		auto bitptrB = Dhat[0].begin();
 		for(int bit=0; bit<N; ++bit)
 		{
-			if(FZLookup[bit] == 255)
+			if(FZLookup[bit])
 			{
 				*bitptrA = *bitptrB;
 				++bitptrA;
