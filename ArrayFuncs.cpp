@@ -5,17 +5,12 @@
 
 trackingSorter::trackingSorter()
 {
-	sorted = 0;
-	permuted = 0;
-	size = -1;
+	unset();
 }
 
-trackingSorter::trackingSorter(float *arr, int size)
+trackingSorter::trackingSorter(std::vector<float> &arr)
 {
-	sorted = 0;
-	permuted = 0;
-	this->size = -1;
-	set(arr, size);
+	set(arr);
 }
 
 trackingSorter::~trackingSorter()
@@ -23,31 +18,22 @@ trackingSorter::~trackingSorter()
 	unset();
 }
 
-void trackingSorter::set(float *arr, int size)
+void trackingSorter::set(std::vector<float> &arr)
 {
-	assert(size>=0);
 	unset();
-	this->size = size;
-	sorted = new float[size];
-	permuted = new int[size];
+	size = arr.size();
+	sorted = arr;
+	permuted.reserve(size);
 	for(int i=0; i<size; ++i)
 	{
-		sorted[i] = arr[i];
 		permuted[i] = i;
 	}
 }
 
 void trackingSorter::unset()
 {
-	if(sorted)
-	{
-		delete[] sorted;
-		sorted = 0;
-	}
-	if(permuted){
-		delete[] permuted;
-		permuted = 0;
-	}
+	sorted.clear();
+	permuted.clear();
 	size = -1;
 }
 

@@ -19,11 +19,11 @@
 #define EbN0_max  6.0
 #define EbN0_count 20
 
-#define ConcurrentThreads 4
+#define ConcurrentThreads 3
 
 #define MinErrors    100
-#define MinIters     500
-#define MaxIters   10000
+#define MinIters   10000
+#define MaxIters   50000
 
 std::atomic<int> runningThreads(0), finishedThreads(0);
 std::map<int, std::atomic<float>> stopSNR;
@@ -40,6 +40,7 @@ struct DataPoint
 
 void simulate(int SimIndex)
 {
+	using namespace std;
 	using namespace std::chrono;
 	
 	int N = 1<<7, K = (1<<6)+8, L = Graph[SimIndex].L;
@@ -51,14 +52,15 @@ void simulate(int SimIndex)
 	int runs = 0, errors = 0;
 	char message[128];
 	
-	while(runningThreads >= ConcurrentThreads && EbN0 < stopSNR[L])
+	while(runningThreads >= ConcurrentThreads/* && EbN0 < stopSNR[L]*/)
 	{
-		std::this_thread::yield();
+//		std::this_thread::yield();
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 	
-	if(EbN0 >= stopSNR[L])
+/*	if(EbN0 >= stopSNR[L])
 	{
-		/* This might save some time.
+*/		/* This might save some time.
 		   Best case: Lowest SNR which reaches MaxIter iterations
 		              is simulated first.
 		   Worst case: Simulations run from highest to lowest SNRs
@@ -70,7 +72,7 @@ void simulate(int SimIndex)
 		   1 has finished, there will be a core left unused, while
 		   size 8 simulations waits a long time.
 		*/
-		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, EbN0, L);
+/*		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, EbN0, L);
 		std::cout << message;
 		Graph[SimIndex].runs = 0;
 		Graph[SimIndex].errors = 0;
@@ -83,7 +85,7 @@ void simulate(int SimIndex)
 		++finishedThreads;
 		
 		return;
-	}
+	}*/
 	
 	++runningThreads;
 	
@@ -95,21 +97,18 @@ void simulate(int SimIndex)
 
 	int nBytes = (K-8)>>3;
 
-	std::default_random_engine RndGen;
-	std::uniform_int_distribution<unsigned char> RndDist(0, 255);
-	unsigned char **data = new unsigned char*[MaxIters];
-	unsigned char *encodedData = new unsigned char[N>>3];
-	float **signal = new float*[MaxIters];
-	float *LLR = new float[N];
-	unsigned char *decodedData = new unsigned char[nBytes];
+	default_random_engine RndGen;
+	uniform_int_distribution<unsigned char> RndDist(0, 255);
+	vector<vector<bool>> data(MaxIters, vector<bool>(K-8,false));
+	vector<bool> encodedData(N, false);
+	
+	vector<vector<float>> sig(MaxIters, vector<float>(N, 0.0));
+	vector<float> LLR(N,0.0);
+	vector<bool> decodedData(N,false);
 	
 	for(int block = 0; block<MaxIters; ++block)
 	{
-		data[block] = new unsigned char[nBytes];
-		signal[block] = new float[N];
-		
 		//Generate random payload for testing
-		
 		for(int i=0; i<nBytes; ++i)
 		{
 			data[block][i] = RndDist(RndGen);
@@ -119,18 +118,15 @@ void simulate(int SimIndex)
 		PC.encode(encodedData, data[block]);
 			
 		//Modulate using simple BPSK
-		modulate(signal[block], encodedData, N>>3);
+		modulate(sig[block], encodedData);
 		
 		//Distort / Transmit via AWGN-channel
 		std::normal_distribution<float> NormDist(0.0, 1.0);
 		float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
-		float *sigptr = signal[block];
 		
 		for(int i=0; i<N; ++i)
 		{
-			*sigptr *= factor;
-			*sigptr += NormDist(RndGen);
-			++sigptr;
+			sig[block][i] = sig[block][i]*factor + NormDist(RndGen);
 		}
 			
 	}
@@ -140,7 +136,7 @@ void simulate(int SimIndex)
 	while(runs < MaxIters && !(errors>=MinErrors && runs>=MinIters))
 	{
 		//Demodulate
-		softDemod(LLR, signal[runs], N, R, EbN0);
+		softDemod(LLR, sig[runs], R, EbN0);
 		
 
 		//Decode
@@ -150,7 +146,7 @@ void simulate(int SimIndex)
 		}
 		else
 		{
-			if(memcmp(data[runs], decodedData, nBytes))
+			if(decodedData != data[runs])
 			{
 				++errors;
 			}
@@ -182,18 +178,6 @@ void simulate(int SimIndex)
 		stopSNR[L] = EbN0;
 	}
 	
-	for(int block = 0; block<MaxIters; ++block)
-	{
-		delete[] data[block];
-		delete[] signal[block];
-	}
-	
-	delete[] decodedData;
-	delete[] LLR;
-	delete[] signal;
-	delete[] encodedData;
-	delete[] data;
-	
 	int finished = ++finishedThreads;
 	sprintf(message, "[%3d] %3d Threads finished\n", SimIndex, finished);
 	std::cout << message;
@@ -208,7 +192,7 @@ int main(int argc, char** argv)
 	Graph = new DataPoint[EbN0_count*nSizes];
 	std::vector<std::thread> Threads;
 
-	std::ofstream File("../results/SimulatedDataWBTL,N=128.csv");
+	std::ofstream File("../results/SimulatedDataWBTCPP,N=128.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;
@@ -224,14 +208,20 @@ int main(int argc, char** argv)
 		{
 			Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			Graph[idCounter].L = Sizes[l];
+#ifndef __DEBUG__
 			Threads.push_back(std::thread(simulate, idCounter++));
+#else
+			simulate(idCounter++);
+#endif
 		}
 	}
-	
+
+#ifndef __DEBUG__
 	for(auto& Thr : Threads)
 	{
 		Thr.join();
 	}
+#endif
 	
 	File << "\"L\",""\"Eb/N0\", \"Rate\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 

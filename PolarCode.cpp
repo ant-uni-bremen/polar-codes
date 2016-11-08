@@ -7,6 +7,8 @@
 #include "ArrayFuncs.h"
 #include "crc8.h"
 
+using namespace std;
+
 inline float logdomain_sum(float x, float y)
 {
 	if(x<y)
@@ -57,22 +59,10 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR)
 	N = 1<<n;//pow(2, n);
 	
 	//Initialize all the arrays
-	FZLookup = new unsigned char[N]();
-	bitreversed_indices = new int[N]();
-	index_of_first0_from_MSB = new int[N]();
-	index_of_first1_from_MSB = new int[N]();
-
-	Metric = 0;
-	PathCount = 0;
-	LLR = 0;
-	Bits = 0;
-	Dhat = 0;
-	NextLLR = 0;
-	NextBits = 0;
-	NextDhat = 0;
-	NextMetric = 0;
-	NextPaths = 0;
-	memInitialized = false;
+	FZLookup.reserve(N);
+	bitreversed_indices.reserve(N);
+	index_of_first0_from_MSB.reserve(N);
+	index_of_first1_from_MSB.reserve(N);
 
 	resetMemory();	
 	
@@ -107,71 +97,20 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR)
 		
 PolarCode::~PolarCode()
 {
-	delete [] FZLookup;
-	delete [] bitreversed_indices;
-	delete [] index_of_first0_from_MSB;
-	delete [] index_of_first1_from_MSB;
 }
 
 void PolarCode::resetMemory()
 {
-	if(memInitialized)
-	{
-		delete[] Metric;
-		PathCount = 0;
-		for(int i=0; i<L; ++i)
-		{
-			delete[] LLR[i];
-			delete[] Bits[i*2];
-			delete[] Bits[i*2+1];
-			delete[] Dhat[i];
-
-			delete[] NextLLR[i];
-			delete[] NextBits[(i<<1)*2];
-			delete[] NextBits[(i<<1)*2+1];
-			delete[] NextDhat[i<<1];
-	
-			delete[] NextBits[((i<<1)+1)*2];
-			delete[] NextBits[((i<<1)+1)*2+1];
-			delete[] NextDhat[(i<<1)+1];
-		}
-		delete[] LLR;
-		delete[] Bits;
-		delete[] Dhat;
-		delete[] NextLLR;
-		delete[] NextBits;
-		delete[] NextDhat;
-		delete[] NextMetric;
-		delete[] NextPaths;
-	}
-
-	Metric = new float[L]();
+	Metric.assign(L, 0);
 	PathCount = 0;
-	LLR = new float*[L];
-	Bits = new unsigned char*[2*L];
-	Dhat = new unsigned char*[L];
-	NextLLR = new float*[L]();//null pointers
-	NextBits = new unsigned char*[L*4]();
-	NextDhat = new unsigned char*[L*2]();
-	for(int i=0; i<L; ++i)
-	{
-		LLR[i] = new float[2*N-1]();
-		Bits[i*2]   = new unsigned char[N-1]();
-		Bits[i*2+1] = new unsigned char[N-1]();
-		Dhat[i] = new unsigned char[N];
-
-		NextLLR[i] = new float[2*N-1]();
-		NextBits[(i<<1)*2]   = new unsigned char[N-1]();
-		NextBits[(i<<1)*2+1] = new unsigned char[N-1]();
-		NextDhat[i<<1] = new unsigned char[N];
-
-		NextBits[((i<<1)+1)*2]   = new unsigned char[N-1]();
-		NextBits[((i<<1)+1)*2+1] = new unsigned char[N-1]();
-		NextDhat[(i<<1)+1] = new unsigned char[N];
-	}
-	NextMetric = new float[L*2]();
-	NextPaths = new bool[L*2]();
-	memInitialized = true;
+	LLR.assign(L, vector<float>(2*N-1,0.0));
+	Bits.assign(2*L, vector<bool>(N-1, 0));
+	Dhat.assign(L, vector<bool>(N, 0));
+	NextLLR.assign(L, vector<float>(2*N-1, 0));
+	NextBits.assign(4*L, vector<bool>(N-1, 0));
+	NextDhat.assign(2*L, vector<bool>(N, 0));
+	NextMetric.assign(L*2, 0.0);
+	NextPaths.assign(L*2, 0);
 }
 	
 unsigned int PolarCode::bitreversed_slow(unsigned int j)
@@ -187,7 +126,7 @@ unsigned int PolarCode::bitreversed_slow(unsigned int j)
 
 void PolarCode::pcc()
 {
-	float *z = new float[N]();
+	vector<float> z(N, 0.0);
 	float designSNRlin = pow(10.0, designSNR/10.0);
 	z[0] = -((double)K/N)*designSNRlin;
 	
@@ -199,12 +138,12 @@ void PolarCode::pcc()
 		for(int j = 0; j < B; ++j)
 		{
 			T = z[j];
-			z[j] = logdomain_diff(log(2)+T, 2*T);
+			z[j] = logdomain_diff(log(2.0)+T, 2*T);
 			z[j+B] = 2*T;
 		}
 	}
 	
-	trackingSorter sorter(z, N);
+	trackingSorter sorter(z);
 	sorter.sort();
 	
 	for(int i = 0; i<K; ++i)
@@ -215,37 +154,25 @@ void PolarCode::pcc()
 	{
 		FZLookup[sorter.permuted[i]] = 0;//Set frozen bit to zero
 	}
-	
-	delete[] z;
 }
 
-void PolarCode::encode(unsigned char *encoded, unsigned char *data)
+void PolarCode::encode(vector<bool> &encoded, vector<bool> &data)
 {
-	unsigned char *databits = new unsigned char[K]();
-	unsigned char *codedbits = new unsigned char[N]();
-	unsigned char checksum;
+	encoded.assign(N, 0);
 	CRC8 *CrcGenerator = new CRC8();
 	
 	//Calculate CRC
-	checksum = CrcGenerator->generate(data, (K-8)>>3);
+	CrcGenerator->addChecksum(data);
 	
-	//Split the data into bits
-	Bytes2Bits(data, databits, (K>>3)-1);
-	Bytes2Bits(&checksum, databits+K-8, 1);
-	
-	//Now insert the bits into Rate-1 channels
+	//Insert the bits into Rate-1 channels
 	//and frozen bits into Rate-0 channels
-	unsigned char *bitptr = databits;
+	auto bitptr = data.begin();
 	for(int i=0; i<N; ++i)
 	{
-		if(FZLookup[i] == 255)
+		if(FZLookup[i])
 		{
-			codedbits[i] = *bitptr;
+			encoded[i] = *bitptr;
 			++bitptr;
-		}
-		else
-		{
-			codedbits[i] = FZLookup[i];
 		}
 	}
 	
@@ -260,37 +187,22 @@ void PolarCode::encode(unsigned char *encoded, unsigned char *data)
 			base = j*(B<<1);
 			for(int l=0; l<B; ++l)
 			{
-				codedbits[base+l] ^= codedbits[base+l +B];
+				encoded[base+l] = (encoded[base+l] != encoded[base+l +B]);// here '!=' works as XOR-operator. '^' doesn't...
 			}
 		}
 	}
 	
-	//Merge bitstream into bytes
-	Bits2Bytes(codedbits, encoded, N>>3);
-	
-	delete[] databits;
-	delete[] codedbits;
 	delete CrcGenerator;
 }
 
-bool PolarCode::decode(unsigned char *decodedBytes, float *initialLLR)
+bool PolarCode::decode(vector<bool> &decoded, vector<float> &initialLLR)
 {
 	resetMemory();
 	trackingSorter *Sorter = new trackingSorter();
 	CRC8 *Crc = new CRC8();
 	//Initialize LLR-structure for first path
-	float *LLRptr = LLR[0];
-	for(int i=0; i<N-1; ++i)
-	{
-		*LLRptr = 0.0;
-		++LLRptr;
-	}
-	for(int i=N-1; i<(N<<1)-1; ++i)
-	{
-		*LLRptr = *initialLLR;
-		++LLRptr;
-		++initialLLR;
-	}
+	LLR[0].assign(N-1, 0);//tree
+	LLR[0].insert(LLR[0].end(), initialLLR.begin(), initialLLR.end());//data
 	PathCount = 1;
 	
 	
@@ -301,29 +213,24 @@ bool PolarCode::decode(unsigned char *decodedBytes, float *initialLLR)
 		{
 			updateLLR(currentPath, i);
 			
-			if(FZLookup[i] == 255)
+			if(FZLookup[i])
 			{
 				//Split current path into two new
 				int fnextPath = currentPath<<1;//first
 				int snextPath = fnextPath+1;//second
 				
-//				memcpy(NextLLR[fnextPath], LLR[currentPath], (2*N-1)*sizeof(float));
-//				memcpy(NextLLR[snextPath], LLR[currentPath], (2*N-1)*sizeof(float));
 				std::swap(NextLLR[currentPath], LLR[currentPath]);
 				
-				memcpy(NextBits[ fnextPath<<1   ], Bits[ currentPath<<1   ], N-1);
-				memcpy(NextBits[(fnextPath<<1)+1], Bits[(currentPath<<1)+1], N-1);
+				NextBits[ fnextPath<<1   ] = Bits[ currentPath<<1   ];
+				NextBits[(fnextPath<<1)+1] = Bits[(currentPath<<1)+1];
 
-//				memcpy(NextBits[ snextPath<<1   ], Bits[ currentPath<<1   ], N-1);
-//				memcpy(NextBits[(snextPath<<1)+1], Bits[(currentPath<<1)+1], N-1);copy one, swap the other
 				std::swap(NextBits[ snextPath<<1   ], Bits[ currentPath<<1   ]);
 				std::swap(NextBits[(snextPath<<1)+1], Bits[(currentPath<<1)+1]);
 
 				updateBits(fnextPath, 0, i);
 				updateBits(snextPath, 1, i);
 				
-				memcpy(NextDhat[fnextPath], Dhat[currentPath], N);
-//				memcpy(NextDhat[snextPath], Dhat[currentPath], N);copy one swap the other
+				NextDhat[fnextPath] = Dhat[currentPath];
 				std::swap(NextDhat[snextPath], Dhat[currentPath]);
 				NextDhat[fnextPath][i] = 0;
 				NextDhat[snextPath][i] = 1;
@@ -358,18 +265,13 @@ bool PolarCode::decode(unsigned char *decodedBytes, float *initialLLR)
 				//Add only one path for frozen bit
 				int nextPath = currentPath<<1;
 				
-//				memcpy(NextLLR[nextPath], LLR[currentPath], (2*N-1)*sizeof(float));
 				std::swap(NextLLR[currentPath], LLR[currentPath]);
 				
-//				memcpy(NextBits[ nextPath<<1   ], Bits[ currentPath<<1   ], (N-1)*sizeof(unsigned char));
-//				memcpy(NextBits[(nextPath<<1)+1], Bits[(currentPath<<1)+1], (N-1)*sizeof(unsigned char));
-
 				std::swap(NextBits[ nextPath<<1   ], Bits[ currentPath<<1   ]);
 				std::swap(NextBits[(nextPath<<1)+1], Bits[(currentPath<<1)+1]);
 
 				updateBits(nextPath, 0, i);
 				
-//				memcpy(NextDhat[nextPath], Dhat[currentPath], N*sizeof(unsigned char));
 				std::swap(NextDhat[nextPath], Dhat[currentPath]);
 				NextDhat[nextPath][i] = 0;
 
@@ -403,7 +305,7 @@ bool PolarCode::decode(unsigned char *decodedBytes, float *initialLLR)
 			}
 		}
 		
-		Sorter->set(NextMetric, 2*L);
+		Sorter->set(NextMetric);
 		Sorter->sort();
 		
 		PathCount = std::min(NumberOfNextPaths, L);
@@ -421,24 +323,22 @@ bool PolarCode::decode(unsigned char *decodedBytes, float *initialLLR)
 	
 	//Select the most likely path which passes the CRC test
 	bool success = false;
-	unsigned char *decodedBits = new unsigned char[K];
-	unsigned char *decBytes = new unsigned char[K>>3];
+	decoded.assign(K, 0);
 	
 	for(int path=0; path<PathCount; ++path)
 	{
-		unsigned char *bitptrA = decodedBits;
-		unsigned char *bitptrB = Dhat[path];
+		auto bitptrA = decoded.begin();
+		auto bitptrB = Dhat[path].begin();
 		for(int bit=0; bit<N; ++bit)
 		{
-			if(FZLookup[bit] == 255)
+			if(FZLookup[bit])
 			{
 				*bitptrA = *bitptrB;
 				++bitptrA;
 			}
 			++bitptrB;
 		}
-		Bits2Bytes(decodedBits, decBytes, K>>3);
-		if(Crc->check(decBytes, (K>>3)-1, decBytes[(K>>3)-1]))
+		if(Crc->check(decoded))
 		{
 			success = true;
 			break;
@@ -447,8 +347,8 @@ bool PolarCode::decode(unsigned char *decodedBytes, float *initialLLR)
 
 	if(!success)//Select the most likely path, if all checks failed
 	{
-		unsigned char *bitptrA = decodedBits;
-		unsigned char *bitptrB = Dhat[0];
+		auto bitptrA = decoded.begin();
+		auto bitptrB = Dhat[0].begin();
 		for(int bit=0; bit<N; ++bit)
 		{
 			if(FZLookup[bit] == 255)
@@ -458,13 +358,8 @@ bool PolarCode::decode(unsigned char *decodedBytes, float *initialLLR)
 			}
 			++bitptrB;
 		}
-		Bits2Bytes(decodedBits, decBytes, K>>3);
 	}
-	
-	memcpy(decodedBytes, decBytes, (K>>3)-1);
-	
-	delete[] decBytes;
-	delete[] decodedBits;
+
 	delete Crc;
 	delete Sorter;
 	
@@ -474,8 +369,8 @@ bool PolarCode::decode(unsigned char *decodedBytes, float *initialLLR)
 void PolarCode::updateLLR(int path, int i)
 {
 	int nextlevel, lastlevel, st, ed, index;
-	float *pathLLR = LLR[path];
-	unsigned char *pathBits = Bits[path<<1];
+	vector<float> &pathLLR = LLR[path];
+	vector<bool> &pathBits = Bits[path<<1];
 	if(i==0)
 	{
 		nextlevel = n-1;
@@ -522,8 +417,8 @@ void PolarCode::updateBits(int path, int d, int i)
 	}
 	else
 	{
-		unsigned char *BitA = NextBits[path<<1],
-		              *BitB = NextBits[(path<<1)+1];
+		vector<bool> &BitA = NextBits[path<<1],
+		             &BitB = NextBits[(path<<1)+1];
 		int lastlevel = index_of_first0_from_MSB[i];
 		
 		int lev, st, ed;
@@ -534,7 +429,7 @@ void PolarCode::updateBits(int path, int d, int i)
 			ed = (1<<(lev+1))-1;
 			for(int idx=st; idx<=ed; ++idx)
 			{
-				BitB[ed+2*(idx-st)  ] = BitA[idx-1] ^ BitB[idx-1];
+				BitB[ed+2*(idx-st)  ] = (BitA[idx-1] != BitB[idx-1]);
 				BitB[ed+2*(idx-st)+1] = BitB[idx-1];
 			}
 		}
@@ -544,7 +439,7 @@ void PolarCode::updateBits(int path, int d, int i)
 		ed = (1<<(lev+1))-1;
 		for(int idx=st; idx<=ed; ++idx)
 		{
-			BitA[ed+2*(idx-st)  ] = BitA[idx-1] ^ BitB[idx-1];
+			BitA[ed+2*(idx-st)  ] = (BitA[idx-1] != BitB[idx-1]);
 			BitA[ed+2*(idx-st)+1] = BitB[idx-1];
 		}
 	}

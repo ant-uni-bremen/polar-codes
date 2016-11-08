@@ -1,15 +1,17 @@
 #ifndef ARRAYFUNCS_H
 #define ARRAYFUNCS_H
 
+#include <vector>
+
 struct trackingSorter
 {
-	float *sorted;
-	int *permuted;
+	std::vector<float> sorted;
+	std::vector<int> permuted;
 	int size;
 	trackingSorter();
-	trackingSorter(float *arr, int size);
+	trackingSorter(std::vector<float> &arr);
 	~trackingSorter();
-	void set(float *arr, int size);
+	void set(std::vector<float> &arr);
 	void unset();
 	void sort();
 	

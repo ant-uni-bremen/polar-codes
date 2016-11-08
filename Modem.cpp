@@ -1,43 +1,31 @@
 #include "Modem.h"
 
 #include <cmath>
-
 #include <cstdio>
+#include <vector>
 
 #include "ArrayFuncs.h"
-/*
-Modem::Modem()
-{
-}
 
-Modem::~Modem()
+using namespace std;
+
+void modulate(vector<float> &signal, vector<bool> &data)
 {
-}*/
-void modulate(float *signal, unsigned char *data, int nBytes)
-{
-	int nBits = nBytes<<3;
-	unsigned char *bits = new unsigned char[nBits];
-	Bytes2Bits(data, bits, nBytes);
+	int nBits = data.size();
 	
-	unsigned char *bitptr = bits;
 	for(int i=0; i<nBits; ++i)
 	{
-		*signal = *bitptr? -1.0 : 1.0;
-		signal++; bitptr++;
+		signal[i] = data[i]? -1.0 : 1.0;
 	}
-	delete[] bits;
 }
 
-void softDemod(float *LLR, float *signal, int length, float R, float EbN0)
-{
-	if(length<=0) return;
-	
+void softDemod(vector<float> &LLR, vector<float> &signal, float R, float EbN0)
+{	
 	float EbN0lin = pow(10.0, EbN0/10.0);
 	float factor = 2.0 * sqrt(2.0*R*EbN0lin);
+	int length = signal.size();
 	for(int i=0; i<length; ++i)
 	{
-		*LLR = (*signal)*factor;
-		LLR++; signal++;
+		LLR[i] = signal[i]*factor;
 	}
 }
 
