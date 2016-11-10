@@ -133,6 +133,7 @@ static inline float reduce_add_ps(__m256 x) {
 	return _mm_cvtss_f32(x32);
 }
 
+#ifndef __AVX2__
 static inline char reduce_adds_epi8(__m128i x) {
 	const __m128i x64  = _mm_adds_epi8(x,    _mm_srli_si128(x, 8));
 	const __m128i x32  = _mm_adds_epi8(x64,  _mm_srli_si128(x64, 4));
@@ -162,6 +163,7 @@ static inline short reduce_adds_epi16(__m128i x) {
 	const __m128i x16  = _mm_adds_epi16(x32,  _mm_srli_si128(x32, 2));
 	return _mm_extract_epi16(x16, 0);
 }
+#endif
 
 static inline float reduce_xor_ps(__m256 x) {
 	/* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
@@ -183,14 +185,15 @@ static inline float _mm_reduce_xor_ps(__m128 x) {
 	return _mm_cvtss_f32(x32);
 }
 
+#ifndef __AVX2__
 static inline unsigned char reduce_xor(__m128i x) {
 	const __m128i x64  = _mm_xor_si128(x, _mm_srli_si128(x, 8));
 	const __m128i x32  = _mm_xor_si128(x64,  _mm_srli_si128(x64, 4));
 	const __m128i x16  = _mm_xor_si128(x32,  _mm_srli_si128(x32, 2));
 	const __m128i x8   = _mm_xor_si128(x16,  _mm_srli_si128(x16, 1));
 	return (reinterpret_cast<const unsigned char*>(&x8))[0];
-
 }
+#endif
 
 static inline float _mm_reduce_add_ps(__m128 x) {
 	/* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */

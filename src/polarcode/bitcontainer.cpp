@@ -309,7 +309,7 @@ void FloatContainer::simpleHardDecode(float *dst) {
 }
 
 void FloatContainer::getFloatBits(float *pData) {
-	if(mElementCount>=8 && featureCheckAvx()) {
+	if(mElementCount>=8) {
 		vectorizedHardDecode(pData);
 	} else {
 		simpleHardDecode(pData);

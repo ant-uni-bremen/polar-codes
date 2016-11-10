@@ -123,6 +123,7 @@ inline __m256i subVectorShiftBytes_epu8(__m256i x) {
 		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b00100001);
 	default:
 		std::cerr << "Subvector shift of undefined size.";
+		return _mm256_setzero_si256();
 	}
 }
 

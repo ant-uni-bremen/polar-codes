@@ -2,6 +2,7 @@
 #include <polarcode/polarcode.h>
 #include <polarcode/encoding/butterfly_fip_packed.h>
 #include <list>
+#include <algorithm>
 
 namespace PolarCode {
 namespace Decoding {
@@ -41,8 +42,10 @@ void Manager::decode() {
 		metric += decoder->reliability();
 		hintList.push_back({decoder, decoder->reliability()});
 	}
+	auto myCompareHints = [](const DecoderHint a, const DecoderHint b) -> bool { return a.reliability < b.reliability; };
+
 	//Sort all nodes
-	std::sort(hintList.begin(), hintList.end(), compareHints);
+	std::sort(hintList.begin(), hintList.end(), myCompareHints);
 	firstRun = true;
 
 	//Create configurations
@@ -89,7 +92,8 @@ void Manager::decodeNext() {
 			}
 			//Sort all nodes, excluding the current configuration
 			//to prevent double configuring of already considered nodes
-			std::sort(hintList.begin()+depth+1, hintList.end(), compareHints);
+			auto myCompareHints = [](const DecoderHint a, const DecoderHint b) -> bool { return a.reliability < b.reliability; };
+			std::sort(hintList.begin()+depth+1, hintList.end(), myCompareHints);
 		} else {
 			hintList = currentConfig.nodeList;
 			metric = currentConfig.parentMetric;

@@ -5,7 +5,6 @@
 #include <cstring>
 #include <map>
 #include <stack>
-#include <algorithm>
 #include <iostream>
 
 #include <polarcode/avxconvenience.h>

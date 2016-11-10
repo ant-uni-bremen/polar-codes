@@ -269,6 +269,7 @@ SpcDecoder::~SpcDecoder() {
 }
 
 // Decoders
+#ifndef __AVX2__
 inline
 __m128i llrExpandToLong(__m128i vec, const unsigned i) {
 	switch(i) {
@@ -281,7 +282,7 @@ __m128i llrExpandToLong(__m128i vec, const unsigned i) {
 	return _mm_cvtepi8_epi64(vec);
 }
 
-#ifdef __AVX2__
+#else
 inline
 __m256i llrExpandToLong(fipv vec, const unsigned i) {
 	switch(i % 4) {
