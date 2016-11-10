@@ -1,6 +1,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <complex>
 #include <condition_variable>
 #include <cstring>
 #include <fstream>
@@ -15,15 +16,8 @@
 #include "PolarCode.h"
 #include "Modem.h"
 
-#define EbN0_min  0.0
-#define EbN0_max  6.0
-#define EbN0_count 20
+#include "Parameters.h"
 
-#define ConcurrentThreads 3
-
-#define MinErrors    100
-#define MinIters   10000
-#define MaxIters   50000
 
 std::atomic<int> runningThreads(0), finishedThreads(0);
 std::map<int, std::atomic<float>> stopSNR;
@@ -43,11 +37,11 @@ void simulate(int SimIndex)
 	using namespace std;
 	using namespace std::chrono;
 	
-	int N = 1<<7, K = (1<<6)+8, L = Graph[SimIndex].L;
+	int L = Graph[SimIndex].L;
 	float designSNR = 0.0;//dB
 	float EbN0 = Graph[SimIndex].EbN0;//dB
 	
-	float R = (float)K/N;
+	float R = (float)PCparam_K/PCparam_N;
 	
 	int runs = 0, errors = 0;
 	char message[128];
@@ -89,22 +83,22 @@ void simulate(int SimIndex)
 	
 	++runningThreads;
 	
-	sprintf(message, "[%3d] Launching for Eb/N0 = %f dB, L = %d\n", SimIndex, EbN0, L);
+	sprintf(message, "[%3d] Generating samples for Eb/N0 = %f dB\n", SimIndex, EbN0);
 	std::cout << message;
 
 	//Encoder
-	PolarCode PC(N, K, L, designSNR);
+	PolarCode PC(L, designSNR);
 
-	int nBytes = (K-8)>>3;
+	int nBytes = (PCparam_K-8)>>3;
 
 	default_random_engine RndGen;
 	uniform_int_distribution<unsigned char> RndDist(0, 255);
-	vector<vector<bool>> data(MaxIters, vector<bool>(K-8,false));
-	vector<bool> encodedData(N, false);
+	vector<vector<bool>> data(MaxIters, vector<bool>(PCparam_K-8,false));
+	vector<bool> encodedData(PCparam_N, false);
 	
-	vector<vector<float>> sig(MaxIters, vector<float>(N, 0.0));
-	vector<float> LLR(N,0.0);
-	vector<bool> decodedData(N,false);
+	vector<vector<float>> sig(MaxIters, vector<float>(PCparam_N, 0.0));
+	vector<float> LLR(PCparam_N,0.0);
+	vector<bool> decodedData(PCparam_N,false);
 	
 	for(int block = 0; block<MaxIters; ++block)
 	{
@@ -121,16 +115,32 @@ void simulate(int SimIndex)
 		modulate(sig[block], encodedData);
 		
 		//Distort / Transmit via AWGN-channel
+		//(Signal+Noise) is normalized to noise power of 1
+		// afterwards it is equalized for some perfectly known rayleigh fading channel
 		std::normal_distribution<float> NormDist(0.0, 1.0);
 		float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
+//		std::complex<float> channelCoeff, noise, sample;
 		
-		for(int i=0; i<N; ++i)
+		for(int i=0; i<PCparam_N; ++i)
 		{
+/*			sample.real(sig[block][i]*factor);
+			sample.imag(0.0);
+			channelCoeff.real(NormDist(RndGen));
+			channelCoeff.imag(NormDist(RndGen));
+			noise.real(NormDist(RndGen));
+			noise.imag(NormDist(RndGen));
+			
+			noise /= channelCoeff;
+			sample += noise;
+			sig[block][i] = sample.real();*/
 			sig[block][i] = sig[block][i]*factor + NormDist(RndGen);
 		}
 			
 	}
-	
+
+	sprintf(message, "[%3d] Decoding with L = %d\n", SimIndex, L);
+	std::cout << message;
+
 	high_resolution_clock::time_point TimeStart = high_resolution_clock::now();
 	
 	while(runs < MaxIters && !(errors>=MinErrors && runs>=MinIters))
@@ -164,12 +174,12 @@ void simulate(int SimIndex)
 	Graph[SimIndex].BLER /= runs;
 	Graph[SimIndex].time = time;
 	Graph[SimIndex].blps = runs;
-	Graph[SimIndex].cbps = runs*N;
-	Graph[SimIndex].pbps = runs*(K-8);
+	Graph[SimIndex].cbps = runs*PCparam_N;
+	Graph[SimIndex].pbps = runs*(PCparam_K-8);
 	Graph[SimIndex].blps /= time;
 	Graph[SimIndex].cbps /= time;
 	Graph[SimIndex].pbps /= time;
-	Graph[SimIndex].effectiveRate = (runs-errors+0.0)*(K-8.0)/time;
+	Graph[SimIndex].effectiveRate = (runs-errors+0.0)*(PCparam_K-8.0)/time;
 	
 	
 	
@@ -191,8 +201,26 @@ int main(int argc, char** argv)
 	int Sizes[] = {1, 2, 4, 8, 16}, nSizes = 5;
 	Graph = new DataPoint[EbN0_count*nSizes];
 	std::vector<std::thread> Threads;
+	
+	
+/*	
+	vector<float> vec;
+	vec.push_back(-1.0);
+	vec.push_back(-INFINITY);
+	vec.push_back(-0.1);
+	vec.push_back(-0.4);
+	
+	trackingSorter sorter;
+	sorter.set(vec);
+	sorter.sort();
+	for(int i=0; i<4; ++i)
+	{
+		std::cout << sorter.permuted[i] << " => " << sorter.sorted[i] << std::endl;
+	}*/
+	
+	
 
-	std::ofstream File("../results/SimulatedDataWBTCPP,N=128.csv");
+	std::ofstream File("../results/SimulatedDataAdaptive,N=128,K=64+8.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;
@@ -228,7 +256,7 @@ int main(int argc, char** argv)
 	for(int i=0; i<EbN0_count*nSizes; ++i)
 	{
 		File << Graph[i].L << ','
-		     << Graph[i].EbN0 << ',' << Graph[i].BLER << ','
+		     << Graph[i].EbN0 << ',' << (Graph[i].BLER>0?Graph[i].BLER:"") << ','
 		     << Graph[i].runs << ',' << Graph[i].errors << ','
 		     << Graph[i].time << ',' << Graph[i].blps << ','
 		     << Graph[i].cbps << ',' << Graph[i].pbps << ',';

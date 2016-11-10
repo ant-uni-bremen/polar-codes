@@ -1,6 +1,8 @@
 #ifndef POLARCODE_H
 #define POLARCODE_H
 
+#include "Parameters.h"
+
 #include <vector>
 
 float logdomain_sum(float x, float y);
@@ -13,7 +15,7 @@ using namespace std;
 
 struct PolarCode
 {
-	int N, K, L, n;
+	int L, n;
 	vector<int> FZLookup;
 	float designSNR;
 	vector<int>
@@ -32,7 +34,7 @@ struct PolarCode
 	vector<float> NextMetric;
 	vector<bool> NextPaths;
 	
-	PolarCode(int N, int K, int L, float designSNR);
+	PolarCode(int L, float designSNR);
 	~PolarCode();
 	
 	/*
@@ -42,6 +44,8 @@ struct PolarCode
 	*/
 	void encode(vector<bool> &encoded, vector<bool> &data);
 	bool decode(vector<bool> &decoded, vector<float> &LLR);
+	bool decodeOnePath(vector<bool> &decoded, vector<float> &LLR);
+	bool decodeMultiPath(vector<bool> &decoded, vector<float> &LLR);
 	
 	
 	
