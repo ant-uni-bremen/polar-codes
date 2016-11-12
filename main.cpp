@@ -46,15 +46,15 @@ void simulate(int SimIndex)
 	int runs = 0, errors = 0;
 	char message[128];
 	
-	while(runningThreads >= ConcurrentThreads/* && EbN0 < stopSNR[L]*/)
+	while(runningThreads >= ConcurrentThreads && EbN0 < stopSNR[L])
 	{
 //		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 	
-/*	if(EbN0 >= stopSNR[L])
+	if(EbN0 >= stopSNR[L])
 	{
-*/		/* This might save some time.
+		/* This might save some time.
 		   Best case: Lowest SNR which reaches MaxIter iterations
 		              is simulated first.
 		   Worst case: Simulations run from highest to lowest SNRs
@@ -66,7 +66,7 @@ void simulate(int SimIndex)
 		   1 has finished, there will be a core left unused, while
 		   size 8 simulations waits a long time.
 		*/
-/*		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, EbN0, L);
+		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, EbN0, L);
 		std::cout << message;
 		Graph[SimIndex].runs = 0;
 		Graph[SimIndex].errors = 0;
@@ -79,7 +79,7 @@ void simulate(int SimIndex)
 		++finishedThreads;
 		
 		return;
-	}*/
+	}
 	
 	++runningThreads;
 	
@@ -220,7 +220,7 @@ int main(int argc, char** argv)
 	
 	
 
-	std::ofstream File("../results/SimulatedDataAdaptive,N=128,K=64+8.csv");
+	std::ofstream File("../results/SimulatedDataAdaptivePCC,N=128,K=64+8.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;
@@ -255,8 +255,16 @@ int main(int argc, char** argv)
 
 	for(int i=0; i<EbN0_count*nSizes; ++i)
 	{
-		File << Graph[i].L << ','
-		     << Graph[i].EbN0 << ',' << (Graph[i].BLER>0?Graph[i].BLER:"") << ','
+		File << Graph[i].L << ',' << Graph[i].EbN0 << ',';
+		if(Graph[i].BLER>0.0)
+		{
+			File << Graph[i].BLER;
+		}
+		else
+		{
+			File << "\" \"";
+		}
+		File << ','
 		     << Graph[i].runs << ',' << Graph[i].errors << ','
 		     << Graph[i].time << ',' << Graph[i].blps << ','
 		     << Graph[i].cbps << ',' << Graph[i].pbps << ',';
