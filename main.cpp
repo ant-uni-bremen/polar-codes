@@ -46,14 +46,14 @@ void simulate(int SimIndex)
 	int runs = 0, errors = 0;
 	char message[128];
 	
-	while(runningThreads >= ConcurrentThreads && EbN0 < stopSNR[L])
+	while(runningThreads >= ConcurrentThreads/* && EbN0 < stopSNR[L]*/)
 	{
 //		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 	
-	if(EbN0 >= stopSNR[L])
-	{
+/*	if(EbN0 >= stopSNR[L])
+	{*/
 		/* This might save some time.
 		   Best case: Lowest SNR which reaches MaxIter iterations
 		              is simulated first.
@@ -66,7 +66,7 @@ void simulate(int SimIndex)
 		   1 has finished, there will be a core left unused, while
 		   size 8 simulations waits a long time.
 		*/
-		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, EbN0, L);
+/*		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, EbN0, L);
 		std::cout << message;
 		Graph[SimIndex].runs = 0;
 		Graph[SimIndex].errors = 0;
@@ -79,7 +79,7 @@ void simulate(int SimIndex)
 		++finishedThreads;
 		
 		return;
-	}
+	}*/
 	
 	++runningThreads;
 	
@@ -89,35 +89,41 @@ void simulate(int SimIndex)
 	//Encoder
 	PolarCode PC(L, designSNR);
 
-	int nBytes = (PCparam_K-8)>>3;
+#ifdef CRCSIZE
+	int nBits = (PCparam_K-CRCSIZE);
+#else
+	int nBits = PCparam_K;
+#endif
 
 	default_random_engine RndGen;
 	uniform_int_distribution<unsigned char> RndDist(0, 255);
-	vector<vector<bool>> data(MaxIters, vector<bool>(PCparam_K-8,false));
+	normal_distribution<float> NormDist(0.0, 1.0);
+	vector<vector<bool>> data(MaxIters, vector<bool>(nBits,false));
+	vector<vector<bool>> decodedData(MaxIters, vector<bool>(PCparam_K,false));
+	vector<bool> decodingSuccess(MaxIters, false);
 	vector<bool> encodedData(PCparam_N, false);
 	
-	vector<vector<float>> sig(MaxIters, vector<float>(PCparam_N, 0.0));
-	vector<float> LLR(PCparam_N,0.0);
-	vector<bool> decodedData(PCparam_N,false);
+	vector<float> sig(PCparam_N,0.0);
+	vector<vector<float>> LLR(MaxIters, vector<float>(PCparam_N, 0.0));
+	//vector<bool> decodedData(PCparam_N,false);
 	
 	for(int block = 0; block<MaxIters; ++block)
 	{
 		//Generate random payload for testing
-		for(int i=0; i<nBytes; ++i)
+		for(int i=0; i<nBits; ++i)
 		{
-			data[block][i] = RndDist(RndGen);
-		} 
+			data[block][i] = RndDist(RndGen)&1;
+		}
 			
 		//Encode
 		PC.encode(encodedData, data[block]);
 			
 		//Modulate using simple BPSK
-		modulate(sig[block], encodedData);
+		modulate(sig, encodedData);
 		
 		//Distort / Transmit via AWGN-channel
 		//(Signal+Noise) is normalized to noise power of 1
 		// afterwards it is equalized for some perfectly known rayleigh fading channel
-		std::normal_distribution<float> NormDist(0.0, 1.0);
 		float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
 //		std::complex<float> channelCoeff, noise, sample;
 		
@@ -132,10 +138,12 @@ void simulate(int SimIndex)
 			
 			noise /= channelCoeff;
 			sample += noise;
-			sig[block][i] = sample.real();*/
-			sig[block][i] = sig[block][i]*factor + NormDist(RndGen);
+			sig[i] = sample.real();*/
+			sig[i] = sig[i]*factor + NormDist(RndGen);
 		}
 			
+		//Demodulate
+		softDemod(LLR[block], sig, R, EbN0);
 	}
 
 	sprintf(message, "[%3d] Decoding with L = %d\n", SimIndex, L);
@@ -145,29 +153,51 @@ void simulate(int SimIndex)
 	
 	while(runs < MaxIters && !(errors>=MinErrors && runs>=MinIters))
 	{
-		//Demodulate
-		softDemod(LLR, sig[runs], R, EbN0);
-		
-
 		//Decode
-		if(!PC.decode(decodedData, LLR))
+		decodingSuccess[runs] = PC.decode(decodedData[runs], LLR[runs]);
+		if(!decodingSuccess[runs])
 		{
+#ifdef DEBUGOUTPUT
+			std::cout << "CRC-Error" << std::endl;
+#endif
 			++errors;
 		}
-		else
-		{
-			if(decodedData != data[runs])
-			{
-				++errors;
-			}
-		}
 		++runs;
+		
+#ifdef DEBUGOUTPUT
+		std::cout << errors << '/' << runs << " Error count" << std::endl;
+#endif
 	}
 	
 	high_resolution_clock::time_point TimeEnd = high_resolution_clock::now();
 	duration<float> TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
 	float time = TimeUsed.count();
-	
+
+	sprintf(message, "[%3d] Checking for undetected errors\n", SimIndex);
+	std::cout << message;
+
+	for(int block=0; block<runs; ++block)
+	{
+		if(decodingSuccess[block])
+		{
+			for(int i=0; i<nBits; ++i)
+			{
+#ifdef DEBUGOUTPUT
+				std::cout << data[block][i] << " => " << decodedData[block][i] << ((decodedData[block][i] != data[block][i])?"F":"") << std::endl;
+#endif
+				if(decodedData[block][i] != data[block][i])
+				{
+#ifdef DEBUGOUTPUT
+					std::cout << "Undetected Error" << std::endl;
+#endif
+					++errors;
+					break;
+				}
+			}
+		}
+		decodedData[block].clear();
+	}
+
 	Graph[SimIndex].runs = runs;
 	Graph[SimIndex].errors = errors;
 	Graph[SimIndex].BLER = errors;
@@ -175,11 +205,11 @@ void simulate(int SimIndex)
 	Graph[SimIndex].time = time;
 	Graph[SimIndex].blps = runs;
 	Graph[SimIndex].cbps = runs*PCparam_N;
-	Graph[SimIndex].pbps = runs*(PCparam_K-8);
+	Graph[SimIndex].pbps = runs*nBits;
 	Graph[SimIndex].blps /= time;
 	Graph[SimIndex].cbps /= time;
 	Graph[SimIndex].pbps /= time;
-	Graph[SimIndex].effectiveRate = (runs-errors+0.0)*(PCparam_K-8.0)/time;
+	Graph[SimIndex].effectiveRate = (runs-errors+0.0)*nBits/time;
 	
 	
 	
@@ -198,29 +228,12 @@ void simulate(int SimIndex)
 
 int main(int argc, char** argv)
 {
-	int Sizes[] = {1, 2, 4, 8, 16}, nSizes = 5;
+	int Sizes[] = {1/*, 2, 4, 8, 16*/}, nSizes = 1;
 	Graph = new DataPoint[EbN0_count*nSizes];
 	std::vector<std::thread> Threads;
 	
-	
-/*	
-	vector<float> vec;
-	vec.push_back(-1.0);
-	vec.push_back(-INFINITY);
-	vec.push_back(-0.1);
-	vec.push_back(-0.4);
-	
-	trackingSorter sorter;
-	sorter.set(vec);
-	sorter.sort();
-	for(int i=0; i<4; ++i)
-	{
-		std::cout << sorter.permuted[i] << " => " << sorter.sorted[i] << std::endl;
-	}*/
-	
-	
 
-	std::ofstream File("../results/SimulatedDataAdaptivePCC,N=128,K=64+8.csv");
+	std::ofstream File("../results/SimulatedDataIntrin,N=128,K=64+8.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;

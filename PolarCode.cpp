@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <utility>
 
+#include <iostream>
+
+
 #include "PolarCode.h"
 #include "ArrayFuncs.h"
 #include "crc8.h"
@@ -30,82 +33,402 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-inline float upperconv(float a, float b)
-{
-//	return logdomain_sum(a+b, 0.0) - logdomain_sum(a, b);
-	return sgn(a) * sgn(b) * fmin(fabs(a), fabs(b));
-}
 
-inline float lowerconv(bool bit, float upper, float lower)
+void PolarCode::F_function(float *LLRin, float *LLRout, int size)
 {
-	if(bit)
+	size >>= 1;
+	if(size <= 4)
 	{
-		return lower-upper;
+		float a,b;
+		for(int i=0; i<size; ++i)
+		{
+			a = LLRin[i];
+			b = LLRin[i+size];
+			LLRout[i] = sgn(a) * sgn(b) * fmin(fabs(a),fabs(b));
+		}
 	}
 	else
 	{
-		return lower+upper;
+		for(int i=0; i<size; i+=FLOATSPERVECTOR)
+		{
+			vec LLR_l = load_ps(LLRin+i);
+			vec LLR_r = load_ps(LLRin+i+size);
+			vec sign  = and_ps(xor_ps(LLR_l, LLR_r), SIGN_MASK);
+			vec abs_l = andnot_ps(SIGN_MASK, LLR_l);
+			vec abs_r = andnot_ps(SIGN_MASK, LLR_r);
+			vec LLR_o = or_ps(sign, min_ps(abs_l, abs_r));
+			store_ps(LLRout+i, LLR_o);
+		}
 	}
+#ifdef DEBUGOUTPUT
+	std::cout << "F function: ";
+	for(int i=0; i<size; ++i)
+	{
+		std::cout << '(' << LLRin[i] << '#' << LLRin[i+size] << '=' << LLRout[i] << ')';
+	}
+	std::cout << endl;
+#endif
+}
+
+void PolarCode::G_function(float *LLRin, float *LLRout, float *Bits, int size)
+{
+	size >>= 1;
+	if(size <= 4)
+	{
+		unsigned int *FloatBit = reinterpret_cast<unsigned int*>(Bits);
+		float tmp;unsigned int *iTmp = reinterpret_cast<unsigned int*>(&tmp);
+		for(int i=0; i<size; ++i)
+		{
+			tmp = LLRin[i];
+			*iTmp ^= FloatBit[i]&0x80000000;
+			LLRout[i] = LLRin[i+size] + tmp;
+		}
+	}
+	else
+	{
+		for(int i=0; i<size; i+=FLOATSPERVECTOR)
+		{
+			vec LLR_l  = load_ps(LLRin+i);
+			vec LLR_r  = load_ps(LLRin+i+size);
+			vec Bits_l = load_ps(Bits+i);
+			vec LLR_n  = xor_ps(Bits_l, LLR_l);
+			vec LLR_o = add_ps(LLR_r, LLR_n);
+			store_ps(LLRout+i, LLR_o);
+		}
+	}
+#ifdef DEBUGOUTPUT
+	unsigned int *FloatBit = reinterpret_cast<unsigned int*>(Bits);
+	std::cout << "G function: ";
+	for(int i=0; i<size; ++i)
+	{
+		std::cout << '(' << LLRin[i+size] << (FloatBit[i]&0x80000000?'-':'+') << LLRin[i] << '=' << LLRout[i] << ')';
+	}
+	std::cout << endl;
+#endif
+}
+
+void PolarCode::Rate0(float *BitsOut, int size)
+{
+	size>>=1;
+	memset(BitsOut, 0, size*sizeof(float));
+}
+
+void PolarCode::Rate1(float *LLRin, float *BitsOut, int size)
+{
+	size>>=1;
+	for(int i=0; i<size; ++i)
+	{
+		BitsOut[i] = (LLRin[i]<0)?-0.0:0.0;
+	}
+}
+
+void PolarCode::Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int size)
+{
+#ifdef DEBUGOUTPUT
+	std::cout << "Combine " << size << " elements: ";
+#endif
+	size >>= 1;
+	for(int i=0; i<size; i+=FLOATSPERVECTOR)
+	{
+		vec Bitsl = load_ps(BitsIn_l+i);
+		vec Bitsr = load_ps(BitsIn_r+i);
+		vec Bitso = xor_ps(Bitsl, Bitsr);
+		store_ps(BitsOut+i, Bitso);
+	}
+	memcpy(BitsOut+size, BitsIn_r, sizeof(float)*size);
+	
+#ifdef DEBUGOUTPUT
+	for(int i=0; i<size; ++i)
+	{
+		std::cout << '(' << BitsIn_l[i] << '^' << BitsIn_r[i] << '=' << BitsOut[i] << ')';
+	}
+	for(int i=0; i<size; ++i)
+	{
+		std::cout << '(' << BitsIn_r[i] << "=>" << BitsOut[i+size] << ')';
+	}
+	std::cout << endl;
+#endif
+}
+
+//static inline float _mm256_reduce_xor_ps(__m256 x) {
+//    /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
+//    const __m128 x128 = _mm_xor_ps(_mm256_extractf128_ps(x, 1), _mm256_castps256_ps128(x));
+//    /* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */
+//    const __m128 x64 = _mm_xor_ps(x128, _mm_movehl_ps(x128, x128));
+//    /* ( -, -, -, x0+x1+x2+x3+x4+x5+x6+x7 ) */
+//    const __m128 x32 = _mm_xor_ps(x64, _mm_shuffle_ps(x64, x64, 0x55));
+//    /* Conversion to float is a no-op on x86-64 */
+//    return _mm_cvtss_f32(x32);
+//}
+
+void PolarCode::SPC(float *LLRin, float *BitsOut, int size)
+{
+/*	vec LLRsum = set1_ps(0.0);
+	vec TmpVec;
+	for(int i=0; i<size; i+=FLOATSPERVECTOR)
+	{
+		TmpVec = load_ps(LLRin+i);
+		LLRsum = xor_ps(LLRsum, TmpVec);
+	}
+	float parity = _mm256_reduce_xor_ps(LLRsum);*/
+	
+	unsigned int *iLLR = reinterpret_cast<unsigned int*>(LLRin);
+	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
+
+	bool parity = false;//false:Parity ok, true:Parity not ok
+	int index = 0;
+	float minLLR; unsigned int *iMinLLR = reinterpret_cast<unsigned int*>(&minLLR);
+	float testLLR;unsigned int *iTestLLR = reinterpret_cast<unsigned int*>(&testLLR);
+	*iMinLLR = iLLR[0]&0x7FFFFFFF;
+	for(int i=0; i<size; ++i)
+	{
+		iBit[i]   = iLLR[i]&0x80000000;
+		parity ^= !!iBit[i];
+
+		*iTestLLR = iLLR[i]&0x7FFFFFFF;
+		if(testLLR < minLLR)
+		{
+			index = i;
+			minLLR = testLLR;
+		}
+	}
+	
+
+	//Hard decision for bits
+/*	if(size <=4)
+	{
+		for(int i=0; i<size; ++i)
+		{
+			//BitsOut[i] = LLRin[i]<0?-0.0:0.0;
+			iBit[i] = iLLR[i]&0x80000000;
+		}
+	}
+	else
+	{
+		for(int i=0; i<size; i+=FLOATSPERVECTOR)
+		{
+			vec LLRvec = load_ps(LLRin+i);
+			vec sign  = and_ps(LLRvec, SIGN_MASK);
+			store_ps(BitsOut+i, sign);
+		}
+	}*/
+
+	//Flip least reliable bit, if neccessary
+	if(parity)
+	{
+/*		//Unoptimized SPC decoder
+		float minLLR = fabs(LLRin[0]);
+		int index = 0;
+		for(int i=1; i<size; ++i)
+		{
+			float thisAbs = fabs(LLRin[i]);
+			if(thisAbs < minLLR)
+			{
+				minLLR = thisAbs;
+				index = i;
+			}
+		}*/
+		//Flip least reliable bit
+		iBit[index] ^= 0x80000000;
+		//BitsOut[index] = -BitsOut[index];
+#ifdef DEBUGOUTPUT
+		std::cout << "SPC flipped" << std::endl;
+	}
+	else
+	{
+		std::cout << "SPC ok" << std::endl;
+	}
+	std::cout << "SPC decided ";
+	for(int i=0; i<size; ++i)
+	{
+		std::cout << '(' << LLRin[i] << "=>" << BitsOut[i] << ')';
+	}
+	std::cout << std::endl;
+#else
+	}
+#endif
+}
+
+static inline float _mm256_reduce_add_ps(__m256 x) {
+    /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
+    const __m128 x128 = _mm_add_ps(_mm256_extractf128_ps(x, 1), _mm256_castps256_ps128(x));
+    /* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */
+    const __m128 x64 = _mm_add_ps(x128, _mm_movehl_ps(x128, x128));
+    /* ( -, -, -, x0+x1+x2+x3+x4+x5+x6+x7 ) */
+    const __m128 x32 = _mm_add_ss(x64, _mm_shuffle_ps(x64, x64, 0x55));
+    /* Conversion to float is a no-op on x86-64 */
+    return _mm_cvtss_f32(x32);
+}
+
+void PolarCode::Repetition(float *LLRin, float *BitsOut, int size)
+{
+	if(size <= 4)
+	{
+		float sum = 0.0;
+		for(int i=0; i<size; ++i)
+		{
+			sum += LLRin[i];
+		}
+		float bit = sum<0?-0.0:0.0;
+		for(int i=0; i<size; ++i)
+		{
+			BitsOut[i] = bit;
+		}
+	}
+	else
+	{
+		float HelperV=0;
+		
+		vec LLRsum = set1_ps(0.0);
+		vec TmpVec;
+		for(int i=0; i<size; i+=FLOATSPERVECTOR)
+		{
+			TmpVec = load_ps(LLRin+i);
+			LLRsum = add_ps(LLRsum, TmpVec);
+		}
+		store_ps(AlignedVector, LLRsum);
+		for(int i=0; i<FLOATSPERVECTOR; ++i)
+		{
+			HelperV += AlignedVector[i];
+		}
+		vec BitLLR = set1_ps(HelperV);
+		vec BitDecision = and_ps(BitLLR, SIGN_MASK);
+		for(int i=0; i<size; i+=FLOATSPERVECTOR)
+		{
+			store_ps(BitsOut+i, BitDecision);
+		}
+		
+	}
+#ifdef DEBUGOUTPUT
+	std::cout << "Repetition decided ";
+	for(int i=0; i<size; ++i)
+	{
+		std::cout << '(' << LLRin[i] << "=>" << BitsOut[i] << ')';
+	}
+	std::cout << std::endl;
+#endif
 }
 
 PolarCode::PolarCode(int L, float designSNR)
 {
+	AlignedVector = (float*)_mm_malloc(FLOATSPERVECTOR * sizeof(float), sizeof(vec));
+	SIGN_MASK = set1_ps(-0.0);
 	this->L = L;
 	this->designSNR = designSNR;
 	
 	n = ceil(log2(PCparam_N));
-	
+
 	//Initialize all the arrays
 	FZLookup.reserve(PCparam_N);
-	bitreversed_indices.reserve(PCparam_N);
-	index_of_first0_from_MSB.reserve(PCparam_N);
-	index_of_first1_from_MSB.reserve(PCparam_N);
+	simplifiedTree.reserve(2*PCparam_N-1);
 
-	resetMemory();	
+	resetMemory();
 	
-	for(int i=0; i<PCparam_N; ++i)
-	{
-		bitreversed_indices[i] = bitreversed_slow(i);
-		int l = n-1;
-		for(int k = 0; k<n; ++k)
-		{
-			if(i & (1<<(n-k-1)))
-			{
-				l = k;
-				break;
-			}
-		}
-		index_of_first1_from_MSB[i] = l;
-
-		l = n-1;
-		for(int k = 0; k<n; ++k)
-		{
-			if(!(i & (1<<(n-k-1))))
-			{
-				l = k;
-				break;
-			}
-		}
-		index_of_first0_from_MSB[i] = l;
-	}
 	
 	pcc();
+	
+	
+	
+
+	
+/*
+	float *testLLR = (float*)_mm_malloc(16 * sizeof(float), sizeof(vec));
+	float *testBits = (float*)_mm_malloc(16 * sizeof(float), sizeof(vec));
+
+	testLLR[0] = 10;
+	testLLR[1] = 5;
+	testLLR[2] = 10;
+	testLLR[3] = 10;
+	testLLR[4] = 10;
+	testLLR[5] = -3;
+	testLLR[6] = 10;
+	testLLR[7] = 10;
+	testLLR[8] = 10;
+	testLLR[9] = 10;
+	testLLR[10] = 10;
+	testLLR[11] = 10;
+	testLLR[12] = -2;
+	testLLR[13] = 10;
+	testLLR[14] = 10;
+	testLLR[15] = 10;
+
+	
+	Repetition(testLLR, testBits, 16);
+	std::cout << "Repetition:" << std::endl;
+	for(int i=0; i<16; ++i)
+	{
+		std::cout << testLLR[i] << " => " << testBits[i] << std::endl;
+	}
+	std::cout << std::endl;
+	
+	testLLR[0] = 10;
+	testLLR[1] = -10;
+	testLLR[2] = -10;
+	testLLR[3] = 10;
+	testLLR[4] = 10;
+	testLLR[5] = -10;
+	testLLR[6] = -10;
+	testLLR[7] = 10;
+	testLLR[8] = 10;
+	testLLR[9] = -10;
+	testLLR[10] = -10;
+	testLLR[11] = 10;
+	testLLR[12] = -2;
+	testLLR[13] = -10;
+	testLLR[14] = -10;
+	testLLR[15] = 10;
+	
+	SPC(testLLR, testBits, 16);
+	std::cout << "SPC:" << std::endl;
+	for(int i=0; i<16; ++i)
+	{
+		std::cout << testLLR[i] << " => " << testBits[i] << std::endl;
+	}
+	std::cout << std::endl;
+	
+	F_function(testLLR, testBits, 16);
+	std::cout << "F:" << std::endl;
+	for(int i=0; i<16; ++i)
+	{
+		std::cout << testLLR[i] << " => " << testBits[i] << std::endl;
+	}
+	std::cout << std::endl;
+	
+	_mm_free(testLLR);
+	_mm_free(testBits);
+*/	
 }
 		
 PolarCode::~PolarCode()
 {
+	_mm_free(AlignedVector);
 }
 
 void PolarCode::resetMemory()
 {
 	Metric.assign(L, 0.0);
 	PathCount = 0;
-	LLR.assign(L, vector<float>(2*PCparam_N-1, 0.0));
-	Bits.assign(2*L, vector<bool>(PCparam_N-1, 0));
-	Dhat.assign(L, vector<bool>(PCparam_N, 0));
-	NextLLR.assign(L, vector<float>(2*PCparam_N-1, 0.0));
-	NextBits.assign(4*L, vector<bool>(PCparam_N-1, 0));
-	NextDhat.assign(2*L, vector<bool>(PCparam_N, 0));
+	
+	LLR.resize(L);
+	Bits.resize(L);
+	for(int list=0; list<L; ++list)
+	{
+		LLR[list].resize(n+1);
+		Bits[list].resize(n+1);
+		for(int stage=0; stage<=n; ++stage)
+		{
+			LLR[list][stage].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);		
+			
+			Bits[list][stage].resize(2);
+			for(int leaf=0; leaf<2; ++leaf)
+			{
+				Bits[list][stage][leaf].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);
+			}
+		}
+	}
+	
+	
+	
 	NextMetric.assign(L*2, 0.0);
 	NextPaths.assign(L*2, 0);
 }
@@ -146,20 +469,151 @@ void PolarCode::pcc()
 	for(int i = 0; i<PCparam_K; ++i)
 	{
 		FZLookup[sorter.permuted[i]] = true;//Bit is available for user data
+		simplifiedTree[PCparam_N-1+sorter.permuted[i]] = nodeInfo::RateOne;
 	}
 	for(int i = PCparam_K; i<PCparam_N; ++i)
 	{
 		FZLookup[sorter.permuted[i]] = false;//Freeze bit
+		simplifiedTree[PCparam_N-1+sorter.permuted[i]] = nodeInfo::RateZero;
 	}
+	
+	for(int lev=n-1; lev>=0; --lev)
+	{
+		int st = (1<<lev)-1;
+		int ed = (1<<(lev+1))-1;
+		int idx, ctr;
+		for(idx=st, ctr=ed; idx<ed; ++idx)
+		{
+			nodeInfo Left  = simplifiedTree[ctr++];
+			nodeInfo Right = simplifiedTree[ctr++];
+			if(Left == RateZero && Right == RateZero)
+			{
+				simplifiedTree[idx] = RateZero;
+			}
+			else if(Left == RateOne && Right == RateOne)
+			{
+				simplifiedTree[idx] = RateOne;
+			}
+			else if((Left == RateHalf || Left == SPCnode) && Right == RateOne)
+			{
+				simplifiedTree[idx] = SPCnode;
+			}
+			else if(Left == RateZero && (Right == RateHalf || Right == RepetitionNode))
+			{
+				simplifiedTree[idx] = RepetitionNode;
+			}
+			else if(Left == RateZero && Right == RateOne && lev==n-1)
+			{
+				simplifiedTree[idx] = RateHalf;
+			}
+			else
+			{
+				simplifiedTree[idx] = RateR;
+			}
+/*			std::cout << "Left " << (ctr-2) << " is ";
+			switch(Left)
+			{
+			case RateZero:
+				std::cout << "Rate-0";break;
+			case RateOne:
+				std::cout << "Rate-1";break;
+			case RateHalf:
+				std::cout << "Rate-0.5";break;
+			case RepetitionNode:
+				std::cout << "Repetition";break;
+			case SPCnode:
+				std::cout << "SPC";break;
+			case RateR:
+				std::cout << "Rate-R";break;
+			default:
+				std::cout << "Error";break;
+			}
+			std::cout << std::endl;
+			std::cout << "Right " << (ctr-1) << " is ";
+			switch(Right)
+			{
+			case RateZero:
+				std::cout << "Rate-0";break;
+			case RateOne:
+				std::cout << "Rate-1";break;
+			case RateHalf:
+				std::cout << "Rate-0.5";break;
+			case RepetitionNode:
+				std::cout << "Repetition";break;
+			case SPCnode:
+				std::cout << "SPC";break;
+			case RateR:
+				std::cout << "Rate-R";break;
+			default:
+				std::cout << "Error";break;
+			}
+			std::cout << std::endl;
+			std::cout << "Parent " << (idx) << " is ";
+			switch(simplifiedTree[idx])
+			{
+			case RateZero:
+				std::cout << "Rate-0";break;
+			case RateOne:
+				std::cout << "Rate-1";break;
+			case RateHalf:
+				std::cout << "Rate-0.5";break;
+			case RepetitionNode:
+				std::cout << "Repetition";break;
+			case SPCnode:
+				std::cout << "SPC";break;
+			case RateR:
+				std::cout << "Rate-R";break;
+			default:
+				std::cout << "Error";break;
+			}
+			std::cout << std::endl;
+
+*/
+
+
+		}
+
+	}
+	
+/*	bool nonRfound = false;
+	for(int i=0; i<PCparam_N-1; ++i)
+	{
+		std::cout << "Stage " << floor(log2(i+1)-1) << ", i=" << i << ": ";
+		switch(simplifiedTree[i])
+		{
+		case RateZero:
+			std::cout << "Rate-0";break;
+		case RateOne:
+			std::cout << "Rate-1";break;
+		case RateHalf:
+			std::cout << "Rate-0.5";break;
+		case RepetitionNode:
+			std::cout << "Repetition";break;
+		case SPCnode:
+			std::cout << "SPC";break;
+		case RateR:
+			std::cout << "Rate-R";break;
+		default:
+			std::cout << "Error";break;
+		}
+		std::cout << std::endl;
+		if(simplifiedTree[i] != RateR && !nonRfound)
+		{
+			nonRfound = true;
+			std::cout << "First non-rate-R node!" << std::endl;
+		}
+	}*/
 }
 
 void PolarCode::encode(vector<bool> &encoded, vector<bool> &data)
 {
 	encoded.assign(PCparam_N, 0);
+#ifdef CRCSIZE
 	CRC8 *CrcGenerator = new CRC8();
 	
 	//Calculate CRC
 	CrcGenerator->addChecksum(data);
+#endif
 	
 	//Insert the bits into Rate-1 channels
 	//and frozen bits into Rate-0 channels
@@ -188,8 +642,52 @@ void PolarCode::encode(vector<bool> &encoded, vector<bool> &data)
 			}
 		}
 	}
-	
+#ifdef CRCSIZE	
 	delete CrcGenerator;
+#endif
+}
+
+void PolarCode::transform(aligned_float_vector &BitsIn, vector<bool> &BitsOut)
+{
+	int size = BitsOut.size();
+	unsigned int *FloatBit = reinterpret_cast<unsigned int *>(BitsIn.data());
+	for(int i=0; i<size; ++i)
+	{
+		BitsOut[i] = FloatBit[i]&0x80000000;
+	}
+
+#ifdef DEBUGOUTPUT
+	std::cout << "Tf ";
+	for(int i=0; i<size; ++i)
+	{
+		std::cout << BitsOut[i];
+	}
+	std::cout << std::endl;
+#endif
+
+	int B, nB, base;
+	for(int i=0; i<n; ++i)
+	{
+		B = 1<<(n-i-1);
+		nB = 1<<i;
+		for(int j=0; j<nB; ++j)
+		{
+			base = j*(B<<1);
+			for(int l=0; l<B; ++l)
+			{
+				BitsOut[base+l] = (BitsOut[base+l] != BitsOut[base+l +B]);// here '!=' works as XOR-operator. '^' doesn't...
+			}
+		}
+	}
+	
+#ifdef DEBUGOUTPUT
+	std::cout << "to ";
+	for(int i=0; i<size; ++i)
+	{
+		std::cout << BitsOut[i];
+	}
+	std::cout << std::endl;
+#endif
 }
 
 bool PolarCode::decode(vector<bool> &decoded, vector<float> &initialLLR)
@@ -200,7 +698,7 @@ bool PolarCode::decode(vector<bool> &decoded, vector<float> &initialLLR)
 	}
 	else
 	{
-		return decodeMultiPath(decoded, initialLLR);
+		return false; //decodeMultiPath(decoded, initialLLR);
 	}
 }
 
@@ -209,49 +707,23 @@ bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 	int backupL = L;
 	L = 1;
 	resetMemory();
+#ifdef CRCSIZE
 	CRC8 *Crc = new CRC8();
-	//Initialize LLR-structure for first path
-	LLR[0].assign(PCparam_N-1, 0);//tree
-	LLR[0].insert(LLR[0].end(), initialLLR.begin(), initialLLR.end());//data
-	
-	
-	for(int j=0; j<PCparam_N; ++j)
+#endif
+	for(int i=0; i<PCparam_N; ++i)
 	{
-		int i = bitreversed_indices[j];
-
-		updateLLR(0, i);
-			
-		if(FZLookup[i])
-		{
-			Dhat[0][i] = LLR[0][0] <= 0;
-
-			std::swap(NextBits[0], Bits[0]);
-			std::swap(NextBits[1], Bits[1]);
-
-			updateBits(0, Dhat[0][i], i);
-
-			std::swap(NextBits[0], Bits[0]);
-			std::swap(NextBits[1], Bits[1]);		
-		}
-		else
-		{
-			Dhat[0][i] = 0;
-
-			std::swap(NextBits[0], Bits[0]);
-			std::swap(NextBits[1], Bits[1]);
-
-			updateBits(0, 0, i);
-
-			std::swap(NextBits[0], Bits[0]);
-			std::swap(NextBits[1], Bits[1]);
-		}
+		/* copy element by element to the aligned storage */
+		LLR[0][n][i] = initialLLR[i];
 	}
 	
-	bool success = false;
-	decoded.assign(PCparam_K, 0);
+	decodeOnePathRecursive(n,0,0);
 	
+	vector<bool> Dhat(PCparam_N);
+	
+	transform(Bits[0][n][0], Dhat);
+
 	auto bitptrA = decoded.begin();
-	auto bitptrB = Dhat[0].begin();
+	auto bitptrB = Dhat.begin();
 	for(int bit=0; bit<PCparam_N; ++bit)
 	{
 		if(FZLookup[bit])
@@ -261,14 +733,112 @@ bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 		}
 		++bitptrB;
 	}
+#ifdef CRCSIZE
+	bool success = Crc->check(decoded);	
+	delete Crc;
+#else
+	bool success = true;
+#endif
 
-	success = Crc->check(decoded);
-	
+
 	L = backupL;
 
-	delete Crc;
 	
 	return success;
+}
+
+void PolarCode::decodeOnePathRecursive(int stage, int BitLocation, int nodeID)
+{
+	int leftNode  = (nodeID<<1)+1;
+	int rightNode = leftNode+1;
+	int stageLength = 1<<stage;
+	int subStageLength = 1<<(stage-1);
+	if(stage != 0)
+	{	
+		F_function(LLR[0][stage].data(), LLR[0][stage-1].data(), stageLength);
+		switch(simplifiedTree[leftNode])
+		{
+		case RateZero:
+#ifdef DEBUGOUTPUT
+			std::cout << nodeID << ": Left node " << leftNode << " is rate zero of length " << subStageLength << "." << std::endl;
+#endif
+			Rate0(Bits[0][stage-1][0].data(), subStageLength);
+			break;
+		case RateOne:
+#ifdef DEBUGOUTPUT
+			std::cout << nodeID << ": Left node " << leftNode << " is rate one of length " << subStageLength << "." << std::endl;
+#endif
+			Rate1(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
+			break;
+		case RepetitionNode:
+		case RateHalf:
+#ifdef DEBUGOUTPUT
+			std::cout << nodeID << ": Left node " << leftNode << " is repetition of length " << subStageLength << "." << std::endl;
+#endif
+			Repetition(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
+			break;
+		case SPCnode:
+#ifdef DEBUGOUTPUT
+			std::cout << nodeID << ": Left node " << leftNode << " is single parity of length " << subStageLength << "." << std::endl;
+#endif
+			SPC(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
+			break;
+		default:
+#ifdef DEBUGOUTPUT
+			std::cout << nodeID << ": Left node " << leftNode << " is rate R of length " << subStageLength << "." << std::endl;
+#endif
+			decodeOnePathRecursive(stage-1, 0, leftNode);
+		}
+
+		G_function(LLR[0][stage].data(), LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), stageLength);
+		switch(simplifiedTree[rightNode])
+		{
+		case RateZero:
+#ifdef DEBUGOUTPUT
+			std::cout << nodeID << ": Right node " << rightNode << " is rate zero of length " << subStageLength << "." << std::endl;
+#endif
+			Rate0(Bits[0][stage-1][1].data(), subStageLength);
+			break;
+		case RateOne:
+#ifdef DEBUGOUTPUT
+			std::cout << nodeID << ": Right node " << rightNode << " is rate one of length " << subStageLength << "." << std::endl;
+#endif
+			Rate1(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
+			break;
+		case RepetitionNode:
+		case RateHalf:
+#ifdef DEBUGOUTPUT
+			std::cout << nodeID << ": Right node " << rightNode << " is repetition of length " << subStageLength << "." << std::endl;
+#endif
+			Repetition(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
+			break;
+		case SPCnode:
+#ifdef DEBUGOUTPUT
+			std::cout << nodeID << ": Right node " << rightNode << " is single parity of length " << subStageLength << "." << std::endl;
+#endif
+			SPC(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
+			break;
+		default:
+#ifdef DEBUGOUTPUT
+			std::cout << nodeID << ": Right node " << rightNode << " is rate R of length " << subStageLength << "." << std::endl;
+#endif
+			decodeOnePathRecursive(stage-1, 1, rightNode);
+		}
+		Combine(Bits[0][stage-1][0].data(), Bits[0][stage-1][1].data(), Bits[0][stage][BitLocation].data(), 1<<stage);
+	}
+	else
+	{
+#ifdef DEBUGOUTPUT
+		std::cout << nodeID << ": This is a last stage bit." << std::endl;
+#endif
+		//Rather complex looking bit decision by reducing the float to its sign bit
+		float number = LLR[0][0][0];
+		unsigned int *A = reinterpret_cast<unsigned int *>(&number);
+		Bits[0][0][BitLocation][0] = *A & 0x80000000;
+#ifdef DEBUGOUTPUT
+		std::cout << nodeID << ": Decided " << Bits[0][0][BitLocation][0] << std::endl;
+#endif
+	}
 }
 
 bool PolarCode::decodeMultiPath(vector<bool> &decoded, vector<float> &initialLLR)
@@ -277,116 +847,18 @@ bool PolarCode::decodeMultiPath(vector<bool> &decoded, vector<float> &initialLLR
 	trackingSorter *Sorter = new trackingSorter();
 	CRC8 *Crc = new CRC8();
 	//Initialize LLR-structure for first path
-	LLR[0].assign(PCparam_N-1, 0);//tree
-	LLR[0].insert(LLR[0].end(), initialLLR.begin(), initialLLR.end());//data
+	for(int i=0; i<PCparam_N; ++i)
+	{
+		/* copy element by element to the aligned storage */
+		LLR[0][n][i] = initialLLR[i];
+	}
 	PathCount = 1;
 	
 	
-	float punishment;
-	for(int j=0; j<PCparam_N; ++j)
-	{
-		int i = bitreversed_indices[j];
-		NextMetric.assign(2*L, -INFINITY);
-		int NumberOfNextPaths = 0;
-		for(int currentPath=0; currentPath<PathCount; ++currentPath)
-		{
-			updateLLR(currentPath, i);
-			
-			if(FZLookup[i])
-			{
-				//Split current path into two new
-				int fnextPath = currentPath<<1;//first
-				int snextPath = fnextPath+1;//second
-				
-				//std::swap(NextLLR[currentPath], LLR[currentPath]);
-				NextLLR[currentPath] = LLR[currentPath];
-				
-				NextBits[ fnextPath<<1   ] = Bits[ currentPath<<1   ];
-				NextBits[(fnextPath<<1)+1] = Bits[(currentPath<<1)+1];
 
-				//std::swap(NextBits[ snextPath<<1   ], Bits[ currentPath<<1   ]);
-				//std::swap(NextBits[(snextPath<<1)+1], Bits[(currentPath<<1)+1]);
-				NextBits[ snextPath<<1   ] = Bits[ currentPath<<1   ];
-				NextBits[(snextPath<<1)+1] = Bits[(currentPath<<1)+1];
-
-				updateBits(fnextPath, 0, i);
-				updateBits(snextPath, 1, i);
-				
-				NextDhat[fnextPath] = Dhat[currentPath];
-				//std::swap(NextDhat[snextPath], Dhat[currentPath]);
-				NextDhat[snextPath] = Dhat[currentPath];
-				
-				NextDhat[fnextPath][i] = 0;
-				NextDhat[snextPath][i] = 1;
-				
-				punishment = fabs(NextLLR[currentPath][0]);
-
-				if(NextLLR[currentPath][0] > 0)
-				{
-					//Decrease 1-path's metric, if LLR tells that a 1 has been received more likely
-					NextMetric[fnextPath] = Metric[currentPath];
-					NextMetric[snextPath] = Metric[currentPath] - punishment;
-				}
-				else
-				{
-					//Decrease 0-path's metric, if LLR tells that a 1 has been received more likely
-					NextMetric[fnextPath] = Metric[currentPath] - punishment;
-					NextMetric[snextPath] = Metric[currentPath];
-				}
-				
-				NextPaths[fnextPath] = true;
-				NextPaths[snextPath] = true;
-				NumberOfNextPaths += 2;
-			}
-			else
-			{
-				//Add only one path for frozen bit
-				int nextPath = currentPath<<1;
-				
-				std::swap(NextLLR[currentPath], LLR[currentPath]);
-				
-				std::swap(NextBits[ nextPath<<1   ], Bits[ currentPath<<1   ]);
-				std::swap(NextBits[(nextPath<<1)+1], Bits[(currentPath<<1)+1]);
-
-				updateBits(nextPath, 0, i);
-				
-				std::swap(NextDhat[nextPath], Dhat[currentPath]);
-				NextDhat[nextPath][i] = 0;
-
-				if(NextLLR[currentPath][0] > 0)
-				{
-					//Keep path metric, if LLR confirms the frozen bit
-					NextMetric[nextPath] = Metric[currentPath];
-				}
-				else
-				{
-					NextMetric[nextPath] = Metric[currentPath] - fabs(NextLLR[currentPath][0]);
-				}
-				
-				NextPaths[nextPath]   = true;
-				NextPaths[nextPath+1] = false;
-				++NumberOfNextPaths;
-			}
-		}
-		
-		Sorter->set(NextMetric);
-		Sorter->sort();
-		
-		PathCount = std::min(NumberOfNextPaths, L);
-		for(int i=0; i<PathCount; ++i)
-		{
-			int path = Sorter->permuted[2*L-1-i];
-			
-			std::swap(LLR[i], NextLLR[path>>1]);
-			std::swap(Bits[ i<<1   ], NextBits[ path<<1   ]);
-			std::swap(Bits[(i<<1)+1], NextBits[(path<<1)+1]);
-			std::swap(Dhat[i], NextDhat[path]);
-			std::swap(Metric[i], NextMetric[path]);
-		}
-	}
 	
 	//Select the most likely path which passes the CRC test
-	bool success = false;
+/*	bool success = false;
 	decoded.assign(PCparam_K, 0);
 	
 	for(int path=0; path<PathCount; ++path)
@@ -407,9 +879,9 @@ bool PolarCode::decodeMultiPath(vector<bool> &decoded, vector<float> &initialLLR
 			success = true;
 			break;
 		}
-	}
+	}*/
 
-	if(!success)//Give out the most likely path, if no crc is fulfilled
+/*	if(!success)//Give out the most likely path, if no crc is fulfilled
 	{
 		auto bitptrA = decoded.begin();
 		auto bitptrB = Dhat[0].begin();
@@ -422,88 +894,12 @@ bool PolarCode::decodeMultiPath(vector<bool> &decoded, vector<float> &initialLLR
 			}
 			++bitptrB;
 		}
-	}
+	}*/
 
 	delete Crc;
 	delete Sorter;
 	
-	return success;
+	return false;//success;
 }
 
-void PolarCode::updateLLR(int path, int i)
-{
-	int nextlevel, lastlevel, st, ed, idx, ctr;
-	vector<float> &pathLLR = LLR[path];
-	vector<bool> &pathBits = Bits[path<<1];
-	if(i==0)
-	{
-		nextlevel = n-1;
-	}
-	else
-	{
-		lastlevel = index_of_first1_from_MSB[i];
-		
-		st = (1<<lastlevel)-1;
-		ed = (1<<(lastlevel+1))-1;
-		
-		for(idx = st, ctr=ed; idx<ed; ++idx, ctr+=2)
-		{
-			pathLLR[idx] = lowerconv(pathBits[idx],
-			                           pathLLR[ctr],
-									   pathLLR[ctr+1]);
-		}
-		nextlevel = lastlevel-1;
-	}
-	
-	for(int lev=nextlevel; lev>=0; --lev)
-	{
-		st = (1<<lev)-1;
-		ed = (1<<(lev+1))-1;
-		for(idx=st, ctr=ed; idx<ed; ++idx, ctr+=2)
-		{
-			pathLLR[idx] = upperconv(pathLLR[ctr],
-			                         pathLLR[ctr+1]);
-		}
-	}
-}
-
-void PolarCode::updateBits(int path, int d, int i)
-{
-	if(i==PCparam_N-1)
-	{
-		return;
-	}
-	else if(i<(PCparam_N>>1))
-	{
-		NextBits[path<<1][0] = d;
-	}
-	else
-	{
-		vector<bool> &BitA = NextBits[path<<1],
-		             &BitB = NextBits[(path<<1)+1];
-		int lastlevel = index_of_first0_from_MSB[i];
-		
-		int lev, st, ed, idx, ctr;
-		BitB[0] = d;
-		for(lev=0; lev<=lastlevel-2; ++lev)
-		{
-			st = (1<<lev)-1;
-			ed = (1<<(lev+1))-1;
-			for(idx=st, ctr=ed; idx<ed; ++idx)
-			{
-				BitB[ctr++] = (BitA[idx] != BitB[idx]);
-				BitB[ctr++] = BitB[idx];
-			}
-		}
-		
-		lev = lastlevel-1;
-		st = (1<<lev)-1;
-		ed = (1<<(lev+1))-1;
-		for(idx=st, ctr=ed; idx<ed; ++idx)
-		{
-			BitA[ctr++] = (BitA[idx] != BitB[idx]);
-			BitA[ctr++] = BitB[idx];
-		}
-	}
-}
 
