@@ -150,28 +150,8 @@ void PolarCode::Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int si
 #endif
 }
 
-//static inline float _mm256_reduce_xor_ps(__m256 x) {
-//    /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
-//    const __m128 x128 = _mm_xor_ps(_mm256_extractf128_ps(x, 1), _mm256_castps256_ps128(x));
-//    /* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */
-//    const __m128 x64 = _mm_xor_ps(x128, _mm_movehl_ps(x128, x128));
-//    /* ( -, -, -, x0+x1+x2+x3+x4+x5+x6+x7 ) */
-//    const __m128 x32 = _mm_xor_ps(x64, _mm_shuffle_ps(x64, x64, 0x55));
-//    /* Conversion to float is a no-op on x86-64 */
-//    return _mm_cvtss_f32(x32);
-//}
-
 void PolarCode::SPC(float *LLRin, float *BitsOut, int size)
 {
-/*	vec LLRsum = set1_ps(0.0);
-	vec TmpVec;
-	for(int i=0; i<size; i+=FLOATSPERVECTOR)
-	{
-		TmpVec = load_ps(LLRin+i);
-		LLRsum = xor_ps(LLRsum, TmpVec);
-	}
-	float parity = _mm256_reduce_xor_ps(LLRsum);*/
-	
 	unsigned int *iLLR = reinterpret_cast<unsigned int*>(LLRin);
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
@@ -192,45 +172,12 @@ void PolarCode::SPC(float *LLRin, float *BitsOut, int size)
 			minLLR = testLLR;
 		}
 	}
-	
-
-	//Hard decision for bits
-/*	if(size <=4)
-	{
-		for(int i=0; i<size; ++i)
-		{
-			//BitsOut[i] = LLRin[i]<0?-0.0:0.0;
-			iBit[i] = iLLR[i]&0x80000000;
-		}
-	}
-	else
-	{
-		for(int i=0; i<size; i+=FLOATSPERVECTOR)
-		{
-			vec LLRvec = load_ps(LLRin+i);
-			vec sign  = and_ps(LLRvec, SIGN_MASK);
-			store_ps(BitsOut+i, sign);
-		}
-	}*/
 
 	//Flip least reliable bit, if neccessary
 	if(parity)
 	{
-/*		//Unoptimized SPC decoder
-		float minLLR = fabs(LLRin[0]);
-		int index = 0;
-		for(int i=1; i<size; ++i)
-		{
-			float thisAbs = fabs(LLRin[i]);
-			if(thisAbs < minLLR)
-			{
-				minLLR = thisAbs;
-				index = i;
-			}
-		}*/
 		//Flip least reliable bit
 		iBit[index] ^= 0x80000000;
-		//BitsOut[index] = -BitsOut[index];
 #ifdef DEBUGOUTPUT
 		std::cout << "SPC flipped" << std::endl;
 	}
