@@ -95,7 +95,7 @@ void simulate(int SimIndex)
 	int nBits = PCparam_K;
 #endif
 
-	default_random_engine RndGen;
+	default_random_engine RndGen(1);
 	uniform_int_distribution<unsigned char> RndDist(0, 255);
 	normal_distribution<float> NormDist(0.0, 1.0);
 	vector<vector<bool>> data(MaxIters, vector<bool>(nBits,false));
@@ -232,7 +232,6 @@ int main(int argc, char** argv)
 	Graph = new DataPoint[EbN0_count*nSizes];
 	std::vector<std::thread> Threads;
 	
-
 	std::ofstream File("../results/SimulatedDataIntrin,N=128,K=64+8.csv");
 	if(!File.is_open())
 	{

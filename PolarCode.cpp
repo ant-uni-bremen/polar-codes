@@ -60,14 +60,6 @@ void PolarCode::F_function(float *LLRin, float *LLRout, int size)
 			store_ps(LLRout+i, LLR_o);
 		}
 	}
-#ifdef DEBUGOUTPUT
-	std::cout << "F function: ";
-	for(int i=0; i<size; ++i)
-	{
-		std::cout << '(' << LLRin[i] << '#' << LLRin[i+size] << '=' << LLRout[i] << ')';
-	}
-	std::cout << endl;
-#endif
 }
 
 void PolarCode::G_function(float *LLRin, float *LLRout, float *Bits, int size)
@@ -91,42 +83,31 @@ void PolarCode::G_function(float *LLRin, float *LLRout, float *Bits, int size)
 			vec LLR_l  = load_ps(LLRin+i);
 			vec LLR_r  = load_ps(LLRin+i+size);
 			vec Bits_l = load_ps(Bits+i);
-			vec LLR_n  = xor_ps(Bits_l, LLR_l);
+			vec LLR_n  = xor_ps(and_ps(Bits_l, SIGN_MASK), LLR_l);
 			vec LLR_o = add_ps(LLR_r, LLR_n);
 			store_ps(LLRout+i, LLR_o);
 		}
 	}
-#ifdef DEBUGOUTPUT
-	unsigned int *FloatBit = reinterpret_cast<unsigned int*>(Bits);
-	std::cout << "G function: ";
-	for(int i=0; i<size; ++i)
-	{
-		std::cout << '(' << LLRin[i+size] << (FloatBit[i]&0x80000000?'-':'+') << LLRin[i] << '=' << LLRout[i] << ')';
-	}
-	std::cout << endl;
-#endif
 }
 
 void PolarCode::Rate0(float *BitsOut, int size)
 {
-	size>>=1;
 	memset(BitsOut, 0, size*sizeof(float));
 }
 
 void PolarCode::Rate1(float *LLRin, float *BitsOut, int size)
 {
-	size>>=1;
+	unsigned int *iLLR = reinterpret_cast<unsigned int*>(LLRin);
+	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
+
 	for(int i=0; i<size; ++i)
 	{
-		BitsOut[i] = (LLRin[i]<0)?-0.0:0.0;
+		iBit[i] = iLLR[i]&0x80000000;
 	}
 }
 
 void PolarCode::Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int size)
 {
-#ifdef DEBUGOUTPUT
-	std::cout << "Combine " << size << " elements: ";
-#endif
 	size >>= 1;
 	for(int i=0; i<size; i+=FLOATSPERVECTOR)
 	{
@@ -136,18 +117,6 @@ void PolarCode::Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int si
 		store_ps(BitsOut+i, Bitso);
 	}
 	memcpy(BitsOut+size, BitsIn_r, sizeof(float)*size);
-	
-#ifdef DEBUGOUTPUT
-	for(int i=0; i<size; ++i)
-	{
-		std::cout << '(' << BitsIn_l[i] << '^' << BitsIn_r[i] << '=' << BitsOut[i] << ')';
-	}
-	for(int i=0; i<size; ++i)
-	{
-		std::cout << '(' << BitsIn_r[i] << "=>" << BitsOut[i+size] << ')';
-	}
-	std::cout << endl;
-#endif
 }
 
 void PolarCode::SPC(float *LLRin, float *BitsOut, int size)
@@ -273,77 +242,7 @@ PolarCode::PolarCode(int L, float designSNR)
 	
 	
 	pcc();
-	
-	
-	
 
-	
-/*
-	float *testLLR = (float*)_mm_malloc(16 * sizeof(float), sizeof(vec));
-	float *testBits = (float*)_mm_malloc(16 * sizeof(float), sizeof(vec));
-
-	testLLR[0] = 10;
-	testLLR[1] = 5;
-	testLLR[2] = 10;
-	testLLR[3] = 10;
-	testLLR[4] = 10;
-	testLLR[5] = -3;
-	testLLR[6] = 10;
-	testLLR[7] = 10;
-	testLLR[8] = 10;
-	testLLR[9] = 10;
-	testLLR[10] = 10;
-	testLLR[11] = 10;
-	testLLR[12] = -2;
-	testLLR[13] = 10;
-	testLLR[14] = 10;
-	testLLR[15] = 10;
-
-	
-	Repetition(testLLR, testBits, 16);
-	std::cout << "Repetition:" << std::endl;
-	for(int i=0; i<16; ++i)
-	{
-		std::cout << testLLR[i] << " => " << testBits[i] << std::endl;
-	}
-	std::cout << std::endl;
-	
-	testLLR[0] = 10;
-	testLLR[1] = -10;
-	testLLR[2] = -10;
-	testLLR[3] = 10;
-	testLLR[4] = 10;
-	testLLR[5] = -10;
-	testLLR[6] = -10;
-	testLLR[7] = 10;
-	testLLR[8] = 10;
-	testLLR[9] = -10;
-	testLLR[10] = -10;
-	testLLR[11] = 10;
-	testLLR[12] = -2;
-	testLLR[13] = -10;
-	testLLR[14] = -10;
-	testLLR[15] = 10;
-	
-	SPC(testLLR, testBits, 16);
-	std::cout << "SPC:" << std::endl;
-	for(int i=0; i<16; ++i)
-	{
-		std::cout << testLLR[i] << " => " << testBits[i] << std::endl;
-	}
-	std::cout << std::endl;
-	
-	F_function(testLLR, testBits, 16);
-	std::cout << "F:" << std::endl;
-	for(int i=0; i<16; ++i)
-	{
-		std::cout << testLLR[i] << " => " << testBits[i] << std::endl;
-	}
-	std::cout << std::endl;
-	
-	_mm_free(testLLR);
-	_mm_free(testBits);
-*/	
 }
 		
 PolarCode::~PolarCode()
@@ -457,99 +356,8 @@ void PolarCode::pcc()
 			{
 				simplifiedTree[idx] = RateR;
 			}
-/*			std::cout << "Left " << (ctr-2) << " is ";
-			switch(Left)
-			{
-			case RateZero:
-				std::cout << "Rate-0";break;
-			case RateOne:
-				std::cout << "Rate-1";break;
-			case RateHalf:
-				std::cout << "Rate-0.5";break;
-			case RepetitionNode:
-				std::cout << "Repetition";break;
-			case SPCnode:
-				std::cout << "SPC";break;
-			case RateR:
-				std::cout << "Rate-R";break;
-			default:
-				std::cout << "Error";break;
-			}
-			std::cout << std::endl;
-			std::cout << "Right " << (ctr-1) << " is ";
-			switch(Right)
-			{
-			case RateZero:
-				std::cout << "Rate-0";break;
-			case RateOne:
-				std::cout << "Rate-1";break;
-			case RateHalf:
-				std::cout << "Rate-0.5";break;
-			case RepetitionNode:
-				std::cout << "Repetition";break;
-			case SPCnode:
-				std::cout << "SPC";break;
-			case RateR:
-				std::cout << "Rate-R";break;
-			default:
-				std::cout << "Error";break;
-			}
-			std::cout << std::endl;
-			std::cout << "Parent " << (idx) << " is ";
-			switch(simplifiedTree[idx])
-			{
-			case RateZero:
-				std::cout << "Rate-0";break;
-			case RateOne:
-				std::cout << "Rate-1";break;
-			case RateHalf:
-				std::cout << "Rate-0.5";break;
-			case RepetitionNode:
-				std::cout << "Repetition";break;
-			case SPCnode:
-				std::cout << "SPC";break;
-			case RateR:
-				std::cout << "Rate-R";break;
-			default:
-				std::cout << "Error";break;
-			}
-			std::cout << std::endl;
-
-*/
-
-
 		}
-
 	}
-	
-/*	bool nonRfound = false;
-	for(int i=0; i<PCparam_N-1; ++i)
-	{
-		std::cout << "Stage " << floor(log2(i+1)-1) << ", i=" << i << ": ";
-		switch(simplifiedTree[i])
-		{
-		case RateZero:
-			std::cout << "Rate-0";break;
-		case RateOne:
-			std::cout << "Rate-1";break;
-		case RateHalf:
-			std::cout << "Rate-0.5";break;
-		case RepetitionNode:
-			std::cout << "Repetition";break;
-		case SPCnode:
-			std::cout << "SPC";break;
-		case RateR:
-			std::cout << "Rate-R";break;
-		default:
-			std::cout << "Error";break;
-		}
-		std::cout << std::endl;
-		if(simplifiedTree[i] != RateR && !nonRfound)
-		{
-			nonRfound = true;
-			std::cout << "First non-rate-R node!" << std::endl;
-		}
-	}*/
 }
 
 void PolarCode::encode(vector<bool> &encoded, vector<bool> &data)
@@ -576,7 +384,7 @@ void PolarCode::encode(vector<bool> &encoded, vector<bool> &data)
 	
 	//Encode
 	int B, nB, base;
-	for(int i=0; i<n; ++i)
+	for(int i=n-1; i>=0; --i)
 	{
 		B = 1<<(n-i-1);
 		nB = 1<<i;
@@ -603,17 +411,8 @@ void PolarCode::transform(aligned_float_vector &BitsIn, vector<bool> &BitsOut)
 		BitsOut[i] = FloatBit[i]&0x80000000;
 	}
 
-#ifdef DEBUGOUTPUT
-	std::cout << "Tf ";
-	for(int i=0; i<size; ++i)
-	{
-		std::cout << BitsOut[i];
-	}
-	std::cout << std::endl;
-#endif
-
 	int B, nB, base;
-	for(int i=0; i<n; ++i)
+	for(int i=n-1; i>=0; --i)
 	{
 		B = 1<<(n-i-1);
 		nB = 1<<i;
@@ -626,15 +425,6 @@ void PolarCode::transform(aligned_float_vector &BitsIn, vector<bool> &BitsOut)
 			}
 		}
 	}
-	
-#ifdef DEBUGOUTPUT
-	std::cout << "to ";
-	for(int i=0; i<size; ++i)
-	{
-		std::cout << BitsOut[i];
-	}
-	std::cout << std::endl;
-#endif
 }
 
 bool PolarCode::decode(vector<bool> &decoded, vector<float> &initialLLR)
@@ -700,92 +490,49 @@ void PolarCode::decodeOnePathRecursive(int stage, int BitLocation, int nodeID)
 	int rightNode = leftNode+1;
 	int stageLength = 1<<stage;
 	int subStageLength = 1<<(stage-1);
-	if(stage != 0)
-	{	
-		F_function(LLR[0][stage].data(), LLR[0][stage-1].data(), stageLength);
-		switch(simplifiedTree[leftNode])
-		{
-		case RateZero:
-#ifdef DEBUGOUTPUT
-			std::cout << nodeID << ": Left node " << leftNode << " is rate zero of length " << subStageLength << "." << std::endl;
-#endif
-			Rate0(Bits[0][stage-1][0].data(), subStageLength);
-			break;
-		case RateOne:
-#ifdef DEBUGOUTPUT
-			std::cout << nodeID << ": Left node " << leftNode << " is rate one of length " << subStageLength << "." << std::endl;
-#endif
-			Rate1(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
-			break;
-		case RepetitionNode:
-		case RateHalf:
-#ifdef DEBUGOUTPUT
-			std::cout << nodeID << ": Left node " << leftNode << " is repetition of length " << subStageLength << "." << std::endl;
-#endif
-			Repetition(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
-			break;
-		case SPCnode:
-#ifdef DEBUGOUTPUT
-			std::cout << nodeID << ": Left node " << leftNode << " is single parity of length " << subStageLength << "." << std::endl;
-#endif
-			SPC(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
-			break;
-		default:
-#ifdef DEBUGOUTPUT
-			std::cout << nodeID << ": Left node " << leftNode << " is rate R of length " << subStageLength << "." << std::endl;
-#endif
-			decodeOnePathRecursive(stage-1, 0, leftNode);
-		}
 
-		G_function(LLR[0][stage].data(), LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), stageLength);
-		switch(simplifiedTree[rightNode])
-		{
-		case RateZero:
-#ifdef DEBUGOUTPUT
-			std::cout << nodeID << ": Right node " << rightNode << " is rate zero of length " << subStageLength << "." << std::endl;
-#endif
-			Rate0(Bits[0][stage-1][1].data(), subStageLength);
-			break;
-		case RateOne:
-#ifdef DEBUGOUTPUT
-			std::cout << nodeID << ": Right node " << rightNode << " is rate one of length " << subStageLength << "." << std::endl;
-#endif
-			Rate1(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
-			break;
-		case RepetitionNode:
-		case RateHalf:
-#ifdef DEBUGOUTPUT
-			std::cout << nodeID << ": Right node " << rightNode << " is repetition of length " << subStageLength << "." << std::endl;
-#endif
-			Repetition(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
-			break;
-		case SPCnode:
-#ifdef DEBUGOUTPUT
-			std::cout << nodeID << ": Right node " << rightNode << " is single parity of length " << subStageLength << "." << std::endl;
-#endif
-			SPC(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
-			break;
-		default:
-#ifdef DEBUGOUTPUT
-			std::cout << nodeID << ": Right node " << rightNode << " is rate R of length " << subStageLength << "." << std::endl;
-#endif
-			decodeOnePathRecursive(stage-1, 1, rightNode);
-		}
-		Combine(Bits[0][stage-1][0].data(), Bits[0][stage-1][1].data(), Bits[0][stage][BitLocation].data(), 1<<stage);
-	}
-	else
+	F_function(LLR[0][stage].data(), LLR[0][stage-1].data(), stageLength);
+
+	switch(simplifiedTree[leftNode])
 	{
-#ifdef DEBUGOUTPUT
-		std::cout << nodeID << ": This is a last stage bit." << std::endl;
-#endif
-		//Rather complex looking bit decision by reducing the float to its sign bit
-		float number = LLR[0][0][0];
-		unsigned int *A = reinterpret_cast<unsigned int *>(&number);
-		Bits[0][0][BitLocation][0] = *A & 0x80000000;
-#ifdef DEBUGOUTPUT
-		std::cout << nodeID << ": Decided " << Bits[0][0][BitLocation][0] << std::endl;
-#endif
+	case RateZero:
+		Rate0(Bits[0][stage-1][0].data(), subStageLength);
+		break;
+	case RateOne:
+		Rate1(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
+		break;
+	case RepetitionNode:
+	case RateHalf:
+		Repetition(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
+		break;
+	case SPCnode:
+		SPC(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
+		break;
+	default:
+		decodeOnePathRecursive(stage-1, 0, leftNode);
 	}
+
+	G_function(LLR[0][stage].data(), LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), stageLength);
+	switch(simplifiedTree[rightNode])
+	{
+	case RateZero:
+		Rate0(Bits[0][stage-1][1].data(), subStageLength);
+		break;
+	case RateOne:
+		Rate1(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
+		break;
+	case RepetitionNode:
+	case RateHalf:
+		Repetition(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
+		break;
+	case SPCnode:
+		SPC(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
+		break;
+	default:
+		decodeOnePathRecursive(stage-1, 1, rightNode);
+	}
+	
+	Combine(Bits[0][stage-1][0].data(), Bits[0][stage-1][1].data(), Bits[0][stage][BitLocation].data(), 1<<stage);
 }
 
 bool PolarCode::decodeMultiPath(vector<bool> &decoded, vector<float> &initialLLR)
