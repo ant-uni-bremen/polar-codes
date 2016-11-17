@@ -49,7 +49,7 @@ void simulate(int SimIndex)
 	while(runningThreads >= ConcurrentThreads/* && EbN0 < stopSNR[L]*/)
 	{
 //		std::this_thread::yield();
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	
 /*	if(EbN0 >= stopSNR[L])
@@ -232,7 +232,7 @@ int main(int argc, char** argv)
 	Graph = new DataPoint[EbN0_count*nSizes];
 	std::vector<std::thread> Threads;
 	
-	std::ofstream File("../results/SimulatedDataIntrin,N=128,K=64+8.csv");
+	std::ofstream File("../results/SimulatedDataSpecialized,N=128,R=0.5.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;

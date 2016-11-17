@@ -36,7 +36,6 @@ template <typename T> int sgn(T val) {
 
 void PolarCode::F_function(float *LLRin, float *LLRout, int size)
 {
-	size >>= 1;
 	if(size <= 4)
 	{
 		float a,b;
@@ -64,7 +63,6 @@ void PolarCode::F_function(float *LLRin, float *LLRout, int size)
 
 void PolarCode::G_function(float *LLRin, float *LLRout, float *Bits, int size)
 {
-	size >>= 1;
 	if(size <= 4)
 	{
 		unsigned int *FloatBit = reinterpret_cast<unsigned int*>(Bits);
@@ -108,7 +106,6 @@ void PolarCode::Rate1(float *LLRin, float *BitsOut, int size)
 
 void PolarCode::Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int size)
 {
-	size >>= 1;
 	for(int i=0; i<size; i+=FLOATSPERVECTOR)
 	{
 		vec Bitsl = load_ps(BitsIn_l+i);
@@ -292,9 +289,10 @@ unsigned int PolarCode::bitreversed_slow(unsigned int j)
 
 void PolarCode::pcc()
 {
+	vector<float> zz(PCparam_N, 0.0);
 	vector<float> z(PCparam_N, 0.0);
 	float designSNRlin = pow(10.0, designSNR/10.0);
-	z[0] = -((double)PCparam_K/PCparam_N)*designSNRlin;
+	zz[0] = -((double)PCparam_K/PCparam_N)*designSNRlin;
 	
 	
 	float T; int B;
@@ -303,10 +301,15 @@ void PolarCode::pcc()
 		B = 1<<lev;//pow(2, lev);
 		for(int j = 0; j < B; ++j)
 		{
-			T = z[j];
-			z[j] = logdomain_diff(log(2.0)+T, 2*T);
-			z[j+B] = 2*T;
+			T = zz[j];
+			zz[j] = logdomain_diff(log(2.0)+T, 2*T);
+			zz[j+B] = 2*T;
 		}
+	}
+	
+	for(int i=0; i<PCparam_N; ++i)
+	{
+		z[i] = zz[bitreversed_slow(i)];
 	}
 	
 	trackingSorter sorter(z);
@@ -453,7 +456,9 @@ bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 		LLR[0][n][i] = initialLLR[i];
 	}
 	
-	decodeOnePathRecursive(n,0,0);
+//	decodeOnePathRecursive(n,0,0);
+
+#include "SpecialDecoder.cpp"
 	
 	vector<bool> Dhat(PCparam_N);
 	
