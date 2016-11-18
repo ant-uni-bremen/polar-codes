@@ -232,7 +232,7 @@ int main(int argc, char** argv)
 	Graph = new DataPoint[EbN0_count*nSizes];
 	std::vector<std::thread> Threads;
 	
-	std::ofstream File("../results/SimulatedDataSpecialized,N=128,R=0.5.csv");
+	std::ofstream File("../results/SimulatedDataSpecialized,N=1024,K=512.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;

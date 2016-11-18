@@ -108,10 +108,13 @@ struct PolarCode
 	void transform(aligned_float_vector &BitsIn, vector<bool> &BitsOut);
 	
 	void F_function(float *LLRin, float *LLRout, int size);
+	void F_function_vectorized(float *LLRin, float *LLRout, int size);
 	void G_function(float *LLRin, float *LLRout, float *Bits, int size);
+	void G_function_vectorized(float *LLRin, float *LLRout, float *Bits, int size);
 	void Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int size);
 	void SPC(float *LLRin, float *BitsOut, int size);
 	void Repetition(float *LLRin, float *BitsOut, int size);
+	void Repetition_vectorized(float *LLRin, float *BitsOut, int size);
 	void Rate0(float *BitsOut, int size);
 	void Rate1(float *LLRin, float *BitsOut, int size);
 	

@@ -2,12 +2,13 @@
 #include <vector>
 #include <fstream>
 #include <cmath>
+#include <string>
 
 #include "../ArrayFuncs.h"
 
 const float designSNR = 0.0;
-#define PCparam_N 128
-#define PCparam_K 72
+#define PCparam_N 1024
+#define PCparam_K 512
 
 enum nodeInfo
 {
@@ -36,8 +37,15 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 	int leftNode  = (nodeID<<1)+1;
 	int rightNode = leftNode+1;
 	int subStageLength = 1<<(stage-1);
+	
+	string vectorized = "";
+	if(subStageLength >= 8)
+	{
+		vectorized = "_vectorized";
+	}
+	
 
-	File << "F_function(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
+	File << "F_function" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
 
 	switch(simplifiedTree[leftNode])
 	{
@@ -49,7 +57,7 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 		break;
 	case RepetitionNode:
 	case RateHalf:
-		File << "Repetition(LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][0].data(), " << subStageLength << ");" << endl;
+		File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][0].data(), " << subStageLength << ");" << endl;
 		break;
 	case SPCnode:
 		File << "SPC(LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][0].data(), " << subStageLength << ");" << endl;
@@ -58,7 +66,7 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 		printDecoder(stage-1, 0, leftNode);
 	}
 
-	File << "G_function(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][0].data(), " << subStageLength << ");" << endl;
+	File << "G_function" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][0].data(), " << subStageLength << ");" << endl;
 	switch(simplifiedTree[rightNode])
 	{
 	case RateZero:
@@ -69,7 +77,7 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 		break;
 	case RepetitionNode:
 	case RateHalf:
-		File << "Repetition(LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][1].data(), " << subStageLength << ");" << endl;
+		File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][1].data(), " << subStageLength << ");" << endl;
 		break;
 	case SPCnode:
 		File << "SPC(LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][1].data(), " << subStageLength << ");" << endl;
