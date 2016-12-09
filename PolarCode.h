@@ -72,11 +72,19 @@ enum nodeInfo
 	RateR
 };
 
+struct Candidate
+{
+	int srcPath;//="currentPath"
+	int decisionIndex;//=decision path index of respective constituent decoder
+	float newMetric;
+	int hints[4], nHints;
+};
+
 struct PolarCode
 {
 	float *AlignedVector;
 	vec SIGN_MASK;
-	int L, n;
+	int N, K, L, n;
 	vector<int> FZLookup;
 	float designSNR;
 	
@@ -88,38 +96,51 @@ struct PolarCode
 	vector<vector<vector<aligned_float_vector>>> Bits;//[List][Stage][LeftRight][ValueIndex]
 	vector<float> Metric;
 	int PathCount;
-	vector<float> NextMetric;
-	vector<bool> NextPaths;
 	
-	PolarCode(int L, float designSNR);
+	PolarCode(int N, int K, int L, float designSNR);
 	~PolarCode();
-	
-	/*
-		K must be a multiple of 8
-		data has to be eight bits shorter than K, reserving
-		space for the CRC8-checksum
-	*/
+
 	void encode(vector<bool> &encoded, vector<bool> &data);
 	bool decode(vector<bool> &decoded, vector<float> &LLR);
 	bool decodeOnePath(vector<bool> &decoded, vector<float> &LLR);
 	bool decodeMultiPath(vector<bool> &decoded, vector<float> &LLR);
 	
 	void decodeOnePathRecursive(int stage, int BitLocation, int nodeID);
+	void decodeMultiPathRecursive(int stage, int BitLocation, int nodeID);
 	void transform(aligned_float_vector &BitsIn, vector<bool> &BitsOut);
+	
 	
 	void F_function(float *LLRin, float *LLRout, int size);
 	void F_function_vectorized(float *LLRin, float *LLRout, int size);
+	void F_function_hybrid(float *LLRin, float *LLRout, int size);
+	
 	void G_function(float *LLRin, float *LLRout, float *Bits, int size);
 	void G_function_vectorized(float *LLRin, float *LLRout, float *Bits, int size);
+	void G_function_hybrid(float *LLRin, float *LLRout, float *Bits, int size);
+	
+	void G_function_0R(float *LLRin, float *LLRout, int size);
+	void G_function_0R_vectorized(float *LLRin, float *LLRout, int size);
+	void G_function_0R_hybrid(float *LLRin, float *LLRout, int size);
+
 	void Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int size);
+	
+	void Combine_0R(float *BitsIn_r, float *BitsOut, int size);
+
 	void SPC(float *LLRin, float *BitsOut, int size);
+	void SPC_multiPath(int stage, int BitLocation);
+
 	void Repetition(float *LLRin, float *BitsOut, int size);
 	void Repetition_vectorized(float *LLRin, float *BitsOut, int size);
+	void Repetition_hybrid(float *LLRin, float *BitsOut, int size);
+	void Repetition_multiPath(int stage, int BitLocation);
+	
+
 	void Rate0(float *BitsOut, int size);
+	void Rate0_multiPath(int stage, int BitLocation);
 	void Rate1(float *LLRin, float *BitsOut, int size);
-	
-	
-	
+	void Rate1_multiPath(int stage, int BitLocation);
+
+
 	unsigned int bitreversed_slow(unsigned int j);
 	void pcc();
 	void resetMemory();

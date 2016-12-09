@@ -1,6 +1,7 @@
 #include "ArrayFuncs.h"
 
 #include <cassert>
+#include <algorithm>
 #include <utility>
 
 trackingSorter::trackingSorter()
@@ -23,6 +24,22 @@ void trackingSorter::set(std::vector<float> &arr)
 	unset();
 	size = arr.size();
 	sorted = arr;
+	permuted.reserve(size);
+	for(int i=0; i<size; ++i)
+	{
+		permuted[i] = i;
+	}
+}
+
+void trackingSorter::set(aligned_float_vector &arr, int size)
+{
+	unset();
+	this->size = size;
+	sorted.resize(size);
+	for(int i=0; i<size; ++i)
+	{
+		sorted[i] = arr[i];
+	}
 	permuted.reserve(size);
 	for(int i=0; i<size; ++i)
 	{

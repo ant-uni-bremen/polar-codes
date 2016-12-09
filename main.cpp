@@ -19,14 +19,14 @@
 #include "Parameters.h"
 
 
-std::atomic<int> runningThreads(0), finishedThreads(0);
-std::map<int, std::atomic<float>> stopSNR;
+std::atomic<int> nextThread(-1), finishedThreads(0);
+//std::map<int, std::atomic<float>> stopSNR;
 
 struct DataPoint
 {
-	float EbN0; int L;
+	float designSNR, EbN0; int N,K,L;
 	int runs, errors;
-	float BLER;
+	float BLER, BER;
 	float time;//in seconds
 	float blps,cbps,pbps;//blocks/coded bits/payload bits per second
 	float effectiveRate;
@@ -38,15 +38,15 @@ void simulate(int SimIndex)
 	using namespace std::chrono;
 	
 	int L = Graph[SimIndex].L;
-	float designSNR = 0.0;//dB
+	float designSNR = Graph[SimIndex].designSNR;//dB
 	float EbN0 = Graph[SimIndex].EbN0;//dB
 	
-	float R = (float)PCparam_K/PCparam_N;
+	float R = (float)Graph[SimIndex].K / Graph[SimIndex].N;
 	
-	int runs = 0, errors = 0;
+	int runs = 0, errors = 0, biterrors = 0;
 	char message[128];
 	
-	while(runningThreads >= ConcurrentThreads/* && EbN0 < stopSNR[L]*/)
+	while(SimIndex > nextThread/* && EbN0 < stopSNR[L]*/)
 	{
 //		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -81,30 +81,30 @@ void simulate(int SimIndex)
 		return;
 	}*/
 	
-	++runningThreads;
+//	++runningThreads;
 	
 	sprintf(message, "[%3d] Generating samples for Eb/N0 = %f dB\n", SimIndex, EbN0);
 	std::cout << message;
 
 	//Encoder
-	PolarCode PC(L, designSNR);
+	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, L, designSNR);
 
 #ifdef CRCSIZE
-	int nBits = (PCparam_K-CRCSIZE);
+	int nBits = (Graph[SimIndex].K-CRCSIZE);
 #else
-	int nBits = PCparam_K;
+	int nBits = Graph[SimIndex].K;
 #endif
 
 	default_random_engine RndGen(1);
 	uniform_int_distribution<unsigned char> RndDist(0, 255);
 	normal_distribution<float> NormDist(0.0, 1.0);
 	vector<vector<bool>> data(MaxIters, vector<bool>(nBits,false));
-	vector<vector<bool>> decodedData(MaxIters, vector<bool>(PCparam_K,false));
+	vector<vector<bool>> decodedData(MaxIters, vector<bool>(Graph[SimIndex].K,false));
 	vector<bool> decodingSuccess(MaxIters, false);
-	vector<bool> encodedData(PCparam_N, false);
+	vector<bool> encodedData(Graph[SimIndex].N, false);
 	
-	vector<float> sig(PCparam_N,0.0);
-	vector<vector<float>> LLR(MaxIters, vector<float>(PCparam_N, 0.0));
+	vector<float> sig(Graph[SimIndex].N,0.0);
+	vector<vector<float>> LLR(MaxIters, vector<float>(Graph[SimIndex].N, 0.0));
 	//vector<bool> decodedData(PCparam_N,false);
 	
 	for(int block = 0; block<MaxIters; ++block)
@@ -127,7 +127,7 @@ void simulate(int SimIndex)
 		float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
 //		std::complex<float> channelCoeff, noise, sample;
 		
-		for(int i=0; i<PCparam_N; ++i)
+		for(int i=0; i<Graph[SimIndex].N; ++i)
 		{
 /*			sample.real(sig[block][i]*factor);
 			sample.imag(0.0);
@@ -173,26 +173,24 @@ void simulate(int SimIndex)
 	duration<float> TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
 	float time = TimeUsed.count();
 
-	sprintf(message, "[%3d] Checking for undetected errors\n", SimIndex);
+	sprintf(message, "[%3d] Counting BER\n", SimIndex);
 	std::cout << message;
 
+	errors = 0;
+	
 	for(int block=0; block<runs; ++block)
 	{
-		if(decodingSuccess[block])
+		bool errorFound = false;
+		for(int i=0; i<nBits; ++i)
 		{
-			for(int i=0; i<nBits; ++i)
+			if(decodedData[block][i] != data[block][i])
 			{
-#ifdef DEBUGOUTPUT
-				std::cout << data[block][i] << " => " << decodedData[block][i] << ((decodedData[block][i] != data[block][i])?"F":"") << std::endl;
-#endif
-				if(decodedData[block][i] != data[block][i])
+				if(!errorFound)
 				{
-#ifdef DEBUGOUTPUT
-					std::cout << "Undetected Error" << std::endl;
-#endif
 					++errors;
-					break;
+					errorFound = true;
 				}
+				++biterrors;
 			}
 		}
 		decodedData[block].clear();
@@ -202,9 +200,11 @@ void simulate(int SimIndex)
 	Graph[SimIndex].errors = errors;
 	Graph[SimIndex].BLER = errors;
 	Graph[SimIndex].BLER /= runs;
+	Graph[SimIndex].BER = biterrors;
+	Graph[SimIndex].BER /= runs*nBits;
 	Graph[SimIndex].time = time;
 	Graph[SimIndex].blps = runs;
-	Graph[SimIndex].cbps = runs*PCparam_N;
+	Graph[SimIndex].cbps = runs*Graph[SimIndex].N;
 	Graph[SimIndex].pbps = runs*nBits;
 	Graph[SimIndex].blps /= time;
 	Graph[SimIndex].cbps /= time;
@@ -213,26 +213,29 @@ void simulate(int SimIndex)
 	
 	
 	
-	if(runs == MaxIters && EbN0 < stopSNR[L])
+/*	if(runs == MaxIters && EbN0 < stopSNR[L])
 	{
 		stopSNR[L] = EbN0;
-	}
+	}*/
 	
 	int finished = ++finishedThreads;
-	sprintf(message, "[%3d] %3d Threads finished\n", SimIndex, finished);
+	sprintf(message, "[%3d] %3d Threads finished, BLER = %e\n", SimIndex, finished, Graph[SimIndex].BLER);
 	std::cout << message;
 	
-	--runningThreads;
+//	--runningThreads;
+	++nextThread;
 }
 
 
 int main(int argc, char** argv)
 {
-	int Sizes[] = {1/*, 2, 4, 8, 16*/}, nSizes = 1;
-	Graph = new DataPoint[EbN0_count*nSizes];
+	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
+//	float Parameter[] = {4, 4.5, 5, 5.5, 6}; int nParams = 5;
+
+	Graph = new DataPoint[EbN0_count*nParams];
 	std::vector<std::thread> Threads;
 	
-	std::ofstream File("../results/SimulatedDataSpecialized,N=1024,K=512.csv");
+	std::ofstream File("../results/Simulation,N=128,K=16.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;
@@ -241,13 +244,19 @@ int main(int argc, char** argv)
 
 
 	int idCounter = 0;
-	for(int l=0; l<nSizes; ++l)
+	for(int l=0; l<nParams; ++l)
 	{
-		stopSNR[Sizes[l]] = INFINITY;
+//		stopSNR[designSNRs[l]] = INFINITY;
 		for(int i=0; i<EbN0_count; ++i)
 		{
 			Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
-			Graph[idCounter].L = Sizes[l];
+			Graph[idCounter].N = 128;
+			Graph[idCounter].K = 16;
+			Graph[idCounter].L = Parameter[l];
+			Graph[idCounter].designSNR = 0.0;
+			//Graph[idCounter].L = 1;
+			//Graph[idCounter].designSNR = Parameter[l];
+			
 #ifndef __DEBUG__
 			Threads.push_back(std::thread(simulate, idCounter++));
 #else
@@ -256,6 +265,8 @@ int main(int argc, char** argv)
 		}
 	}
 
+	nextThread = ConcurrentThreads-1;
+
 #ifndef __DEBUG__
 	for(auto& Thr : Threads)
 	{
@@ -263,26 +274,37 @@ int main(int argc, char** argv)
 	}
 #endif
 	
-	File << "\"L\",""\"Eb/N0\", \"Rate\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"designSNR\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
-	for(int i=0; i<EbN0_count*nSizes; ++i)
+	for(int i=0; i<EbN0_count*nParams; ++i)
 	{
 		File << Graph[i].L << ',' << Graph[i].EbN0 << ',';
 		if(Graph[i].BLER>0.0)
 		{
-			File << Graph[i].BLER;
+			File << Graph[i].BLER << ',';
 		}
 		else
 		{
-			File << "\" \"";
+			File << "\" \",";
 		}
-		File << ','
-		     << Graph[i].runs << ',' << Graph[i].errors << ','
+		if(Graph[i].BER>0.0)
+		{
+			File << Graph[i].BER << ',';
+		}
+		else
+		{
+			File << "\" \",";
+		}
+		File << Graph[i].runs << ',' << Graph[i].errors << ','
 		     << Graph[i].time << ',' << Graph[i].blps << ','
 		     << Graph[i].cbps << ',' << Graph[i].pbps << ',';
 		if(Graph[i].effectiveRate != 0)
 		{
 			File << Graph[i].effectiveRate;
+		}
+		else
+		{
+			File << "\" \"";
 		}
 		File << std::endl;
 	}

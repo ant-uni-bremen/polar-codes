@@ -2,6 +2,7 @@
 #define ARRAYFUNCS_H
 
 #include <vector>
+#include "AlignedAllocator.h"
 
 struct trackingSorter
 {
@@ -12,6 +13,7 @@ struct trackingSorter
 	trackingSorter(std::vector<float> &arr);
 	~trackingSorter();
 	void set(std::vector<float> &arr);
+	void set(aligned_float_vector &arr, int size);
 	void unset();
 	void sort();
 	

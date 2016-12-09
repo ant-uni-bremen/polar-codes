@@ -1,23 +1,25 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#include "SpecialParameters.h"
 #define CRCSIZE 8
 
 #define EbN0_min    0.0
 #define EbN0_max    6.0
-#define EbN0_count 10
+#define EbN0_count 20
+
 
 #define ConcurrentThreads 3
 
-#define MinErrors     1000
-#define MinIters     10000
-#define MaxIters    100000
+#define MinErrors     10000
+#define MinIters      50000
+#define MaxIters     100000
+
+//#define ONLY_SCDECODING
 
 #ifdef __DEBUG__
 //Can be commented out to suppress debugging output:
-#define RATEONEDEBUGOUTPUT
-#define DEBUGOUTPUT
+//#define RATEONEDEBUGOUTPUT
+//#define DEBUGOUTPUT
 #endif
 
 
