@@ -4,8 +4,19 @@
 #include <vector>
 #include "AlignedAllocator.h"
 
-struct trackingSorter
+class trackingSorter
 {
+private:
+	void generateMaxHeap();
+	void versenke(int i, int n);
+	void quicksort(int lo, int hi);
+	void quicksortDescending(int lo, int hi);
+	void partialQuicksort(int lo, int hi, int size);
+	void partialQuicksortDescending(int lo, int hi, int size);
+	int partition(int lo, int hi);
+	int partitionDescending(int lo, int hi);
+
+public:
 	std::vector<float> sorted;
 	std::vector<int> permuted;
 	int size;
@@ -16,10 +27,13 @@ struct trackingSorter
 	void set(aligned_float_vector &arr, int size);
 	void unset();
 	void sort();
+	void sortDescending();
+	void stableSort();
+	void partialSort(int n);
+	void partialSortDescending(int n);
 	
-	void generateMaxHeap();
-	void versenke(int i, int n);
 };
+
 
 void Bits2Bytes(unsigned char *bits, unsigned char *bytes, int nBytes);
 void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes);

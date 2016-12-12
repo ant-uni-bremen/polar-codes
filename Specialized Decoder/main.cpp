@@ -6,11 +6,11 @@
 
 #define SPECIALPARAMETERS_H
 #define PCparam_N 128
-#define PCparam_K 16
+#define PCparam_K 72
 
 #include "../ArrayFuncs.h"
 
-const float designSNR = 0.0;
+const float designSNR = 5.0;
 
 enum nodeInfo
 {
@@ -19,6 +19,7 @@ enum nodeInfo
 	RateHalf,
 	RepetitionNode,
 	SPCnode,
+	RepSPCnode,
 	RateR
 };
 
@@ -67,6 +68,9 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 	case SPCnode:
 		File << "SPC(LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][0].data(), " << subStageLength << ");" << endl;
 		break;
+	case RepSPCnode:
+		File << "RepSPC(LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][0].data(), " << subStageLength << ", Bits[0][" << (stage-2) << "][0].data(), Bits[0][" << (stage-2) << "][1].data());" << endl;
+		break;
 	default:
 		printDecoder(stage-1, 0, leftNode);
 	}
@@ -97,6 +101,9 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 	case SPCnode:
 		File << "SPC(LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][1].data(), " << subStageLength << ");" << endl;
 		break;
+	case RepSPCnode:
+		File << "RepSPC(LLR[0][" << (stage-1) << "].data(), Bits[0][" << (stage-1) << "][1].data(), " << subStageLength << ", Bits[0][" << (stage-2) << "][0].data(), Bits[0][" << (stage-2) << "][1].data());" << endl;
+		break;
 	default:
 		printDecoder(stage-1, 1, rightNode);
 	}
@@ -125,7 +132,7 @@ unsigned int bitreversed_slow(unsigned int j, unsigned int n)
 
 int main(void)
 {
-	unsigned int n = log2(PCparam_N);
+	int n = log2(PCparam_N);
 	FZLookup.reserve(PCparam_N);
 	simplifiedTree.reserve(2*PCparam_N-1);
 
@@ -166,7 +173,7 @@ int main(void)
 	}*/
 	
 	trackingSorter sorter(z);
-	sorter.sort();
+	sorter.stableSort();
 	
 	for(int i = 0; i<PCparam_K; ++i)
 	{
@@ -205,6 +212,10 @@ int main(void)
 			else if(Left == RateZero && Right == RateOne && lev==n-1)
 			{
 				simplifiedTree[idx] = RateHalf;
+			}
+			else if(Left == RepetitionNode && Right == SPCnode)
+			{
+				simplifiedTree[idx] = RepSPCnode;
 			}
 			else
 			{

@@ -63,6 +63,149 @@ void trackingSorter::sort()
 		std::swap(permuted[i], permuted[0]);
 		versenke(0, i);
 	}
+//	quicksort(0, size-1);
+}
+
+void trackingSorter::stableSort()
+{
+	float x;
+	int j,y;
+	for(int i=1; i<size; ++i)
+	{
+		x = sorted[i];
+		y = permuted[i];
+		j = i-1;
+		while(j>=0 && sorted[j] > x)
+		{
+			sorted[j+1] = sorted[j];
+			permuted[j+1] = permuted[j];
+			j--;
+		}
+		sorted[j+1] = x;
+		permuted[j+1] = y;
+	}
+}
+
+void trackingSorter::partialSort(int n)
+{
+	partialQuicksort(0, size-1, n);
+}
+
+void trackingSorter::partialSortDescending(int n)
+{
+	partialQuicksortDescending(0, size-1, n);
+}
+
+
+void trackingSorter::sortDescending()
+{
+/*	float x;
+	int j,y;
+	for(int i=1; i<size; ++i)
+	{
+		x = sorted[i];
+		y = permuted[i];
+		j = i-1;
+		while(j>=0 && sorted[j] < x)
+		{
+			sorted[j+1] = sorted[j];
+			permuted[j+1] = permuted[j];
+			j--;
+		}
+		sorted[j+1] = x;
+		permuted[j+1] = y;
+	}*/
+	quicksortDescending(0, size-1);
+}
+
+void trackingSorter::quicksort(int lo, int hi)
+{
+	if(lo<hi)
+	{
+		int p = partition(lo, hi);
+		quicksort(lo, p);
+		quicksort(p+1, hi);
+	}
+}
+
+void trackingSorter::quicksortDescending(int lo, int hi)
+{
+	if(lo<hi)
+	{
+		int p = partitionDescending(lo, hi);
+		quicksortDescending(lo, p);
+		quicksortDescending(p+1, hi);
+	}
+}
+
+void trackingSorter::partialQuicksort(int lo, int hi, int size)
+{
+	if(lo < hi)
+	{
+		int p = partition(lo, hi);
+		partialQuicksort(lo, p, size);
+		if(p<size-1)
+		{
+			partialQuicksort(p+1, hi, size);
+		}
+	}
+}
+
+void trackingSorter::partialQuicksortDescending(int lo, int hi, int size)
+{
+	if(lo < hi)
+	{
+		int p = partitionDescending(lo, hi);
+		partialQuicksortDescending(lo, p, size);
+		if(p<size-1)
+		{
+			partialQuicksortDescending(p+1, hi, size);
+		}
+	}
+}
+
+int trackingSorter::partition(int lo, int hi)
+{
+	float piv = sorted[lo];
+	int i = lo - 1;
+	int j = hi + 1;
+	for(;;)
+	{
+		do{
+			++i;
+		}while(sorted[i] < piv);
+		
+		do{
+			--j;
+		}while(sorted[j] > piv);
+		
+		if(i>=j) return j;
+		
+		std::swap(sorted[i], sorted[j]);
+		std::swap(permuted[i], permuted[j]);
+	}
+}
+
+int trackingSorter::partitionDescending(int lo, int hi)
+{
+	float piv = sorted[lo];
+	int i = lo - 1;
+	int j = hi + 1;
+	for(;;)
+	{
+		do{
+			++i;
+		}while(sorted[i] > piv);
+		
+		do{
+			--j;
+		}while(sorted[j] < piv);
+		
+		if(i>=j) return j;
+		
+		std::swap(sorted[i], sorted[j]);
+		std::swap(permuted[i], permuted[j]);
+	}
 }
 
 void trackingSorter::generateMaxHeap()

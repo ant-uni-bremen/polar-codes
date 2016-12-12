@@ -69,6 +69,7 @@ enum nodeInfo
 	RateHalf,
 	RepetitionNode,
 	SPCnode,
+	RepSPCnode,
 	RateR
 };
 
@@ -83,7 +84,7 @@ struct Candidate
 struct PolarCode
 {
 	float *AlignedVector;
-	vec SIGN_MASK;
+	vec SIGN_MASK, ABS_MASK;
 	int N, K, L, n;
 	vector<int> FZLookup;
 	float designSNR;
@@ -109,6 +110,7 @@ struct PolarCode
 	void decodeMultiPathRecursive(int stage, int BitLocation, int nodeID);
 	void transform(aligned_float_vector &BitsIn, vector<bool> &BitsOut);
 	
+	void quick_abs(float *LLRin, float *LLRout, int size);
 	
 	void F_function(float *LLRin, float *LLRout, int size);
 	void F_function_vectorized(float *LLRin, float *LLRout, int size);
@@ -133,6 +135,8 @@ struct PolarCode
 	void Repetition_vectorized(float *LLRin, float *BitsOut, int size);
 	void Repetition_hybrid(float *LLRin, float *BitsOut, int size);
 	void Repetition_multiPath(int stage, int BitLocation);
+	
+	void RepSPC(float *LLRin, float *BitsOut, int size, float *BitsLeft, float *BitsRight);
 	
 
 	void Rate0(float *BitsOut, int size);

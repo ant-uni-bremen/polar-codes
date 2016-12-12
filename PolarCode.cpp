@@ -150,13 +150,28 @@ void PolarCode::Rate1(float *LLRin, float *BitsOut, int size)
 
 void PolarCode::Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int size)
 {
-	for(int i=0; i<size; i+=FLOATSPERVECTOR)
+/*	if(size >= 8)
+	{*/
+		for(int i=0; i<size; i+=FLOATSPERVECTOR)
+		{
+			vec Bitsl = load_ps(BitsIn_l+i);
+			vec Bitsr = load_ps(BitsIn_r+i);
+			vec Bitso = xor_ps(Bitsl, Bitsr);
+			store_ps(BitsOut+i, Bitso);
+//			store_ps(BitsOut+size+i, Bitsr);
+		}
+/*	}
+	else
 	{
-		vec Bitsl = load_ps(BitsIn_l+i);
-		vec Bitsr = load_ps(BitsIn_r+i);
-		vec Bitso = xor_ps(Bitsl, Bitsr);
-		store_ps(BitsOut+i, Bitso);
-	}
+		unsigned int *inlptr = reinterpret_cast<unsigned int*>(BitsIn_l),
+		             *inrptr = reinterpret_cast<unsigned int*>(BitsIn_r),
+		             *outptr = reinterpret_cast<unsigned int*>(BitsOut);
+		for(int i=0; i<size; i++)
+		{
+			outptr[i] = inlptr[i]^inrptr[i];
+			outptr[i+size] = inrptr[i];
+		}
+	}*/
 	memcpy(BitsOut+size, BitsIn_r, sizeof(float)*size);
 }
 
@@ -164,6 +179,10 @@ void PolarCode::Combine_0R(float *BitsIn_r, float *BitsOut, int size)
 {
 	memcpy(BitsOut,      BitsIn_r, sizeof(float)*size);
 	memcpy(BitsOut+size, BitsIn_r, sizeof(float)*size);
+/*	for(int i=0; i<size; ++i)
+	{
+		BitsOut[i+size] = BitsOut[i] = BitsIn_r[i];
+	}*/
 }
 
 
@@ -198,6 +217,81 @@ void PolarCode::SPC(float *LLRin, float *BitsOut, int size)
 	}
 }
 
+void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size, float *BitsLeft, float *BitsRight)
+{
+	unsigned int subSize = size>>1;
+	
+//	unsigned int *SPC0 = new unsigned int[subSize]();
+//	unsigned int *SPC1 = new unsigned int[subSize]();
+	unsigned int *SPC0 = reinterpret_cast<unsigned int*>(BitsLeft);
+	unsigned int *SPC1 = reinterpret_cast<unsigned int*>(BitsRight);
+	unsigned int *decidedSPC;
+	float RepSum = 0.0;
+	
+	float a, absA, minA = INFINITY,
+	      b, absB, minB = INFINITY;
+	unsigned int indA = 0, parA = 0,
+	             indB = 0, parB = 0;
+	
+	unsigned int *ia = reinterpret_cast<unsigned int*>(&a);
+	unsigned int *ib = reinterpret_cast<unsigned int*>(&b);
+	unsigned int *iRepSum = reinterpret_cast<unsigned int*>(&RepSum);
+		
+	for(unsigned int i=0; i<subSize; ++i)
+	{
+		//Prepare the LLRs for i-th bit
+		a = LLRin[i];
+		b = LLRin[i+subSize];
+		absA = fabs(a);
+		absB = fabs(b);
+		
+		//Accumulate the value for Repetition code
+		RepSum += sgn(a) * sgn(b) * fmin(absA,absB);
+		
+		//Find least reliable bit for SPC code
+		if(absA < minA)
+		{
+			minA = absA;
+			indA = i;
+		}
+		if(absB < minB)
+		{
+			minB = absB;
+			indB = i;
+		}
+		
+		//Decide both possibilities for SPC code
+		a = LLRin[i+subSize] + LLRin[i];
+		b = LLRin[i+subSize] - LLRin[i];
+		SPC0[i] = *ia & 0x80000000;
+		SPC1[i] = *ib & 0x80000000;
+		//and update the parity check
+		parA ^= SPC0[i];
+		parB ^= SPC1[i];
+	}
+	
+	//Hard decision for repetition code
+	*iRepSum &= 0x80000000;
+	
+	//Decide, which SPC-bits and parity bit to use
+	decidedSPC = *iRepSum ? SPC1 : SPC0;
+	unsigned int parity = *iRepSum ? parB : parA;
+	unsigned int index = *iRepSum ? indB : indA;
+	
+	//Flip the the least reliable bit
+	decidedSPC[index] ^= parity;
+	
+	//Save the decisions
+	unsigned int *iBitsOut = reinterpret_cast<unsigned int*>(BitsOut);
+	for(unsigned int i=0; i<subSize; ++i)
+	{
+		iBitsOut[i] = *iRepSum ^ decidedSPC[i];
+		iBitsOut[i+subSize] = decidedSPC[i];
+	}
+	
+//	delete[] SPC0;
+//	delete[] SPC1;
+}
 
 
 
@@ -261,6 +355,13 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR)
 {
 	AlignedVector = (float*)_mm_malloc(FLOATSPERVECTOR * sizeof(float), sizeof(vec));
 	SIGN_MASK = set1_ps(-0.0);
+	
+	{
+		float absmask; unsigned int *absptr=reinterpret_cast<unsigned int*>(&absmask);
+		*absptr = 0x7FFFFFFF;
+		ABS_MASK = set1_ps(absmask);
+	}
+	
 	this->N = N;
 	this->K = K;
 	this->L = L;
@@ -269,8 +370,8 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR)
 	n = ceil(log2(N));
 
 	//Initialize all the arrays
-	FZLookup.reserve(N);
-	simplifiedTree.reserve(2*N-1);
+	FZLookup.resize(N);
+	simplifiedTree.resize(2*N-1);
 
 	resetMemory();
 	
@@ -282,8 +383,6 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR)
 PolarCode::~PolarCode()
 {
 	_mm_free(AlignedVector);
-	Bits.clear();
-	LLR.clear();
 }
 
 void PolarCode::resetMemory()
@@ -296,17 +395,18 @@ void PolarCode::resetMemory()
 //	for(int list=0; list<L; ++list)
 //	{
 	int list = 0;
+//		LLR[list].clear();
+//		Bits[list].clear();
 		LLR[list].resize(n+1);
 		Bits[list].resize(n+1);
 		for(int stage=0; stage<=n; ++stage)
 		{
 			LLR[list][stage].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);		
 			
+//			Bits[list][stage].clear();
 			Bits[list][stage].resize(2);
-			for(int leaf=0; leaf<2; ++leaf)
-			{
-				Bits[list][stage][leaf].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);
-			}
+			Bits[list][stage][0].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);
+			Bits[list][stage][1].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);
 		}
 //	}
 }
@@ -358,11 +458,16 @@ void PolarCode::pcc()
 		z[i] = zz[bitreversed_slow(i)];
 	}*/
 	
+	
 	trackingSorter sorter(z);
-	sorter.sort();
+	sorter.stableSort();
 	
 	for(int i = 0; i<K; ++i)
 	{
+		if(sorter.sorted[i] == 0)
+		{
+			std::cout << "Caution: Lookup uses unreliable channel " << sorter.permuted[i] << " for designSNR of " << designSNR << "!" << std::endl;
+		}
 		FZLookup[sorter.permuted[i]] = true;//Bit is available for user data
 		simplifiedTree[N-1+sorter.permuted[i]] = nodeInfo::RateOne;
 	}
@@ -401,6 +506,10 @@ void PolarCode::pcc()
 			else if(Left == RateZero && Right == RateOne && lev==n-1)
 			{
 				simplifiedTree[idx] = RateHalf;
+			}
+			else if(Left == RepetitionNode && Right == SPCnode)
+			{
+				simplifiedTree[idx] = RepSPCnode;
 			}
 			else
 			{
@@ -519,7 +628,7 @@ bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 #include "SpecialDecoder.cpp"
 
 #endif
-	
+
 	vector<bool> Dhat(N);
 	
 	transform(Bits[0][n][0], Dhat);
@@ -544,6 +653,9 @@ bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 
 
 	L = backupL;
+	
+/*	Bits.clear();
+	LLR.clear();*/
 
 	
 	return success;
@@ -575,6 +687,9 @@ void PolarCode::decodeOnePathRecursive(int stage, int BitLocation, int nodeID)
 	case SPCnode:
 		SPC(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
 		break;
+	case RepSPCnode:
+		RepSPC(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength, Bits[0][stage-2][0].data(), Bits[0][stage-2][1].data());
+		break;
 	default:
 		decodeOnePathRecursive(stage-1, 0, leftNode);
 	}
@@ -602,6 +717,9 @@ void PolarCode::decodeOnePathRecursive(int stage, int BitLocation, int nodeID)
 		break;
 	case SPCnode:
 		SPC(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
+		break;
+	case RepSPCnode:
+		RepSPC(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength, Bits[0][stage-2][0].data(), Bits[0][stage-2][1].data());
 		break;
 	default:
 		decodeOnePathRecursive(stage-1, 1, rightNode);
