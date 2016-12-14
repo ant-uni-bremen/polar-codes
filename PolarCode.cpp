@@ -151,41 +151,32 @@ void PolarCode::Rate1(float *LLRin, float *BitsOut, int size)
 
 
 
-void PolarCode::Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int size)
+void PolarCode::CombineSimple(float *Bits, int size)
 {
-/*	if(size >= 8)
-	{*/
+	if(size >= 8)
+	{
 		for(int i=0; i<size; i+=FLOATSPERVECTOR)
 		{
-			vec Bitsl = load_ps(BitsIn_l+i);
-			vec Bitsr = load_ps(BitsIn_r+i);
+			vec Bitsl = load_ps(Bits+i);
+			vec Bitsr = load_ps(Bits+i+size);
 			vec Bitso = xor_ps(Bitsl, Bitsr);
-			store_ps(BitsOut+i, Bitso);
-//			store_ps(BitsOut+size+i, Bitsr);
+			store_ps(Bits+i, Bitso);
 		}
-/*	}
+	}
 	else
 	{
-		unsigned int *inlptr = reinterpret_cast<unsigned int*>(BitsIn_l),
-		             *inrptr = reinterpret_cast<unsigned int*>(BitsIn_r),
-		             *outptr = reinterpret_cast<unsigned int*>(BitsOut);
+		unsigned int *inlptr = reinterpret_cast<unsigned int*>(Bits),
+		             *inrptr = reinterpret_cast<unsigned int*>(Bits+size);
 		for(int i=0; i<size; i++)
 		{
-			outptr[i] = inlptr[i]^inrptr[i];
-			outptr[i+size] = inrptr[i];
+			inlptr[i] = inlptr[i]^inrptr[i];
 		}
-	}*/
-	memcpy(BitsOut+size, BitsIn_r, sizeof(float)*size);
+	}
 }
 
-void PolarCode::Combine_0R(float *BitsIn_r, float *BitsOut, int size)
+void PolarCode::Combine_0RSimple(float *Bits, int size)
 {
-	memcpy(BitsOut,      BitsIn_r, sizeof(float)*size);
-	memcpy(BitsOut+size, BitsIn_r, sizeof(float)*size);
-/*	for(int i=0; i<size; ++i)
-	{
-		BitsOut[i+size] = BitsOut[i] = BitsIn_r[i];
-	}*/
+	memcpy(Bits, Bits+size, sizeof(float)*size);
 }
 
 
@@ -220,14 +211,12 @@ void PolarCode::SPC(float *LLRin, float *BitsOut, int size)
 	}
 }
 
-void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size, float *BitsLeft, float *BitsRight)
+void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size)
 {
 	unsigned int subSize = size>>1;
 	
-//	unsigned int *SPC0 = new unsigned int[subSize]();
-//	unsigned int *SPC1 = new unsigned int[subSize]();
-	unsigned int *SPC0 = reinterpret_cast<unsigned int*>(BitsLeft);
-	unsigned int *SPC1 = reinterpret_cast<unsigned int*>(BitsRight);
+	unsigned int *SPC0 = reinterpret_cast<unsigned int*>(BitsOut);
+	unsigned int *SPC1 = reinterpret_cast<unsigned int*>(BitsOut+subSize);
 	unsigned int *decidedSPC;
 	float RepSum = 0.0;
 	
@@ -285,15 +274,31 @@ void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size, float *BitsLeft, 
 	decidedSPC[index] ^= parity;
 	
 	//Save the decisions
-	unsigned int *iBitsOut = reinterpret_cast<unsigned int*>(BitsOut);
-	for(unsigned int i=0; i<subSize; ++i)
+	if(*iRepSum)
 	{
-		iBitsOut[i] = *iRepSum ^ decidedSPC[i];
-		iBitsOut[i+subSize] = decidedSPC[i];
+		//Copy the inverted bits up, if Repetition bit was 1
+		if(subSize < FLOATSPERVECTOR)
+		{
+			for(unsigned int i=0; i<subSize; ++i)
+			{
+				SPC0[i] = SPC1[i] ^ 0x80000000;
+			}		
+		}
+		else
+		{
+			for(unsigned int i=0; i<subSize; i+=FLOATSPERVECTOR)
+			{
+				vec Bits = load_ps(BitsOut+subSize+i);
+				Bits = xor_ps(Bits, SIGN_MASK);
+				store_ps(BitsOut+i, Bits);
+			}
+		}
 	}
-	
-//	delete[] SPC0;
-//	delete[] SPC1;
+	else
+	{
+		//Copy the bits down, if Repetition bit was 0
+		memcpy(SPC1, SPC0, sizeof(float)*subSize);
+	}
 }
 
 
@@ -393,25 +398,21 @@ void PolarCode::resetMemory()
 	Metric.assign(1, 0.0);
 	PathCount = 1;
 	
+	SimpleBits.assign(N, 0.0);
+
 	LLR.resize(1);
 	Bits.resize(1);
-//	for(int list=0; list<L; ++list)
-//	{
-	int list = 0;
-//		LLR[list].clear();
-//		Bits[list].clear();
-		LLR[list].resize(n+1);
-		Bits[list].resize(n+1);
-		for(int stage=0; stage<=n; ++stage)
-		{
-			LLR[list][stage].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);		
-			
-//			Bits[list][stage].clear();
-			Bits[list][stage].resize(2);
-			Bits[list][stage][0].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);
-			Bits[list][stage][1].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);
-		}
-//	}
+
+	LLR[0].resize(n+1);
+	Bits[0].resize(n+1);
+	for(int stage=0; stage<=n; ++stage)
+	{
+		LLR[0][stage].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);		
+		
+		Bits[0][stage].resize(2);
+		Bits[0][stage][0].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);
+		Bits[0][stage][1].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);
+	}
 }
 	
 unsigned int PolarCode::bitreversed_slow(unsigned int j)
@@ -454,13 +455,6 @@ void PolarCode::pcc()
 			z[j+B] = 2*T;
 		}
 	}
-
-	
-/*	for(int i=0; i<PCparam_N; ++i)
-	{
-		z[i] = zz[bitreversed_slow(i)];
-	}*/
-	
 	
 	trackingSorter sorter(z);
 	sorter.stableSort();
@@ -625,8 +619,10 @@ bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 	}
 
 #ifdef ONLY_SCDECODING
-	decodeOnePathRecursive(n,0,0);
+	decodeOnePathRecursive(n,SimpleBits.data(),0);
 #else
+
+	float *BitPtr = SimpleBits.data();
 
 #include "SpecialDecoder.cpp"
 
@@ -634,7 +630,7 @@ bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 
 	vector<bool> Dhat(N);
 	
-	transform(Bits[0][n][0], Dhat);
+	transform(SimpleBits, Dhat);
 
 	auto bitptrA = decoded.begin();
 	auto bitptrB = Dhat.begin();
@@ -654,21 +650,17 @@ bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 	bool success = true;
 #endif
 
-
 	L = backupL;
-	
-/*	Bits.clear();
-	LLR.clear();*/
-
 	
 	return success;
 }
 
-void PolarCode::decodeOnePathRecursive(int stage, int BitLocation, int nodeID)
+void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 {
 	int leftNode  = (nodeID<<1)+1;
 	int rightNode = leftNode+1;
 	int subStageLength = 1<<(stage-1);
+	float *rightBits = nodeBits+subStageLength;
 
 	if(simplifiedTree[leftNode] != RateZero)
 	{
@@ -681,25 +673,25 @@ void PolarCode::decodeOnePathRecursive(int stage, int BitLocation, int nodeID)
 //		Rate0(Bits[0][stage-1][0].data(), subStageLength);
 		break;
 	case RateOne:
-		Rate1(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
+		Rate1(LLR[0][stage-1].data(), nodeBits, subStageLength);
 		break;
 	case RepetitionNode:
 	case RateHalf:
-		Repetition_hybrid(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
+		Repetition_hybrid(LLR[0][stage-1].data(), nodeBits, subStageLength);
 		break;
 	case SPCnode:
-		SPC(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
+		SPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
 		break;
 	case RepSPCnode:
-		RepSPC(LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength, Bits[0][stage-2][0].data(), Bits[0][stage-2][1].data());
+		RepSPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
 		break;
 	default:
-		decodeOnePathRecursive(stage-1, 0, leftNode);
+		decodeOnePathRecursive(stage-1, nodeBits, leftNode);
 	}
 
 	if(simplifiedTree[leftNode] != RateZero)
 	{
-		G_function_hybrid(LLR[0][stage].data(), LLR[0][stage-1].data(), Bits[0][stage-1][0].data(), subStageLength);
+		G_function_hybrid(LLR[0][stage].data(), LLR[0][stage-1].data(), nodeBits, subStageLength);
 	}
 	else
 	{
@@ -709,32 +701,32 @@ void PolarCode::decodeOnePathRecursive(int stage, int BitLocation, int nodeID)
 	switch(simplifiedTree[rightNode])
 	{
 	case RateZero:
-		Rate0(Bits[0][stage-1][1].data(), subStageLength);
+		Rate0(rightBits, subStageLength);
 		break;
 	case RateOne:
-		Rate1(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
+		Rate1(LLR[0][stage-1].data(), rightBits, subStageLength);
 		break;
 	case RepetitionNode:
 	case RateHalf:
-		Repetition_hybrid(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
+		Repetition_hybrid(LLR[0][stage-1].data(), rightBits, subStageLength);
 		break;
 	case SPCnode:
-		SPC(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength);
+		SPC(LLR[0][stage-1].data(), rightBits, subStageLength);
 		break;
 	case RepSPCnode:
-		RepSPC(LLR[0][stage-1].data(), Bits[0][stage-1][1].data(), subStageLength, Bits[0][stage-2][0].data(), Bits[0][stage-2][1].data());
+		RepSPC(LLR[0][stage-1].data(), rightBits, subStageLength);
 		break;
 	default:
-		decodeOnePathRecursive(stage-1, 1, rightNode);
+		decodeOnePathRecursive(stage-1, rightBits, rightNode);
 	}
 
 	if(simplifiedTree[leftNode] != RateZero)
 	{
-		Combine(Bits[0][stage-1][0].data(), Bits[0][stage-1][1].data(), Bits[0][stage][BitLocation].data(), subStageLength);
+		CombineSimple(nodeBits, subStageLength);
 	}
 	else
 	{
-		Combine_0R(Bits[0][stage-1][1].data(), Bits[0][stage][BitLocation].data(), subStageLength);
+		Combine_0RSimple(nodeBits, subStageLength);
 	}
 }
 

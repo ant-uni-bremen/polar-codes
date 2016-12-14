@@ -95,6 +95,7 @@ struct PolarCode
 		
 	vector<vector<aligned_float_vector>> LLR;//[List][Stage][ValueIndex]
 	vector<vector<vector<aligned_float_vector>>> Bits;//[List][Stage][LeftRight][ValueIndex]
+	aligned_float_vector SimpleBits;
 	vector<float> Metric;
 	int PathCount;
 	
@@ -106,7 +107,7 @@ struct PolarCode
 	bool decodeOnePath(vector<bool> &decoded, vector<float> &LLR);
 	bool decodeMultiPath(vector<bool> &decoded, vector<float> &LLR);
 	
-	void decodeOnePathRecursive(int stage, int BitLocation, int nodeID);
+	void decodeOnePathRecursive(int stage, float *nodeBits, int nodeID);
 	void decodeMultiPathRecursive(int stage, int BitLocation, int nodeID);
 	void transform(aligned_float_vector &BitsIn, vector<bool> &BitsOut);
 	
@@ -125,8 +126,10 @@ struct PolarCode
 	void G_function_0R_hybrid(float *LLRin, float *LLRout, int size);
 
 	void Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int size);
-	
 	void Combine_0R(float *BitsIn_r, float *BitsOut, int size);
+	
+	void CombineSimple(float *Bits, int size);
+	void Combine_0RSimple(float *Bits, int size);
 
 	void SPC(float *LLRin, float *BitsOut, int size);
 	void SPC_multiPath(int stage, int BitLocation);
@@ -136,7 +139,7 @@ struct PolarCode
 	void Repetition_hybrid(float *LLRin, float *BitsOut, int size);
 	void Repetition_multiPath(int stage, int BitLocation);
 	
-	void RepSPC(float *LLRin, float *BitsOut, int size, float *BitsLeft, float *BitsRight);
+	void RepSPC(float *LLRin, float *BitsOut, int size);
 	
 
 	void Rate0(float *BitsOut, int size);
