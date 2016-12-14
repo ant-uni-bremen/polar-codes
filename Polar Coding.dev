@@ -29,7 +29,7 @@ IncludeVersionInfo=0
 SupportXPThemes=0
 CompilerSet=0
 CompilerSettings=00010jbac0100000000000000
-UnitCount=12
+UnitCount=13
 
 [VersionInfo]
 Major=1
@@ -169,4 +169,14 @@ Link=0
 Priority=1000
 OverrideBuildCmd=0
 BuildCmd=$(CPP) -c PolarCode.MultiPath.cpp -o obj/PolarCode.MultiPath.o $(CXXFLAGS)
+
+[Unit13]
+FileName=SpecialDecoder.cpp
+CompileCpp=1
+Folder=
+Compile=0
+Link=0
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=$(CPP) -c SpecialDecoder.cpp -o obj/SpecialDecoder.o $(CXXFLAGS)
 

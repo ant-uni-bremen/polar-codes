@@ -36,12 +36,15 @@ template <typename T> int sgn(T val) {
 
 void PolarCode::F_function(float *LLRin, float *LLRout, int size)
 {
-	float a,b;
+	unsigned int *iLLRin = reinterpret_cast<unsigned int*>(LLRin);
+	unsigned int *iLLRout = reinterpret_cast<unsigned int*>(LLRout);
+	unsigned int a,b;
 	for(int i=0; i<size; ++i)
 	{
-		a = LLRin[i];
-		b = LLRin[i+size];
-		LLRout[i] = sgn(a) * sgn(b) * fmin(fabs(a),fabs(b));
+		a = iLLRin[i];
+		b = iLLRin[i+size];
+		//LLRout[i] = sgn(a) * sgn(b) * fmin(fabs(a),fabs(b));
+		iLLRout[i] = (a&0x80000000) ^ (b&0x80000000) ^ std::min(a&0x7FFFFFFF,b&0x7FFFFFFF);
 	}
 }
 
