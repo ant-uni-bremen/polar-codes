@@ -229,13 +229,13 @@ void simulate(int SimIndex)
 
 int main(int argc, char** argv)
 {
-	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
+	int Parameter[] = {1, 2, 4, 8}, nParams = 4;
 //	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
 
 	Graph = new DataPoint[EbN0_count*nParams];
 	std::vector<std::thread> Threads;
 	
-	std::ofstream File("../results/SimulationL_simplified,N=128,K=72,Fast.csv");
+	std::ofstream File("../results/Simulation,N=1024,K=520,Fast.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;
@@ -253,8 +253,8 @@ int main(int argc, char** argv)
 		for(int i=0; i<EbN0_count; ++i)
 		{
 			Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
-			Graph[idCounter].N = 128;
-			Graph[idCounter].K = 72;
+			Graph[idCounter].N = 1024;
+			Graph[idCounter].K = 520;
 			Graph[idCounter].L = Parameter[l];
 			Graph[idCounter].designSNR = 5.0;
 			//Graph[idCounter].L = 1;

@@ -5,8 +5,8 @@
 #include <string>
 
 #define SPECIALPARAMETERS_H
-#define PCparam_N 128
-#define PCparam_K 72
+#define PCparam_N 1024
+#define PCparam_K 520
 
 #include "../ArrayFuncs.h"
 
