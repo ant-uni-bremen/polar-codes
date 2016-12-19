@@ -140,7 +140,10 @@ struct PolarCode
 	void Repetition_multiPath(int stage, int BitLocation);
 	
 	void RepSPC(float *LLRin, float *BitsOut, int size);
+	void RepSPC_8(float *LLRin, float *BitsOut);
 	
+	void P_R1(float *LLRin, float *BitsOut, int size);
+	void P_01(float *LLRin, float *BitsOut, int size);
 
 	void Rate0(float *BitsOut, int size);
 	void Rate0_multiPath(int stage, int BitLocation);

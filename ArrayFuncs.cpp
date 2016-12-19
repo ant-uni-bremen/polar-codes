@@ -88,12 +88,38 @@ void trackingSorter::stableSort()
 
 void trackingSorter::partialSort(int n)
 {
-	partialQuicksort(0, size-1, n);
+	//partialQuicksort(0, size-1, n);
+	for(int i=0; i<n; ++i)
+	{
+		int index = i;
+		for(int j=i+1; j<size; ++j)
+		{
+			if(sorted[j] < sorted[index])
+			{
+				index = j;
+			}
+		}
+		std::swap(sorted[i], sorted[index]);
+		std::swap(permuted[i], permuted[index]);
+	}
 }
 
 void trackingSorter::partialSortDescending(int n)
 {
-	partialQuicksortDescending(0, size-1, n);
+	//partialQuicksortDescending(0, size-1, n);
+	for(int i=0; i<n; ++i)
+	{
+		int index = i;
+		for(int j=i+1; j<size; ++j)
+		{
+			if(sorted[j] > sorted[index])
+			{
+				index = j;
+			}
+		}
+		std::swap(sorted[i], sorted[index]);
+		std::swap(permuted[i], permuted[index]);
+	}
 }
 
 
@@ -249,12 +275,14 @@ void Bits2Bytes(unsigned char *bits, unsigned char *bytes, int nBytes)
 	unsigned char tmp;
 	for(int i=0; i<nBytes; ++i)
 	{
-		tmp = 0;
-		for(int b=7; b>=0; --b)
-		{
-			tmp |= (*bits)<<b;
-			++bits;
-		}
+		tmp = (*bits++)<<7;
+		tmp |= (*bits++)<<6;
+		tmp |= (*bits++)<<5;
+		tmp |= (*bits++)<<4;
+		tmp |= (*bits++)<<3;
+		tmp |= (*bits++)<<2;
+		tmp |= (*bits++)<<1;
+		tmp |= *bits++;
 		*bytes = tmp;
 		++bytes;
 	}	
@@ -265,11 +293,14 @@ void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes)
 {
 	for(int i=0; i<nBytes; ++i)
 	{
-		for(int b=7; b>=0; --b)
-		{
-			*bits = ((*bytes)>>b)&1;
-			bits++;
-		}
+		*bits++ = ((*bytes)>>7)&1;
+		*bits++ = ((*bytes)>>6)&1;
+		*bits++ = ((*bytes)>>5)&1;
+		*bits++ = ((*bytes)>>4)&1;
+		*bits++ = ((*bytes)>>3)&1;
+		*bits++ = ((*bytes)>>2)&1;
+		*bits++ = ((*bytes)>>1)&1;
+		*bits++ = ( *bytes    )&1;
 		++bytes;
 	}	
 }

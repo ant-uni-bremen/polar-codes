@@ -5,8 +5,8 @@
 #include <string>
 
 #define SPECIALPARAMETERS_H
-#define PCparam_N 1024
-#define PCparam_K 520
+#define PCparam_N 128
+#define PCparam_K 72
 
 #include "../ArrayFuncs.h"
 
@@ -69,52 +69,81 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 		File << "SPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		break;
 	case RepSPCnode:
-		File << "RepSPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		if(subStageLength == 8)
+		{
+			File << "RepSPC_8(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ");" << endl;
+		}
+		else
+		{
+			File << "RepSPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
 		break;
 	default:
 		printDecoder(stage-1, BitLocation, leftNode);
 	}
 
-	if(simplifiedTree[leftNode] != RateZero)
+
+	if(simplifiedTree[rightNode] == RateOne)
 	{
-		File << "G_function" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		if(simplifiedTree[leftNode] == RateZero)
+		{
+			File << "P_01(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
+		else
+		{
+			File << "P_R1(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
 	}
 	else
 	{
-		File << "G_function_0R" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
-	}
-	
-	switch(simplifiedTree[rightNode])
-	{
-	case RateZero:
-		File << "Rate0(BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
-		cout << "Right rate 0, left is " << simplifiedTree[leftNode] << "!";
-		break;
-	case RateOne:
-		File << "Rate1(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
-		break;
-	case RepetitionNode:
-	case RateHalf:
-		File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
-		cout << "Right repetition";
-		break;
-	case SPCnode:
-		File << "SPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
-		break;
-	case RepSPCnode:
-		File << "RepSPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
-		break;
-	default:
-		printDecoder(stage-1, BitLocation+subStageLength, rightNode);
-	}
-	
-	if(simplifiedTree[leftNode] != RateZero)
-	{
-		File << "CombineSimple(BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
-	}
-	else
-	{
-		File << "Combine_0RSimple(BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		if(simplifiedTree[leftNode] != RateZero)
+		{
+			File << "G_function" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
+		else
+		{
+			File << "G_function_0R" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
+		}
+		
+		switch(simplifiedTree[rightNode])
+		{
+		case RateZero:
+			File << "Rate0(BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
+			cout << "Right rate 0, left is " << simplifiedTree[leftNode] << "!";
+			break;
+/*		case RateOne:
+			File << "Rate1(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
+			break;*/
+		case RepetitionNode:
+		case RateHalf:
+			File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
+			cout << "Right repetition";
+			break;
+		case SPCnode:
+			File << "SPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
+			break;
+		case RepSPCnode:
+			if(subStageLength == 8)
+			{
+				File << "RepSPC_8(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ");" << endl;
+			}
+			else
+			{
+				File << "RepSPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
+			}
+			break;
+		default:
+			printDecoder(stage-1, BitLocation+subStageLength, rightNode);
+		}
+		
+		if(simplifiedTree[leftNode] != RateZero)
+		{
+			File << "CombineSimple(BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
+		else
+		{
+			File << "Combine_0RSimple(BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
 	}
 } 
 
