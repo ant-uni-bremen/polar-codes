@@ -8,11 +8,11 @@
 #define EbN0_count 20
 
 
-#define ConcurrentThreads 2
+#define ConcurrentThreads 1
 
-#define MinErrors      1000
-#define MinIters       5000
-#define MaxIters      10000
+#define MinErrors      10000
+#define MinIters       50000
+#define MaxIters      100000
 
 //#define ONLY_SCDECODING
 

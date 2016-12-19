@@ -30,10 +30,6 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-
-#include "PolarCode.MultiPath.cpp"
-
-
 void PolarCode::F_function(float *LLRin, float *LLRout, int size)
 {
 	unsigned int *iLLRin = reinterpret_cast<unsigned int*>(LLRin);
