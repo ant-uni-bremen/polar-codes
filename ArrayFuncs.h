@@ -34,6 +34,7 @@ public:
 	
 };
 
+void Bits2Bytes(std::vector<bool> &bits, unsigned char *bytes, int nBytes);
 
 void Bits2Bytes(unsigned char *bits, unsigned char *bytes, int nBytes);
 void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes);

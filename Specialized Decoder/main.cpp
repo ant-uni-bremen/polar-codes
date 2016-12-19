@@ -40,13 +40,13 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 	int leftNode  = (nodeID<<1)+1;
 	int rightNode = leftNode+1;
 	int subStageLength = 1<<(stage-1);
-	
+
 	string vectorized = "";
 	if(subStageLength >= 8)
 	{
 		vectorized = "_vectorized";
 	}
-	
+
 
 	if(simplifiedTree[leftNode] != RateZero)
 	{
@@ -94,6 +94,17 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 			File << "P_R1(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 	}
+	else if(simplifiedTree[rightNode] == SPCnode)
+	{
+		if(simplifiedTree[leftNode] == RateZero)
+		{
+			File << "P_0SPC(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
+		else
+		{
+			File << "P_RSPC(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
+	}
 	else
 	{
 		if(simplifiedTree[leftNode] != RateZero)
@@ -104,7 +115,7 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 		{
 			File << "G_function_0R" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
 		}
-		
+
 		switch(simplifiedTree[rightNode])
 		{
 		case RateZero:
@@ -119,9 +130,9 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 			File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
 			cout << "Right repetition";
 			break;
-		case SPCnode:
+/*		case SPCnode:
 			File << "SPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
-			break;
+			break;*/
 		case RepSPCnode:
 			if(subStageLength == 8)
 			{
@@ -135,7 +146,7 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 		default:
 			printDecoder(stage-1, BitLocation+subStageLength, rightNode);
 		}
-		
+
 		if(simplifiedTree[leftNode] != RateZero)
 		{
 			File << "CombineSimple(BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
@@ -145,7 +156,7 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 			File << "Combine_0RSimple(BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 	}
-} 
+}
 
 
 unsigned int bitreversed_slow(unsigned int j, unsigned int n)
@@ -167,22 +178,11 @@ int main(void)
 
 	vector<float> z(PCparam_N, 0.0);
 	float designSNRlin = pow(10.0, designSNR/10.0);
-	z[0] = -((double)PCparam_K/PCparam_N)*designSNRlin;
-	
+	z[0] = -((float)PCparam_K/PCparam_N)*designSNRlin;
+
 	cout << "Initial z[0] = " << z[0] << endl;
-	
-	
+
 	float T; int B;
-/*	for(int lev=0; lev < n; ++lev)
-	{
-		B = 1<<lev;//pow(2, lev);
-		for(int j = 0; j < B; ++j)
-		{
-			T = zz[j];
-			zz[j] = logdomain_diff(log(2.0)+T, 2*T);
-			zz[j+B] = 2*T;
-		}
-	}*/
 
 	for(int lev=n-1; lev >= 0; --lev)
 	{
@@ -195,15 +195,9 @@ int main(void)
 		}
 	}
 
-	
-/*	for(int i=0; i<PCparam_N; ++i)
-	{
-		z[i] = zz[bitreversed_slow(i)];
-	}*/
-	
 	trackingSorter sorter(z);
 	sorter.stableSort();
-	
+
 	for(int i = 0; i<PCparam_K; ++i)
 	{
 		simplifiedTree[PCparam_N-1+sorter.permuted[i]] = nodeInfo::RateOne;
@@ -212,7 +206,7 @@ int main(void)
 	{
 		simplifiedTree[PCparam_N-1+sorter.permuted[i]] = nodeInfo::RateZero;
 	}
-	
+
 	for(int lev=n-1; lev>=0; --lev)
 	{
 		int st = (1<<lev)-1;
@@ -253,8 +247,13 @@ int main(void)
 		}
 	}
 	
+	if(simplifiedTree[0] != RateR)
+	{
+		cout << "Root node is not Rate-R! Expect problems!" << endl;
+	}
+
 	File.open("../FZLookup.cpp");
-	
+
 	File << "bool bFZLookup[" << PCparam_N << "] = {";
 	for(int i=0; i<PCparam_N; ++i)
 	{
@@ -266,11 +265,11 @@ int main(void)
 	}
 	File << "};" << endl;
 	File.close();
-	
+
 	File.open("../SpecialDecoder.cpp");
 	printDecoder(n, 0, 0);
 	File.close();
-	
+
 	File.open("../SpecialParameters.h");
 	File
 	<< "#ifndef SPECIALPARAMETERS_H" << endl

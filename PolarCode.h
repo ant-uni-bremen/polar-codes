@@ -94,7 +94,7 @@ struct PolarCode
 	typedef vector<float, aligned_allocator<float, sizeof(vec)> > aligned_float_vector;
 		
 	vector<vector<aligned_float_vector>> LLR;//[List][Stage][ValueIndex]
-	vector<vector<vector<aligned_float_vector>>> Bits;//[List][Stage][LeftRight][ValueIndex]
+	vector<aligned_float_vector> Bits;//[List]
 	aligned_float_vector SimpleBits;
 	vector<float> Metric;
 	int PathCount;
@@ -133,6 +133,9 @@ struct PolarCode
 
 	void SPC(float *LLRin, float *BitsOut, int size);
 	void SPC_multiPath(int stage, int BitLocation);
+	
+	void P_RSPC(float *LLRin, float *BitsOut, int size);
+	void P_0SPC(float *LLRin, float *BitsOut, int size);
 
 	void Repetition(float *LLRin, float *BitsOut, int size);
 	void Repetition_vectorized(float *LLRin, float *BitsOut, int size);

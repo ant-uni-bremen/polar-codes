@@ -286,8 +286,27 @@ void Bits2Bytes(unsigned char *bits, unsigned char *bytes, int nBytes)
 		*bytes = tmp;
 		++bytes;
 	}	
-	
 }
+
+void Bits2Bytes(std::vector<bool> &bits, unsigned char *bytes, int nBytes)
+{
+	unsigned char tmp;
+	int j=0;
+	for(int i=0; i<nBytes; ++i)
+	{
+		tmp = bits[j++]<<7;
+		tmp |= bits[j++]<<6;
+		tmp |= bits[j++]<<5;
+		tmp |= bits[j++]<<4;
+		tmp |= bits[j++]<<3;
+		tmp |= bits[j++]<<2;
+		tmp |= bits[j++]<<1;
+		tmp |= bits[j++];
+		*bytes = tmp;
+		++bytes;
+	}
+}
+
 
 void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes)
 {

@@ -96,7 +96,7 @@ void simulate(int SimIndex)
 #endif
 
 	default_random_engine RndGen(1);
-	uniform_int_distribution<unsigned char> RndDist(0, 255);
+	uniform_int_distribution<unsigned char> RndDist(0, 1);
 	normal_distribution<float> NormDist(0.0, 1.0);
 	vector<vector<bool>> data(MaxIters, vector<bool>(nBits,false));
 	vector<vector<bool>> decodedData(MaxIters, vector<bool>(Graph[SimIndex].K,false));
@@ -112,7 +112,7 @@ void simulate(int SimIndex)
 		//Generate random payload for testing
 		for(int i=0; i<nBits; ++i)
 		{
-			data[block][i] = RndDist(RndGen)&1;
+			data[block][i] = RndDist(RndGen);
 		}
 			
 		//Encode
