@@ -5,8 +5,8 @@
 #include <string>
 
 #define SPECIALPARAMETERS_H
-#define PCparam_N 128
-#define PCparam_K 72
+#define PCparam_N 1024
+#define PCparam_K 776
 
 #include "../ArrayFuncs.h"
 
@@ -91,14 +91,14 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 		}
 		else
 		{
-			File << "P_R1(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+			File << "P_R1" << vectorized << "(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 	}
 	else if(simplifiedTree[rightNode] == SPCnode)
 	{
 		if(simplifiedTree[leftNode] == RateZero)
 		{
-			File << "P_0SPC(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+			File << "P_0SPC" << vectorized << "(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 		else
 		{
@@ -149,12 +149,135 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 
 		if(simplifiedTree[leftNode] != RateZero)
 		{
-			File << "CombineSimple(BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+			File << "CombineSimple" << vectorized << "(BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 		else
 		{
 			File << "Combine_0RSimple(BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
+	}
+}
+
+bool singlePath = true;
+
+void printMultiPathDecoder(int stage, int BitLocation, int nodeID)
+{
+	int leftNode  = (nodeID<<1)+1;
+	int rightNode = leftNode+1;
+	int subStageLength = 1<<(stage-1);
+
+	string vectorized = "";
+	if(subStageLength >= 8)
+	{
+		vectorized = "_vectorized";
+	}
+
+
+	//Calculate LLRs for all paths
+	if(singlePath)
+	{
+		File << "F_function" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;	
+	}
+	else
+	{
+		File << "for(int currentPath=0; currentPath<PathCount; ++currentPath)" << endl
+			 << "	F_function" << vectorized << "(LLR[currentPath][" << stage << "].data(), LLR[currentPath][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
+	}
+
+	switch(simplifiedTree[leftNode])
+	{
+	case RateZero:
+		/* In contrast to the L=1-special case decoding, here we can't omit the
+		 * left Rate0()-call, because the path metrics have to be updated
+		 */
+		File << "Rate0_multiPath(" << (stage-1) << ", " << BitLocation << ");" << endl;
+		break;
+	case RateOne:
+		File << "Rate1_multiPath(" << (stage-1) << ", " << BitLocation << ");" << endl;
+		singlePath = false;
+		break;
+	case RepetitionNode:
+	case RateHalf:
+		File << "Repetition_multiPath(" << (stage-1) << ", " << BitLocation << ");" << endl;
+		singlePath = false;
+		break;
+	case SPCnode:
+		File << "SPC_multiPath(" << (stage-1) << ", " << BitLocation << ");" << endl;
+		singlePath = false;
+		break;
+		
+		/* Implementing the RepSPC-shortcut for multipath-decoding is a lot of work,
+		 * which I didn't want to do.
+		 */
+		 
+	default:
+		printMultiPathDecoder(stage-1, BitLocation, leftNode);
+	}
+	
+
+	
+	/* Now, for all the paths, generate the bit decision-dependant
+	   subpaths and proceed as above */
+	if(singlePath)
+	{
+		if(simplifiedTree[leftNode] != RateZero)
+		{
+			File << "G_function" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), Bits[0].data()+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
+		else
+		{
+			File << "G_function_0R" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
+		}
+	}
+	else
+	{
+		if(simplifiedTree[leftNode] != RateZero)
+		{
+			File << "for(int currentPath=0; currentPath<PathCount; ++currentPath)" << endl
+				 << "	G_function" << vectorized << "(LLR[currentPath][" << stage << "].data(), LLR[currentPath][" << (stage-1) << "].data(), Bits[currentPath].data()+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
+		else
+		{
+			File << "for(int currentPath=0; currentPath<PathCount; ++currentPath)" << endl
+				 << "	G_function_0R" << vectorized << "(LLR[currentPath][" << stage << "].data(), LLR[currentPath][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
+		}
+	}
+	
+	switch(simplifiedTree[rightNode])
+	{
+	case RateZero:
+		/* In contrast to the L=1-special case decoding, here we can't omit the
+		 * left Rate0()-call, because the path metrics have to be updated
+		 */
+		File << "Rate0_multiPath(" << (stage-1) << ", " << (BitLocation+subStageLength) << ");" << endl;
+		break;
+	case RateOne:
+		File << "Rate1_multiPath(" << (stage-1) << ", " << (BitLocation+subStageLength) << ");" << endl;
+		singlePath = false;
+		break;
+	case RepetitionNode:
+	case RateHalf:
+		File << "Repetition_multiPath(" << (stage-1) << ", " << (BitLocation+subStageLength) << ");" << endl;
+		singlePath = false;
+		break;
+	case SPCnode:
+		File << "SPC_multiPath(" << (stage-1) << ", " << (BitLocation+subStageLength) << ");" << endl;
+		singlePath = false;
+		break;
+	default:
+		printMultiPathDecoder(stage-1, BitLocation+subStageLength, rightNode);
+	}
+	
+	/* Finally merge both bit arrays for all paths */
+	if(simplifiedTree[leftNode] != RateZero)
+	{
+		File << "for(int currentPath=0; currentPath<PathCount; ++currentPath)" << endl
+			 << "	CombineSimple" << vectorized << "(Bits[currentPath].data()+" << BitLocation << ", " << subStageLength << ");" << endl;
+	}
+	else
+	{
+		File << "for(int currentPath=0; currentPath<PathCount; ++currentPath)" << endl
+			 << "	Combine_0RSimple(Bits[currentPath].data()+" << BitLocation << ", " << subStageLength << ");" << endl;
 	}
 }
 
@@ -268,6 +391,10 @@ int main(void)
 
 	File.open("../SpecialDecoder.cpp");
 	printDecoder(n, 0, 0);
+	File.close();
+
+	File.open("../SpecialMultiPathDecoder.cpp");
+	printMultiPathDecoder(n, 0, 0);
 	File.close();
 
 	File.open("../SpecialParameters.h");

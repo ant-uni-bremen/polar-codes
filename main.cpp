@@ -248,8 +248,8 @@ int main(int argc, char** argv)
 		for(int i=0; i<EbN0_count; ++i)
 		{
 			Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
-			Graph[idCounter].N = 128;
-			Graph[idCounter].K = 72;
+			Graph[idCounter].N = 1024;
+			Graph[idCounter].K = 776;
 			Graph[idCounter].L = Parameter[l];
 			Graph[idCounter].designSNR = 5.0;
 			//Graph[idCounter].L = 1;

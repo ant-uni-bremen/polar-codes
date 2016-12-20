@@ -46,6 +46,13 @@ struct PolarCode
 		
 	vector<vector<aligned_float_vector>> LLR;//[List][Stage][ValueIndex]
 	vector<aligned_float_vector> Bits;//[List]
+	
+	vector<vector<aligned_float_vector>> newLLR;//[List][Stage][ValueIndex]
+	vector<aligned_float_vector> newBits;//[List]
+	
+	aligned_float_vector absLLRVec;
+	
+	
 	aligned_float_vector SimpleBits;
 	vector<float> Metric;
 	int PathCount;
@@ -87,6 +94,7 @@ struct PolarCode
 	void Combine_0R(float *BitsIn_r, float *BitsOut, int size);
 	
 	void CombineSimple(float *Bits, int size);
+	void CombineSimple_vectorized(float *Bits, int size);
 	void Combine_0RSimple(float *Bits, int size);
 
 	void SPC(float *LLRin, float *BitsOut, int size);
@@ -94,6 +102,7 @@ struct PolarCode
 	
 	void P_RSPC(float *LLRin, float *BitsOut, int size);
 	void P_0SPC(float *LLRin, float *BitsOut, int size);
+	void P_0SPC_vectorized(float *LLRin, float *BitsOut, int size);
 
 	void Repetition(float *LLRin, float *BitsOut, int size);
 	void Repetition_vectorized(float *LLRin, float *BitsOut, int size);
@@ -104,6 +113,7 @@ struct PolarCode
 	void RepSPC_8(float *LLRin, float *BitsOut);
 	
 	void P_R1(float *LLRin, float *BitsOut, int size);
+	void P_R1_vectorized(float *LLRin, float *BitsOut, int size);
 	void P_01(float *LLRin, float *BitsOut, int size);
 
 	void Rate0(float *BitsOut, int size);
