@@ -5,57 +5,7 @@
 
 #include "Parameters.h"
 #include "AlignedAllocator.h"
-
-/*
-	AVX512: 512 bit per register
-	AVX:    256 bit per register
-	float:   32 bit per value
-*/
-
-//#define CONFIG_AVX512
-
-#ifdef CONFIG_AVX512
-
-#include <immintrin.h>
-
-#define FLOATSPERVECTOR 16
-#define vec __m512
-
-#define set1_ps _mm512_set1_ps
-#define load_ps _mm512_load_ps
-#define store_ps _mm512_store_ps
-
-#define and_ps _mm512_and_ps
-#define andnot_ps _mm512_andnot_ps
-#define or_ps _mm512_or_ps
-#define xor_ps _mm512_xor_ps
-
-#define add_ps _mm512_add_ps
-
-#define min_ps _mm512_min_ps
-
-#else
-
-#include <immintrin.h>
-
-#define FLOATSPERVECTOR 8
-#define vec __m256
-
-#define set1_ps _mm256_set1_ps
-#define load_ps _mm256_load_ps
-#define store_ps _mm256_store_ps
-
-#define and_ps _mm256_and_ps
-#define andnot_ps _mm256_andnot_ps
-#define or_ps _mm256_or_ps
-#define xor_ps _mm256_xor_ps
-
-#define add_ps _mm256_add_ps
-
-#define min_ps _mm256_min_ps
-
-#endif
-
+#include "crc8.h"
 
 float logdomain_sum(float x, float y);
 float logdomain_diff(float x, float y);
@@ -87,6 +37,7 @@ struct PolarCode
 	vec SIGN_MASK, ABS_MASK;
 	int N, K, L, n;
 	vector<int> FZLookup;
+	vector<int> AcceleratedLookup;
 	float designSNR;
 	
 	vector<nodeInfo> simplifiedTree;
@@ -98,11 +49,18 @@ struct PolarCode
 	aligned_float_vector SimpleBits;
 	vector<float> Metric;
 	int PathCount;
+	CRC8 *Crc;
+	
+	vector<bool> SysX, SysY;
 	
 	PolarCode(int N, int K, int L, float designSNR);
 	~PolarCode();
 
 	void encode(vector<bool> &encoded, vector<bool> &data);
+/*	void encode_systematic(vector<bool> &encoded, vector<bool> &data);
+	
+	void encoderB(int i, int j, vector<bool> &r, vector<bool> &v);*/
+	
 	bool decode(vector<bool> &decoded, vector<float> &LLR);
 	bool decodeOnePath(vector<bool> &decoded, vector<float> &LLR);
 	bool decodeMultiPath(vector<bool> &decoded, vector<float> &LLR);

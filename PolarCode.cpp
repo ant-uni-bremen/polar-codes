@@ -474,7 +474,8 @@ void PolarCode::RepSPC_8(float *LLRin, float *BitsOut)
 	__m128 x64 = _mm_add_ps(RepSumVec, _mm_movehl_ps(RepSumVec, RepSumVec));
     __m128 x32 = _mm_add_ss(x64, _mm_shuffle_ps(x64, x64, 0x55));
     x32 = _mm_and_ps(x32, sgnMask);//Decide Repetition code
-	RepSumVec = _mm_broadcastss_ps(x32);
+	//RepSumVec = _mm_broadcastss_ps(x32);
+	RepSumVec = _mm_set1_ps(_mm_cvtss_f32(x32));
 	
 	
 	__m128 SPCVec = _mm_add_ps(_mm_xor_ps(LLR_l, RepSumVec), LLR_r);//Load SPC-LLRs
@@ -492,21 +493,109 @@ void PolarCode::RepSPC_8(float *LLRin, float *BitsOut)
 		//Find least reliable bit
 		int index=0;
 		__m128 SPCabs = _mm_and_ps(SPCVec, absMask);
-		if(SPCabs[1] < SPCabs[0])
+		for(int i=1;i<4;++i)
 		{
-			index=1;
-			if(SPCabs[2] < SPCabs[1])
+			if(SPCabs[i] < SPCabs[index])
 			{
-				index=2;
-				if(SPCabs[3] < SPCabs[2])
-				{
-					index=3;
-				}
+				index=i;
 			}
 		}
-		iBits[index] ^= 0x80000000;
+		iBits[index]   ^= 0x80000000;
 		iBits[index+4] ^= 0x80000000;
 	}
+/*
+	const unsigned int subSize = 4;
+	
+	unsigned int *SPC0 = reinterpret_cast<unsigned int*>(BitsOut);
+	unsigned int *SPC1 = reinterpret_cast<unsigned int*>(BitsOut+subSize);
+	unsigned int *decidedSPC;
+	float RepSum = 0.0, RepAcc;
+	
+	float a, absA, minA = INFINITY,
+	      b, absB, minB = INFINITY;
+	unsigned int indA = 0, parA = 0,
+	             indB = 0, parB = 0;
+	
+	unsigned int *ia = reinterpret_cast<unsigned int*>(&a);
+	unsigned int *ib = reinterpret_cast<unsigned int*>(&b);
+	unsigned int *iabsA = reinterpret_cast<unsigned int*>(&absA);
+	unsigned int *iabsB = reinterpret_cast<unsigned int*>(&absB);
+	unsigned int *iRepSum = reinterpret_cast<unsigned int*>(&RepSum);
+	unsigned int *iRepAcc = reinterpret_cast<unsigned int*>(&RepAcc);
+		
+	for(unsigned int i=0; i<subSize; ++i)
+	{
+		//Prepare the LLRs for i-th bit
+		a = LLRin[i];
+		b = LLRin[i+subSize];
+		*iabsA = *ia&0x7FFFFFFF;
+		*iabsB = *ib&0x7FFFFFFF;
+		
+		//Accumulate the value for Repetition code
+		//RepSum += sgn(a) * sgn(b) * fmin(absA,absB);
+		RepAcc = fmin(absA, absB);
+		*iRepAcc ^= (*ia&0x80000000) ^ (*ib&0x80000000);
+		RepSum += RepAcc;
+		
+		//Find least reliable bit for SPC code
+		if(absA < minA)
+		{
+			minA = absA;
+			indA = i;
+		}
+		if(absB < minB)
+		{
+			minB = absB;
+			indB = i;
+		}
+		
+		//Decide both possibilities for SPC code
+		a = LLRin[i+subSize] + LLRin[i];
+		b = LLRin[i+subSize] - LLRin[i];
+		SPC0[i] = *ia & 0x80000000;
+		SPC1[i] = *ib & 0x80000000;
+		//and update the parity check
+		parA ^= SPC0[i];
+		parB ^= SPC1[i];
+	}
+	
+	//Hard decision for repetition code
+	*iRepSum &= 0x80000000;
+	
+	//Decide, which SPC-bits and parity bit to use
+	decidedSPC = *iRepSum ? SPC1 : SPC0;
+	unsigned int parity = *iRepSum ? parB : parA;
+	unsigned int index = *iRepSum ? indB : indA;
+	
+	//Flip the the least reliable bit
+	decidedSPC[index] ^= parity;
+	
+	//Save the decisions
+	if(*iRepSum)
+	{
+		//Copy the inverted bits up, if Repetition bit was 1
+		if(subSize < FLOATSPERVECTOR)
+		{
+			for(unsigned int i=0; i<subSize; ++i)
+			{
+				SPC0[i] = SPC1[i] ^ 0x80000000;
+			}		
+		}
+		else
+		{
+			for(unsigned int i=0; i<subSize; i+=FLOATSPERVECTOR)
+			{
+				vec Bits = load_ps(BitsOut+subSize+i);
+				Bits = xor_ps(Bits, SIGN_MASK);
+				store_ps(BitsOut+i, Bits);
+			}
+		}
+	}
+	else
+	{
+		//Copy the bits down, if Repetition bit was 0
+		memcpy(SPC1, SPC0, sizeof(float)*subSize);
+	}*/
 }
 
 
@@ -577,7 +666,7 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR)
 	FZLookup.resize(N);
 	simplifiedTree.resize(2*N-1);
 
-	resetMemory();
+	Crc = new CRC8();
 	
 	
 	pcc();
@@ -587,6 +676,7 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR)
 PolarCode::~PolarCode()
 {
 	_mm_free(AlignedVector);
+	delete Crc;
 }
 
 void PolarCode::resetMemory()
@@ -600,10 +690,10 @@ void PolarCode::resetMemory()
 	Bits.resize(1);
 
 	LLR[0].resize(n+1);
-	Bits[0].assign(N, 0.0);
+	Bits[0].resize(N);
 	for(int stage=0; stage<=n; ++stage)
 	{
-		LLR[0][stage].assign(std::max(FLOATSPERVECTOR, 1<<stage), 0.0);		
+		LLR[0][stage].resize(std::max(FLOATSPERVECTOR, 1<<stage));
 	}
 }
 	
@@ -655,6 +745,14 @@ void PolarCode::pcc()
 		simplifiedTree[N-1+sorter.permuted[i]] = nodeInfo::RateZero;
 	}
 	
+	for(int i=0; i<N; ++i)
+	{
+		if(FZLookup[i])
+		{
+			AcceleratedLookup.push_back(i);
+		}
+	}
+	
 	for(int lev=n-1; lev>=0; --lev)
 	{
 		int st = (1<<lev)-1;
@@ -702,67 +800,168 @@ void PolarCode::pcc()
 
 void PolarCode::encode(vector<bool> &encoded, vector<bool> &data)
 {
+	SimpleBits.assign(N, 0.0);
+	unsigned int *iBit = reinterpret_cast<unsigned int*>(SimpleBits.data());
+	float *BitPtr = SimpleBits.data();
 	encoded.assign(N, 0);
-#ifdef CRCSIZE
-	CRC8 *CrcGenerator = new CRC8();
-	
+#ifdef CRCSIZE	
 	//Calculate CRC
-	CrcGenerator->addChecksum(data);
+	Crc->addChecksum(data);
 #endif
 	
 	//Insert the bits into Rate-1 channels
-	auto bitptr = data.begin();
-	for(int i=0; i<N; ++i)
+	for(int i=0; i<K; ++i)
 	{
-		if(FZLookup[i])
-		{
-			encoded[i] = *bitptr;
-			++bitptr;
-		}
+		SimpleBits[AcceleratedLookup[i]] = (data[i]?-0.0:0.0);
 	}
 	
 	//Encode
-	int B, nB, base;
+	int B, nB, base, inc;
 	for(int i=n-1; i>=0; --i)
 	{
 		B = 1<<(n-i-1);
 		nB = 1<<i;
-		for(int j=0; j<nB; ++j)
+		inc = B<<1;
+		if(B>=FLOATSPERVECTOR)
 		{
-			base = j*(B<<1);
-			for(int l=0; l<B; ++l)
+			base = 0;
+			for(int j=0; j<nB; ++j)
 			{
-				encoded[base+l] = (encoded[base+l] != encoded[base+l +B]);// here '!=' works as XOR-operator. '^' doesn't...
+				for(int l=0; l<B; l+=FLOATSPERVECTOR)
+				{
+					vec Bit_l = load_ps(BitPtr+base+l);
+					vec Bit_r = load_ps(BitPtr+base+l+B);
+					Bit_l = xor_ps(Bit_l, Bit_r);
+					store_ps(BitPtr+base+l, Bit_l);
+				}
+				base += inc;
+			}
+		}
+		else
+		{
+			base = 0;
+			for(int j=0; j<nB; ++j)
+			{
+				for(int l=0; l<B; ++l)
+				{
+					iBit[base+l] ^= iBit[base+l+B];
+				}
+				base += inc;
 			}
 		}
 	}
-#ifdef CRCSIZE	
-	delete CrcGenerator;
-#endif
+	
+	for(int i=0; i<N; ++i)
+	{
+		encoded[i] = iBit[i];
+	}
 }
+
+/*
+void PolarCode::encode_systematic(vector<bool> &encoded, vector<bool> &data)
+{
+	SysY.resize(N);
+	std::copy(FZLookup.begin(), FZLookup.end(), SysY.begin());
+	encoded.assign(N, 0);
+#ifdef CRCSIZE	
+	//Calculate CRC
+	Crc->addChecksum(data);
+#endif
+	
+	//Insert the bits into Rate-1 channels
+	for(int i=0; i<K; ++i)
+	{
+		SysX[AcceleratedLookup[i]] = data[i];
+	}
+	
+	//Encode
+	vector<bool> r(N, false);
+	EncoderB(0, N-1, r, encoded);
+}
+
+void PolarCode::encoderB(int i, int j, vector<bool> &r, vector<bool> &v)
+{
+	int m = (i+j)>>1;
+	int L = j-i+1;
+	v.assign(L, 0.0);
+	if(L==1)
+	{
+		if(FZLookup[i])
+		{
+			v[0] = SysY[i] = SysX[i]!=r[0];
+		}
+		else
+		{
+			SysX[i] = SysY[i]!=r[0];
+			v[0] = SysY[i];
+		}
+	}
+	else
+	{
+		vector<bool> v1(L>>1, 0.0), v2(L>>1, 0.0);
+		vector<bool> r1(L>>1), r2(L>>1);
+		std::copy(r.begin(), r.begin()+(L>>1)+1, r2.begin());
+		std::copy(r.begin()+(L>>1)+1, r.end(), r1.begin());
+		
+		EncoderB(m+1, j, r1, v1);
+		for(unsigned int k=0; k<(L>>1); ++k)
+		{
+			v2[k] = r2[k]!=v1[k];
+		}
+		EncoderB(i, m, v2, v2);
+		for(unsigned int k=0; k<(L>>1); ++k)
+		{
+			v2[k] = v2[k]!=v1[k];
+		}
+		std::copy(v2.begin(), v2.end(), v.begin());
+		std::copy(v1.begin(), v1.end(), v.begin()+(L>>1));
+	}
+}*/
+
+
 
 void PolarCode::transform(aligned_float_vector &BitsIn, vector<bool> &BitsOut)
 {
-	int size = BitsOut.size();
-	unsigned int *FloatBit = reinterpret_cast<unsigned int *>(BitsIn.data());
-	for(int i=0; i<size; ++i)
-	{
-		BitsOut[i] = FloatBit[i]&0x80000000;
-	}
+	float *BitPtr = BitsIn.data();
+	unsigned int *iBit = reinterpret_cast<unsigned int *>(BitPtr);
 
-	int B, nB, base;
+	int B, nB, base, inc;
 	for(int i=n-1; i>=0; --i)
 	{
 		B = 1<<(n-i-1);
 		nB = 1<<i;
-		for(int j=0; j<nB; ++j)
+		inc = B<<1;
+		if(B>=FLOATSPERVECTOR)
 		{
-			base = j*(B<<1);
-			for(int l=0; l<B; ++l)
+			base = 0;
+			for(int j=0; j<nB; ++j)
 			{
-				BitsOut[base+l] = (BitsOut[base+l] != BitsOut[base+l +B]);// here '!=' works as XOR-operator. '^' doesn't...
+				for(int l=0; l<B; l+=FLOATSPERVECTOR)
+				{
+					vec Bit_l = load_ps(BitPtr+base+l);
+					vec Bit_r = load_ps(BitPtr+base+l+B);
+					Bit_l = xor_ps(Bit_l, Bit_r);
+					store_ps(BitPtr+base+l, Bit_l);
+				}
+				base += inc;
 			}
 		}
+		else
+		{
+			base = 0;
+			for(int j=0; j<nB; ++j)
+			{
+				for(int l=0; l<B; ++l)
+				{
+					iBit[base+l] ^= iBit[base+l+B];
+				}
+				base += inc;
+			}
+		}
+	}
+	for(int i=0; i<N; ++i)
+	{
+		BitsOut[i] = iBit[i];
 	}
 }
 
@@ -787,18 +986,7 @@ bool PolarCode::decode(vector<bool> &decoded, vector<float> &initialLLR)
 
 bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 {
-	int backupL = L;
-	L = 1;
 	resetMemory();
-#ifdef CRCSIZE
-	CRC8 *Crc = new CRC8();
-#endif
-//	for(int i=0; i<N; ++i)
-//	{
-//		/* copy element by element to the aligned storage */
-//		LLR[0][n][i] = initialLLR[i];
-//	}
-
 	std::copy(initialLLR.begin(), initialLLR.end(), LLR[0][n].begin());
 
 #ifdef ONLY_SCDECODING
@@ -815,27 +1003,16 @@ bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 	
 	transform(SimpleBits, Dhat);
 
-	auto bitptrA = decoded.begin();
-	auto bitptrB = Dhat.begin();
-	for(int bit=0; bit<N; ++bit)
+	for(int bit=0; bit<K; ++bit)
 	{
-		if(FZLookup[bit])
-		{
-			*bitptrA = *bitptrB;
-			++bitptrA;
-		}
-		++bitptrB;
+		decoded[bit] = Dhat[AcceleratedLookup[bit]];
 	}
-#ifdef CRCSIZE
-	bool success = Crc->check(decoded);	
-	delete Crc;
-#else
-	bool success = true;
-#endif
 
-	L = backupL;
-	
-	return success;
+#ifdef CRCSIZE
+	return Crc->check(decoded);	
+#else
+	return true;
+#endif	
 }
 
 void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)

@@ -151,22 +151,15 @@ void simulate(int SimIndex)
 
 	high_resolution_clock::time_point TimeStart = high_resolution_clock::now();
 	
-	while(runs < MaxIters && !(errors>=MinErrors && runs>=MinIters))
+	while(runs < MaxIters/* && !(errors>=MinErrors && runs>=MinIters)*/)
 	{
 		//Decode
 		decodingSuccess[runs] = PC.decode(decodedData[runs], LLR[runs]);
-		if(!decodingSuccess[runs])
+/*		if(!decodingSuccess[runs])
 		{
-#ifdef DEBUGOUTPUT
-			std::cout << "CRC-Error" << std::endl;
-#endif
 			++errors;
-		}
+		}*/
 		++runs;
-		
-#ifdef DEBUGOUTPUT
-		std::cout << errors << '/' << runs << " Error count" << std::endl;
-#endif
 	}
 	
 	high_resolution_clock::time_point TimeEnd = high_resolution_clock::now();

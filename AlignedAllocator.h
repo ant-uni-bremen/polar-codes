@@ -1,6 +1,7 @@
 #ifndef ALIGNEDALLOCATOR_H
 #define ALIGNEDALLOCATOR_H
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 #include <stdexcept>
