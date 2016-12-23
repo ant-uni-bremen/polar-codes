@@ -30,32 +30,6 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-
-static inline float _mm256_reduce_add_ps(__m256 x) {
-    /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
-    const __m128 x128 = _mm_add_ps(_mm256_extractf128_ps(x, 1), _mm256_castps256_ps128(x));
-    /* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */
-    const __m128 x64 = _mm_add_ps(x128, _mm_movehl_ps(x128, x128));
-    /* ( -, -, -, x0+x1+x2+x3+x4+x5+x6+x7 ) */
-    const __m128 x32 = _mm_add_ss(x64, _mm_shuffle_ps(x64, x64, 0x55));
-    /* Conversion to float is a no-op on x86-64 */
-    return _mm_cvtss_f32(x32);
-}
-
-static inline float _mm256_reduce_xor_ps(__m256 x) {
-    /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
-    const __m128 x128 = _mm_xor_ps(_mm256_extractf128_ps(x, 1), _mm256_castps256_ps128(x));
-    /* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */
-    const __m128 x64 = _mm_xor_ps(x128, _mm_movehl_ps(x128, x128));
-    /* ( -, -, -, x0+x1+x2+x3+x4+x5+x6+x7 ) */
-    const __m128 x32 = _mm_xor_ps(x64, _mm_shuffle_ps(x64, x64, 0x55));
-    /* Conversion to float is a no-op on x86-64 */
-    return _mm_cvtss_f32(x32);
-}
-
-
-
-
 void PolarCode::F_function(float *LLRin, float *LLRout, int size)
 {
 	unsigned int *iLLRin = reinterpret_cast<unsigned int*>(LLRin);
@@ -159,13 +133,10 @@ void PolarCode::G_function_0R_hybrid(float *LLRin, float *LLRout, int size)
 		G_function_0R_vectorized(LLRin, LLRout, size);
 }
 
-
 void PolarCode::Rate0(float *BitsOut, int size)
 {
 	memset(BitsOut, 0, size*sizeof(float));
 }
-
-
 
 void PolarCode::Rate1(float *LLRin, float *BitsOut, int size)
 {
@@ -175,6 +146,16 @@ void PolarCode::Rate1(float *LLRin, float *BitsOut, int size)
 	for(int i=0; i<size; ++i)
 	{
 		iBit[i] = iLLR[i]&0x80000000;
+	}
+}
+
+void PolarCode::Rate1_vectorized(float *LLRin, float *BitsOut, int size)
+{
+	for(int i=0; i<size; i+=FLOATSPERVECTOR)
+	{
+		vec LLR_i = load_ps(LLRin+i);
+		LLR_i = and_ps(LLR_i, SIGN_MASK);
+		store_ps(BitsOut+i, LLR_i);
 	}
 }
 
@@ -249,16 +230,16 @@ void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 		store_ps(BitsOut+i, Bit_l);//Save upper bit
 
 		Bit_o = and_ps(LLR1, ABS_MASK);
-		store_ps(absLLRVec.data()+i, Bit_o);
+		store_ps(absLLR.data()+i, Bit_o);
 	}
 	
-	*fPar = _mm256_reduce_xor_ps(parityVec);
+	*fPar = reduce_xor_ps(parityVec);
 	
 	if(parity)
 	{
 		for(int i=0; i<size; ++i)
 		{
-			if(absLLRVec[i] < absLLRVec[index])
+			if(absLLR[i] < absLLR[index])
 			{
 				index = i;
 			}
@@ -278,7 +259,7 @@ void PolarCode::P_0SPC(float *LLRin, float *BitsOut, int size)
 	int index=0;
 	float tmp; unsigned int *iTmp = reinterpret_cast<unsigned int*>(&tmp);
 
-	unsigned int *iAbsVec = reinterpret_cast<unsigned int*>(absLLRVec.data());
+	unsigned int *iAbsVec = reinterpret_cast<unsigned int*>(absLLR.data());
 	
 	for(int i=0; i<size; i++)
 	{
@@ -291,7 +272,7 @@ void PolarCode::P_0SPC(float *LLRin, float *BitsOut, int size)
 	{
 		for(int i=0; i<size; ++i)
 		{
-			if(absLLRVec[i] < absLLRVec[index])
+			if(absLLR[i] < absLLR[index])
 			{
 				index = i;
 			}
@@ -326,16 +307,16 @@ void PolarCode::P_0SPC_vectorized(float *LLRin, float *BitsOut, int size)
 		store_ps(BitsOut+i, Bit_o);//Save upper bit
 
 		Bit_o = and_ps(LLR1, ABS_MASK);
-		store_ps(absLLRVec.data()+i, Bit_o);
+		store_ps(absLLR.data()+i, Bit_o);
 	}
 	
-	*fPar = _mm256_reduce_xor_ps(parityVec);
+	*fPar = reduce_xor_ps(parityVec);
 	
 	if(parity)
 	{
 		for(int i=0; i<size; ++i)
 		{
-			if(absLLRVec[i] < absLLRVec[index])
+			if(absLLR[i] < absLLR[index])
 			{
 				index = i;
 			}
@@ -578,7 +559,7 @@ void PolarCode::Repetition_vectorized(float *LLRin, float *BitsOut, int size)
 		TmpVec = load_ps(LLRin+i);
 		LLRsum = add_ps(LLRsum, TmpVec);
 	}
-	Sum = _mm256_reduce_add_ps(LLRsum);
+	Sum = reduce_add_ps(LLRsum);
 	vec BitLLR = set1_ps(Sum);
 	vec BitDecision = and_ps(BitLLR, SIGN_MASK);
 	for(int i=0; i<size; i+=FLOATSPERVECTOR)
@@ -601,6 +582,7 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR)
 {
 	AlignedVector = (float*)_mm_malloc(FLOATSPERVECTOR * sizeof(float), sizeof(vec));
 	SIGN_MASK = set1_ps(-0.0);
+	ZERO = set1_ps(0.0);
 	
 	{
 		float absmask; unsigned int *absptr=reinterpret_cast<unsigned int*>(&absmask);
@@ -613,6 +595,10 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR)
 	this->L = L;
 	this->designSNR = designSNR;
 	
+	maxCandCount = L<<3;
+	newMetrics.resize(maxCandCount);
+	cand.resize(maxCandCount);
+	
 	n = ceil(log2(N));
 
 	//Initialize all the arrays
@@ -621,7 +607,7 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR)
 
 	Crc = new CRC8();
 	
-	absLLRVec.resize(N);
+	absLLR.resize(N);
 	
 	
 	pcc();
@@ -952,7 +938,7 @@ bool PolarCode::decodeOnePath(vector<bool> &decoded, vector<float> &initialLLR)
 	resetMemory();
 	std::copy(initialLLR.begin(), initialLLR.end(), LLR[0][n].begin());
 
-#ifdef ONLY_SCDECODING
+#ifdef FLEXIBLE_DECODING
 	decodeOnePathRecursive(n,SimpleBits.data(),0);
 #else
 
@@ -1006,51 +992,96 @@ void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 		SPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
 		break;
 	case RepSPCnode:
-		RepSPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
+		if(subStageLength == 8)
+		{
+			RepSPC_8(LLR[0][stage-1].data(), nodeBits);
+		}
+		else
+		{
+			RepSPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
+		}
 		break;
 	default:
 		decodeOnePathRecursive(stage-1, nodeBits, leftNode);
 	}
 
-	if(simplifiedTree[leftNode] != RateZero)
+	if(simplifiedTree[rightNode] == RateOne)
 	{
-		G_function_hybrid(LLR[0][stage].data(), LLR[0][stage-1].data(), nodeBits, subStageLength);
+		if(simplifiedTree[leftNode] == RateZero)
+		{
+			P_01(LLR[0][stage].data(), nodeBits, subStageLength);
+		}
+		else
+		{
+			if(subStageLength<FLOATSPERVECTOR)
+			{
+				P_R1(LLR[0][stage].data(), nodeBits, subStageLength);
+			}
+			else
+			{
+				P_R1_vectorized(LLR[0][stage].data(), nodeBits, subStageLength);
+			}
+		}
+	}
+	else if(simplifiedTree[rightNode] == SPCnode)
+	{
+		if(simplifiedTree[leftNode] == RateZero)
+		{
+			if(subStageLength<FLOATSPERVECTOR)
+			{
+				P_0SPC(LLR[0][stage].data(), nodeBits, subStageLength);
+			}
+			else
+			{
+				P_0SPC_vectorized(LLR[0][stage].data(), nodeBits, subStageLength);
+			}
+		}
+		else
+		{
+			P_RSPC(LLR[0][stage].data(), nodeBits, subStageLength);
+		}
 	}
 	else
 	{
-		G_function_0R_hybrid(LLR[0][stage].data(), LLR[0][stage-1].data(), subStageLength);
-	}
+		if(simplifiedTree[leftNode] != RateZero)
+		{
+			G_function_hybrid(LLR[0][stage].data(), LLR[0][stage-1].data(), nodeBits, subStageLength);
+		}
+		else
+		{
+			G_function_0R_hybrid(LLR[0][stage].data(), LLR[0][stage-1].data(), subStageLength);
+		}
+		
+		switch(simplifiedTree[rightNode])
+		{
+		case RateZero:
+			Rate0(rightBits, subStageLength);
+			break;
+		case RateOne:
+			Rate1(LLR[0][stage-1].data(), rightBits, subStageLength);
+			break;
+		case RepetitionNode:
+		case RateHalf:
+			Repetition_hybrid(LLR[0][stage-1].data(), rightBits, subStageLength);
+			break;
+		case SPCnode:
+			SPC(LLR[0][stage-1].data(), rightBits, subStageLength);
+			break;
+		case RepSPCnode:
+			RepSPC(LLR[0][stage-1].data(), rightBits, subStageLength);
+			break;
+		default:
+			decodeOnePathRecursive(stage-1, rightBits, rightNode);
+		}
 	
-	switch(simplifiedTree[rightNode])
-	{
-	case RateZero:
-		Rate0(rightBits, subStageLength);
-		break;
-	case RateOne:
-		Rate1(LLR[0][stage-1].data(), rightBits, subStageLength);
-		break;
-	case RepetitionNode:
-	case RateHalf:
-		Repetition_hybrid(LLR[0][stage-1].data(), rightBits, subStageLength);
-		break;
-	case SPCnode:
-		SPC(LLR[0][stage-1].data(), rightBits, subStageLength);
-		break;
-	case RepSPCnode:
-		RepSPC(LLR[0][stage-1].data(), rightBits, subStageLength);
-		break;
-	default:
-		decodeOnePathRecursive(stage-1, rightBits, rightNode);
-	}
-
-	if(simplifiedTree[leftNode] != RateZero)
-	{
-		CombineSimple(nodeBits, subStageLength);
-	}
-	else
-	{
-		Combine_0RSimple(nodeBits, subStageLength);
+		if(simplifiedTree[leftNode] != RateZero)
+		{
+			CombineSimple(nodeBits, subStageLength);
+		}
+		else
+		{
+			Combine_0RSimple(nodeBits, subStageLength);
+		}
 	}
 }
-
 

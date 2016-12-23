@@ -34,7 +34,7 @@ struct Candidate
 struct PolarCode
 {
 	float *AlignedVector;
-	vec SIGN_MASK, ABS_MASK;
+	vec SIGN_MASK, ABS_MASK, ZERO;
 	int N, K, L, n;
 	vector<int> FZLookup;
 	vector<int> AcceleratedLookup;
@@ -49,13 +49,17 @@ struct PolarCode
 	
 	vector<vector<aligned_float_vector>> newLLR;//[List][Stage][ValueIndex]
 	vector<aligned_float_vector> newBits;//[List]
-	
-	aligned_float_vector absLLRVec;
-	
+
+	aligned_float_vector absLLR;
 	
 	aligned_float_vector SimpleBits;
 	vector<float> Metric;
+	
+	vector<float> newMetrics;
+	vector<Candidate> cand;
+	
 	int PathCount;
+	int maxCandCount;
 	CRC8 *Crc;
 	
 	vector<bool> SysX, SysY;
@@ -90,9 +94,6 @@ struct PolarCode
 	void G_function_0R_vectorized(float *LLRin, float *LLRout, int size);
 	void G_function_0R_hybrid(float *LLRin, float *LLRout, int size);
 
-	void Combine(float *BitsIn_l, float *BitsIn_r, float *BitsOut, int size);
-	void Combine_0R(float *BitsIn_r, float *BitsOut, int size);
-	
 	void CombineSimple(float *Bits, int size);
 	void CombineSimple_vectorized(float *Bits, int size);
 	void Combine_0RSimple(float *Bits, int size);
@@ -119,6 +120,7 @@ struct PolarCode
 	void Rate0(float *BitsOut, int size);
 	void Rate0_multiPath(int stage, int BitLocation);
 	void Rate1(float *LLRin, float *BitsOut, int size);
+	void Rate1_vectorized(float *LLRin, float *BitsOut, int size);
 	void Rate1_multiPath(int stage, int BitLocation);
 
 

@@ -5,8 +5,8 @@
 #include <string>
 
 #define SPECIALPARAMETERS_H
-#define PCparam_N 1024
-#define PCparam_K 776
+#define PCparam_N 2048
+#define PCparam_K 1032
 
 #include "../ArrayFuncs.h"
 
@@ -59,7 +59,7 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 //		File << "Rate0(Bits[0][" << (stage-1) << "][0].data(), " << subStageLength << ");" << endl;
 		break;
 	case RateOne:
-		File << "Rate1(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		File << "Rate1" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		break;
 	case RepetitionNode:
 	case RateHalf:
