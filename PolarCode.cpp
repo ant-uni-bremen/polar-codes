@@ -43,7 +43,7 @@ void PolarCode::F_function(float *LLRin, float *LLRout, int size)
 		a = iLLRin[i];
 		b = iLLRin[i+size];
 		//LLRout[i] = sgn(a) * sgn(b) * fmin(fabs(a),fabs(b));
-		iLLRout[i] = (a&0x80000000) ^ (b&0x80000000);
+		iLLRout[i] = (a ^ b) & 0x80000000;
 		a &= 0x7FFFFFFF;
 		b &= 0x7FFFFFFF;
 		tmp = fmin(*fa, *fb);
@@ -237,7 +237,7 @@ void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 	
 	if(parity)
 	{
-		for(int i=0; i<size; ++i)
+		for(int i=1; i<size; ++i)
 		{
 			if(absLLR[i] < absLLR[index])
 			{
@@ -270,7 +270,7 @@ void PolarCode::P_0SPC(float *LLRin, float *BitsOut, int size)
 	
 	if(parity)
 	{
-		for(int i=0; i<size; ++i)
+		for(int i=1; i<size; ++i)
 		{
 			if(absLLR[i] < absLLR[index])
 			{
@@ -314,7 +314,7 @@ void PolarCode::P_0SPC_vectorized(float *LLRin, float *BitsOut, int size)
 	
 	if(parity)
 	{
-		for(int i=0; i<size; ++i)
+		for(int i=1; i<size; ++i)
 		{
 			if(absLLR[i] < absLLR[index])
 			{
@@ -417,9 +417,21 @@ void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size)
 		//Accumulate the value for Repetition code
 		//RepSum += sgn(a) * sgn(b) * fmin(absA,absB);
 		RepAcc = fmin(absA, absB);
-		*iRepAcc ^= (*ia&0x80000000) ^ (*ib&0x80000000);
+		*iRepAcc ^= (*ia ^ *ib) & 0x80000000;
 		RepSum += RepAcc;
 		
+		//Decide both possibilities for SPC code
+		a = LLRin[i+subSize] + LLRin[i];
+		b = LLRin[i+subSize] - LLRin[i];
+		SPC0[i] = *ia & 0x80000000;
+		SPC1[i] = *ib & 0x80000000;
+		//and update the parity check
+		parA ^= SPC0[i];
+		parB ^= SPC1[i];
+
+		*iabsA = *ia&0x7FFFFFFF;
+		*iabsB = *ib&0x7FFFFFFF;
+
 		//Find least reliable bit for SPC code
 		if(absA < minA)
 		{
@@ -431,15 +443,6 @@ void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size)
 			minB = absB;
 			indB = i;
 		}
-		
-		//Decide both possibilities for SPC code
-		a = LLRin[i+subSize] + LLRin[i];
-		b = LLRin[i+subSize] - LLRin[i];
-		SPC0[i] = *ia & 0x80000000;
-		SPC1[i] = *ib & 0x80000000;
-		//and update the parity check
-		parA ^= SPC0[i];
-		parB ^= SPC1[i];
 	}
 	
 	//Hard decision for repetition code
@@ -449,6 +452,7 @@ void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size)
 	decidedSPC = *iRepSum ? SPC1 : SPC0;
 	unsigned int parity = *iRepSum ? parB : parA;
 	unsigned int index = *iRepSum ? indB : indA;
+
 	
 	//Flip the the least reliable bit
 	decidedSPC[index] ^= parity;
@@ -676,7 +680,7 @@ void PolarCode::pcc()
 		}
 	}
 	
-	trackingSorter sorter(z);
+	sorter.set(z);
 	sorter.stableSort();
 	
 	for(int i = 0; i<K; ++i)
@@ -1068,7 +1072,14 @@ void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 			SPC(LLR[0][stage-1].data(), rightBits, subStageLength);
 			break;
 		case RepSPCnode:
-			RepSPC(LLR[0][stage-1].data(), rightBits, subStageLength);
+			if(subStageLength == 8)
+			{
+				RepSPC_8(LLR[0][stage-1].data(), rightBits);
+			}
+			else
+			{
+				RepSPC(LLR[0][stage-1].data(), rightBits, subStageLength);
+			}
 			break;
 		default:
 			decodeOnePathRecursive(stage-1, rightBits, rightNode);

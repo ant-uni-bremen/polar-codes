@@ -10,11 +10,11 @@
 
 #define ConcurrentThreads 3
 
-#define MinErrors      1000
-#define MinIters       5000
-#define MaxIters      10000
+#define MinErrors      2000
+#define MinIters      10000
+#define MaxIters     100000
 
-#define FLEXIBLE_DECODING
+//#define FLEXIBLE_DECODING
 
 #ifdef __DEBUG__
 //Can be commented out to suppress debugging output:

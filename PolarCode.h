@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Parameters.h"
+#include "ArrayFuncs.h"
 #include "AlignedAllocator.h"
 #include "crc8.h"
 
@@ -51,6 +52,7 @@ struct PolarCode
 	vector<aligned_float_vector> newBits;//[List]
 
 	aligned_float_vector absLLR;
+	trackingSorter sorter;
 	
 	aligned_float_vector SimpleBits;
 	vector<float> Metric;

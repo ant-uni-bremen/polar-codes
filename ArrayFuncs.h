@@ -29,9 +29,11 @@ public:
 	void sort();
 	void sortDescending();
 	void stableSort();
+	void stableSortDescending();
 	void partialSort(int n);
 	void partialSortDescending(int n);
 	
+	void simplePartialSort(float *data, int size, int n);
 };
 
 void Bits2Bytes(std::vector<bool> &bits, unsigned char *bytes, int nBytes);

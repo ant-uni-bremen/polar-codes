@@ -223,7 +223,7 @@ void simulate(int SimIndex)
 int main(int argc, char** argv)
 {
 //	int Parameter[] = {1}, nParams = 1;
-	int Parameter[] = {1, 2, 4, 8}, nParams = 4;
+	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
 //	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
 
 
@@ -248,8 +248,8 @@ int main(int argc, char** argv)
 		for(int i=0; i<EbN0_count; ++i)
 		{
 			Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
-			Graph[idCounter].N = 2048;
-			Graph[idCounter].K = 1032;
+			Graph[idCounter].N = 128;
+			Graph[idCounter].K = 72;
 			Graph[idCounter].L = Parameter[l];
 			Graph[idCounter].designSNR = 5.0;
 			//Graph[idCounter].L = 1;

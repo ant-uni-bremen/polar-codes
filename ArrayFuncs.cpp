@@ -86,6 +86,26 @@ void trackingSorter::stableSort()
 	}
 }
 
+void trackingSorter::stableSortDescending()
+{
+	float x;
+	int j,y;
+	for(int i=1; i<size; ++i)
+	{
+		x = sorted[i];
+		y = permuted[i];
+		j = i-1;
+		while(j>=0 && sorted[j] < x)
+		{
+			sorted[j+1] = sorted[j];
+			permuted[j+1] = permuted[j];
+			j--;
+		}
+		sorted[j+1] = x;
+		permuted[j+1] = y;
+	}
+}
+
 void trackingSorter::partialSort(int n)
 {
 	//partialQuicksort(0, size-1, n);
@@ -104,9 +124,32 @@ void trackingSorter::partialSort(int n)
 	}
 }
 
+void trackingSorter::simplePartialSort(float *data, int size, int n)
+{
+	sorted.resize(n);
+	permuted.resize(n);
+	this->size = n;
+	
+	for(int i=0; i<n; ++i)
+	{
+		int index = i;
+		for(int j=i+1; j<size; ++j)
+		{
+			if(data[j] < data[index])
+			{
+				index = j;
+			}
+		}
+		std::swap(data[i], data[index]);
+		sorted[i] = data[i];
+		permuted[i] = index;
+	}
+}
+
+
 void trackingSorter::partialSortDescending(int n)
 {
-	//partialQuicksortDescending(0, size-1, n);
+	partialQuicksortDescending(0, size-1, n);
 	for(int i=0; i<n; ++i)
 	{
 		int index = i;

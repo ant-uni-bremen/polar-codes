@@ -5,8 +5,8 @@
 #include <string>
 
 #define SPECIALPARAMETERS_H
-#define PCparam_N 2048
-#define PCparam_K 1032
+#define PCparam_N 128
+#define PCparam_K 72
 
 #include "../ArrayFuncs.h"
 
@@ -201,10 +201,10 @@ void printMultiPathDecoder(int stage, int BitLocation, int nodeID)
 		File << "Repetition_multiPath(" << (stage-1) << ", " << BitLocation << ");" << endl;
 		singlePath = false;
 		break;
-	case SPCnode:
+/*	case SPCnode:
 		File << "SPC_multiPath(" << (stage-1) << ", " << BitLocation << ");" << endl;
 		singlePath = false;
-		break;
+		break;*/
 		
 		/* Implementing the RepSPC-shortcut for multipath-decoding is a lot of work,
 		 * which I didn't want to do.
@@ -260,10 +260,10 @@ void printMultiPathDecoder(int stage, int BitLocation, int nodeID)
 		File << "Repetition_multiPath(" << (stage-1) << ", " << (BitLocation+subStageLength) << ");" << endl;
 		singlePath = false;
 		break;
-	case SPCnode:
+/*	case SPCnode:
 		File << "SPC_multiPath(" << (stage-1) << ", " << (BitLocation+subStageLength) << ");" << endl;
 		singlePath = false;
-		break;
+		break;*/
 	default:
 		printMultiPathDecoder(stage-1, BitLocation+subStageLength, rightNode);
 	}
