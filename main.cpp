@@ -18,6 +18,8 @@
 
 #include "Parameters.h"
 
+const int MaxIters = 10000;
+
 
 std::atomic<int> nextThread(-1), finishedThreads(0);
 //std::map<int, std::atomic<float>> stopSNR;
@@ -95,26 +97,33 @@ void simulate(int SimIndex)
 	int nBits = Graph[SimIndex].K;
 #endif
 
-	default_random_engine RndGen(1);
+	mt19937 RndGen(1);
 	uniform_int_distribution<unsigned char> RndDist(0, 1);
 	normal_distribution<float> NormDist(0.0, 1.0);
-	vector<vector<bool>> data(MaxIters, vector<bool>(nBits,false));
-	vector<vector<bool>> decodedData(MaxIters, vector<bool>(Graph[SimIndex].K,false));
-	vector<bool> decodingSuccess(MaxIters, false);
-	vector<bool> encodedData(Graph[SimIndex].N, false);
+	vector<vector<float>> data(MaxIters, vector<float>(nBits,0.0));
+	vector<vector<float>> decodedData(MaxIters, vector<float>(Graph[SimIndex].K,0.0));
+	aligned_float_vector encodedData(Graph[SimIndex].N);
 	
 	vector<float> sig(Graph[SimIndex].N,0.0);
 	vector<vector<float>> LLR(MaxIters, vector<float>(Graph[SimIndex].N, 0.0));
 	//vector<bool> decodedData(PCparam_N,false);
 	
+	float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
+	
 	for(int block = 0; block<MaxIters; ++block)
 	{
 		//Generate random payload for testing
-		for(int i=0; i<nBits; ++i)
+		unsigned int* DataPtr = reinterpret_cast<unsigned int*>(data[block].data());
+		for(int i=0; i<nBits; i+=32)
 		{
-			data[block][i] = RndDist(RndGen);
+			unsigned int rawdata = RndGen();
+			for(int j=0;j<32;++j)
+			{
+				*(DataPtr++) = rawdata&0x80000000;
+				rawdata <<= 1;
+			}
 		}
-			
+
 		//Encode
 		PC.encode(encodedData, data[block]);
 			
@@ -124,7 +133,6 @@ void simulate(int SimIndex)
 		//Distort / Transmit via AWGN-channel
 		//(Signal+Noise) is normalized to noise power of 1
 		// afterwards it is equalized for some perfectly known rayleigh fading channel
-		float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
 //		std::complex<float> channelCoeff, noise, sample;
 		
 		for(int i=0; i<Graph[SimIndex].N; ++i)
@@ -154,8 +162,8 @@ void simulate(int SimIndex)
 	while(runs < MaxIters/* && !(errors>=MinErrors && runs>=MinIters)*/)
 	{
 		//Decode
-		decodingSuccess[runs] = PC.decode(decodedData[runs], LLR[runs]);
-/*		if(!decodingSuccess[runs])
+		
+/*		if(!*/PC.decode(decodedData[runs], LLR[runs]);/*)
 		{
 			++errors;
 		}*/
@@ -166,17 +174,18 @@ void simulate(int SimIndex)
 	duration<float> TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
 	float time = TimeUsed.count();
 
-	sprintf(message, "[%3d] Counting BER\n", SimIndex);
-	std::cout << message;
-
 	errors = 0;
 	
 	for(int block=0; block<runs; ++block)
 	{
 		bool errorFound = false;
+		unsigned int* decData = reinterpret_cast<unsigned int*>(decodedData[block].data());
+		unsigned int* orgData = reinterpret_cast<unsigned int*>(data[block].data());
 		for(int i=0; i<nBits; ++i)
 		{
-			if(decodedData[block][i] != data[block][i])
+			unsigned int a = decData[i];
+			unsigned int b = orgData[i];
+			if(a != b)
 			{
 				if(!errorFound)
 				{
@@ -186,7 +195,6 @@ void simulate(int SimIndex)
 				++biterrors;
 			}
 		}
-		decodedData[block].clear();
 	}
 
 	Graph[SimIndex].runs = runs;
@@ -222,8 +230,9 @@ void simulate(int SimIndex)
 
 int main(int argc, char** argv)
 {
-//	int Parameter[] = {1}, nParams = 1;
-	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
+//	int Parameter[] = {1,2}, nParams = 2;
+	int Parameter[] = {1,2,4}, nParams = 3;
+//	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
 //	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
 
 
@@ -248,8 +257,8 @@ int main(int argc, char** argv)
 		for(int i=0; i<EbN0_count; ++i)
 		{
 			Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
-			Graph[idCounter].N = 128;
-			Graph[idCounter].K = 72;
+			Graph[idCounter].N = 1024;
+			Graph[idCounter].K = 520;
 			Graph[idCounter].L = Parameter[l];
 			Graph[idCounter].designSNR = 5.0;
 			//Graph[idCounter].L = 1;

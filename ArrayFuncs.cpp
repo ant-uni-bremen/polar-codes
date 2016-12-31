@@ -31,6 +31,22 @@ void trackingSorter::set(std::vector<float> &arr)
 	}
 }
 
+void trackingSorter::set(std::vector<float> &arr, int size)
+{
+	unset();
+	this->size = size;
+	sorted.resize(size);
+	for(int i=0; i<size; ++i)
+	{
+		sorted[i] = arr[i];
+	}
+	permuted.reserve(size);
+	for(int i=0; i<size; ++i)
+	{
+		permuted[i] = i;
+	}
+}
+
 void trackingSorter::set(aligned_float_vector &arr, int size)
 {
 	unset();
@@ -145,7 +161,6 @@ void trackingSorter::simplePartialSort(float *data, int size, int n)
 		permuted[i] = index;
 	}
 }
-
 
 void trackingSorter::partialSortDescending(int n)
 {
@@ -331,21 +346,22 @@ void Bits2Bytes(unsigned char *bits, unsigned char *bytes, int nBytes)
 	}	
 }
 
-void Bits2Bytes(std::vector<bool> &bits, unsigned char *bytes, int nBytes)
+void Bits2Bytes(std::vector<float> &fbits, unsigned char *bytes, int nBytes)
 {
-	unsigned char tmp;
+	unsigned int* bits = reinterpret_cast<unsigned int*>(fbits.data());
+	unsigned int tmp;
 	int j=0;
 	for(int i=0; i<nBytes; ++i)
 	{
-		tmp = bits[j++]<<7;
-		tmp |= bits[j++]<<6;
-		tmp |= bits[j++]<<5;
-		tmp |= bits[j++]<<4;
-		tmp |= bits[j++]<<3;
-		tmp |= bits[j++]<<2;
-		tmp |= bits[j++]<<1;
-		tmp |= bits[j++];
-		*bytes = tmp;
+		tmp = bits[j++]>>24;
+		tmp |= bits[j++]>>25;
+		tmp |= bits[j++]>>26;
+		tmp |= bits[j++]>>27;
+		tmp |= bits[j++]>>28;
+		tmp |= bits[j++]>>29;
+		tmp |= bits[j++]>>30;
+		tmp |= bits[j++]>>31;
+		*bytes = static_cast<unsigned char>(tmp);
 		++bytes;
 	}
 }

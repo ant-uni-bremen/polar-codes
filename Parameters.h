@@ -8,11 +8,10 @@
 #define EbN0_count 20
 
 
-#define ConcurrentThreads 3
+#define ConcurrentThreads 1
 
 #define MinErrors      2000
 #define MinIters      10000
-#define MaxIters     100000
 
 //#define FLEXIBLE_DECODING
 
@@ -79,8 +78,10 @@
 #define xor_ps _mm256_xor_ps
 
 #define add_ps _mm256_add_ps
+#define sub_ps _mm256_sub_ps
 #define mul_ps _mm256_mul_ps
 
+#define max_ps _mm256_max_ps
 #define min_ps _mm256_min_ps
 
 static inline float reduce_add_ps(__m256 x) {

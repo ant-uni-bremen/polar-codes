@@ -24,6 +24,7 @@ public:
 	trackingSorter(std::vector<float> &arr);
 	~trackingSorter();
 	void set(std::vector<float> &arr);
+	void set(std::vector<float> &arr, int size);
 	void set(aligned_float_vector &arr, int size);
 	void unset();
 	void sort();
@@ -36,7 +37,7 @@ public:
 	void simplePartialSort(float *data, int size, int n);
 };
 
-void Bits2Bytes(std::vector<bool> &bits, unsigned char *bytes, int nBytes);
+void Bits2Bytes(std::vector<float> &bits, unsigned char *bytes, int nBytes);
 
 void Bits2Bytes(unsigned char *bits, unsigned char *bytes, int nBytes);
 void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes);

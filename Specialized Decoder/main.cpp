@@ -5,12 +5,13 @@
 #include <string>
 
 #define SPECIALPARAMETERS_H
-#define PCparam_N 128
-#define PCparam_K 72
+#define PCparam_N 1024
+#define PCparam_K 520
 
 #include "../ArrayFuncs.h"
 
 const float designSNR = 5.0;
+int n;
 
 enum nodeInfo
 {
@@ -46,11 +47,23 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 	{
 		vectorized = "_vectorized";
 	}
+	
+	string LLRptr;
+	if(stage == n)
+	{
+		LLRptr = "initialLLR.data()";
+	}
+	else
+	{
+		LLRptr = "LLR[0][";
+		LLRptr += to_string(stage);
+		LLRptr += "].data()";
+	}
 
 
 	if(simplifiedTree[leftNode] != RateZero)
 	{
-		File << "F_function" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
+		File << "F_function" << vectorized << "(" << LLRptr << ", LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
 	}
 
 	switch(simplifiedTree[leftNode])
@@ -66,17 +79,16 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 		File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		break;
 	case SPCnode:
-		File << "SPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		if(subStageLength == 4)
+			File << "SPC_4(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ");" << endl;
+		else
+			File << "SPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		break;
 	case RepSPCnode:
 		if(subStageLength == 8)
-		{
 			File << "RepSPC_8(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ");" << endl;
-		}
 		else
-		{
 			File << "RepSPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
-		}
 		break;
 	default:
 		printDecoder(stage-1, BitLocation, leftNode);
@@ -87,33 +99,33 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 	{
 		if(simplifiedTree[leftNode] == RateZero)
 		{
-			File << "P_01(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+			File << "P_01(" << LLRptr << ", BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 		else
 		{
-			File << "P_R1" << vectorized << "(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+			File << "P_R1" << vectorized << "(" << LLRptr << ", BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 	}
 	else if(simplifiedTree[rightNode] == SPCnode)
 	{
 		if(simplifiedTree[leftNode] == RateZero)
 		{
-			File << "P_0SPC" << vectorized << "(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+			File << "P_0SPC" << vectorized << "(" << LLRptr << ", BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 		else
 		{
-			File << "P_RSPC(LLR[0][" << stage << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+			File << "P_RSPC(" << LLRptr << ", BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 	}
 	else
 	{
 		if(simplifiedTree[leftNode] != RateZero)
 		{
-			File << "G_function" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+			File << "G_function" << vectorized << "(" << LLRptr << ", LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 		else
 		{
-			File << "G_function_0R" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
+			File << "G_function_0R" << vectorized << "(" << LLRptr << ", LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
 		}
 
 		switch(simplifiedTree[rightNode])
@@ -130,9 +142,12 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 			File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
 			cout << "Right repetition";
 			break;
-/*		case SPCnode:
-			File << "SPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
-			break;*/
+		case SPCnode:
+			if(subStageLength == 4)
+				File << "SPC_4(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ");" << endl;
+			else
+				File << "SPC(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+			break;
 		case RepSPCnode:
 			if(subStageLength == 8)
 			{
@@ -171,17 +186,41 @@ void printMultiPathDecoder(int stage, int BitLocation, int nodeID)
 	{
 		vectorized = "_vectorized";
 	}
+	
+	string LLRptr;
+	if(stage == n)
+	{
+		LLRptr = "initialLLR.data()";
+	}
+	else
+	{
+		LLRptr = "LLR[currentPath][";
+		LLRptr += to_string(stage);
+		LLRptr += "].data()";
+	}
+
+	string singleLLRptr;
+	if(stage == n)
+	{
+		singleLLRptr = "initialLLR.data()";
+	}
+	else
+	{
+		singleLLRptr = "LLR[0][";
+		singleLLRptr += to_string(stage);
+		singleLLRptr += "].data()";
+	}
 
 
 	//Calculate LLRs for all paths
 	if(singlePath)
 	{
-		File << "F_function" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;	
+		File << "F_function" << vectorized << "(" << singleLLRptr << ", LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;	
 	}
 	else
 	{
 		File << "for(int currentPath=0; currentPath<PathCount; ++currentPath)" << endl
-			 << "	F_function" << vectorized << "(LLR[currentPath][" << stage << "].data(), LLR[currentPath][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
+			 << "	F_function" << vectorized << "(" << LLRptr << ", LLR[currentPath][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
 	}
 
 	switch(simplifiedTree[leftNode])
@@ -222,11 +261,11 @@ void printMultiPathDecoder(int stage, int BitLocation, int nodeID)
 	{
 		if(simplifiedTree[leftNode] != RateZero)
 		{
-			File << "G_function" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), Bits[0].data()+" << BitLocation << ", " << subStageLength << ");" << endl;
+			File << "G_function" << vectorized << "(" << singleLLRptr << ", LLR[0][" << (stage-1) << "].data(), Bits[0].data()+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 		else
 		{
-			File << "G_function_0R" << vectorized << "(LLR[0][" << stage << "].data(), LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
+			File << "G_function_0R" << vectorized << "(" << singleLLRptr << ", LLR[0][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
 		}
 	}
 	else
@@ -234,12 +273,12 @@ void printMultiPathDecoder(int stage, int BitLocation, int nodeID)
 		if(simplifiedTree[leftNode] != RateZero)
 		{
 			File << "for(int currentPath=0; currentPath<PathCount; ++currentPath)" << endl
-				 << "	G_function" << vectorized << "(LLR[currentPath][" << stage << "].data(), LLR[currentPath][" << (stage-1) << "].data(), Bits[currentPath].data()+" << BitLocation << ", " << subStageLength << ");" << endl;
+				 << "	G_function" << vectorized << "(" << LLRptr << ", LLR[currentPath][" << (stage-1) << "].data(), Bits[currentPath].data()+" << BitLocation << ", " << subStageLength << ");" << endl;
 		}
 		else
 		{
 			File << "for(int currentPath=0; currentPath<PathCount; ++currentPath)" << endl
-				 << "	G_function_0R" << vectorized << "(LLR[currentPath][" << stage << "].data(), LLR[currentPath][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
+				 << "	G_function_0R" << vectorized << "(" << LLRptr << ", LLR[currentPath][" << (stage-1) << "].data(), " << subStageLength << ");" << endl;
 		}
 	}
 	
@@ -295,7 +334,7 @@ unsigned int bitreversed_slow(unsigned int j, unsigned int n)
 
 int main(void)
 {
-	int n = log2(PCparam_N);
+	n = log2(PCparam_N);
 	FZLookup.reserve(PCparam_N);
 	simplifiedTree.reserve(2*PCparam_N-1);
 
@@ -347,7 +386,7 @@ int main(void)
 			{
 				simplifiedTree[idx] = RateOne;
 			}
-			else if((Left == RateHalf || Left == SPCnode) && Right == RateOne)
+			else if((Left == RateHalf || Left == SPCnode) && Right == RateOne && lev>=n-2)
 			{
 				simplifiedTree[idx] = SPCnode;
 			}
@@ -375,7 +414,7 @@ int main(void)
 		cout << "Root node is not Rate-R! Expect problems!" << endl;
 	}
 
-	File.open("../FZLookup.cpp");
+/*	File.open("../FZLookup.cpp");
 
 	File << "bool bFZLookup[" << PCparam_N << "] = {";
 	for(int i=0; i<PCparam_N; ++i)
@@ -387,7 +426,7 @@ int main(void)
 		}
 	}
 	File << "};" << endl;
-	File.close();
+	File.close();*/
 
 	File.open("../SpecialDecoder.cpp");
 	printDecoder(n, 0, 0);
@@ -397,13 +436,13 @@ int main(void)
 	printMultiPathDecoder(n, 0, 0);
 	File.close();
 
-	File.open("../SpecialParameters.h");
+/*	File.open("../SpecialParameters.h");
 	File
 	<< "#ifndef SPECIALPARAMETERS_H" << endl
 	<< "#define SPECIALPARAMETERS_H" << endl
 	<< "#define PCparam_N " << PCparam_N << endl
 	<< "#define PCparam_K " << PCparam_K << endl
 	<< "#endif" << endl;
-	File.close();
+	File.close();*/
 	return 0;
 }

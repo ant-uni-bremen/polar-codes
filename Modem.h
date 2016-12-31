@@ -2,8 +2,9 @@
 #define MODEM_H
 
 #include <vector>
+#include "AlignedAllocator.h"
 
-void modulate(std::vector<float> &signal, std::vector<bool> &data);
+void modulate(std::vector<float> &signal, aligned_float_vector &data);
 void softDemod(std::vector<float> &LLR, std::vector<float> &signal, float R, float EbN0);
 
 

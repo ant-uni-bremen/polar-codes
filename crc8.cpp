@@ -62,31 +62,30 @@ void CRC8::generate(unsigned char *data, int bytes, unsigned char *crc)
 	*crc = generate(data, bytes);
 }
 
-void CRC8::addChecksum(std::vector<bool> &data)
+void CRC8::addChecksum(std::vector<float> &data)
 {
 	//Now, this function got a bit more complicated by the need to convert
 	//between c++-vector and c-array
 	int nBits = data.size(), nBytes = nBits>>3;
-	unsigned char *bytes = new unsigned char[nBytes];
+	tmpBytes.resize(nBytes);
 	unsigned char crcbits[8], crcbyte;
 
-	Bits2Bytes(data, bytes, nBytes);
-	crcbyte = generate(bytes, nBytes);
+	Bits2Bytes(data, tmpBytes.data(), nBytes);
+	crcbyte = generate(tmpBytes.data(), nBytes);
 	Bytes2Bits(&crcbyte, crcbits, 1);
 	for(int i=0; i<8; ++i)
 	{
-		data.push_back(crcbits[i]);
+		data.push_back(crcbits[i]?-0.0:0.0);
 	}
-	delete[] bytes;
 }
 
-bool CRC8::check(std::vector<bool> &data)
+bool CRC8::check(std::vector<float> &data)
 {
 	int nBits = data.size(), nBytes = nBits>>3;
-	unsigned char *bytes = new unsigned char[nBytes];
+	tmpBytes.resize(nBytes);
 	
-	Bits2Bytes(data, bytes, nBytes);
-	bool result = check(bytes, nBytes-1, bytes[nBytes-1]);
-	delete[] bytes;	
+	Bits2Bytes(data, tmpBytes.data(), nBytes);
+	bool result = check(tmpBytes.data(), nBytes-1, tmpBytes[nBytes-1]);
+	
 	return result;
 }

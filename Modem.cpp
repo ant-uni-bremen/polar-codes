@@ -8,13 +8,20 @@
 
 using namespace std;
 
-void modulate(vector<float> &signal, vector<bool> &data)
+float one = 1.0;
+unsigned int *iOne = reinterpret_cast<unsigned int*>(&one);
+
+void modulate(vector<float> &signal, aligned_float_vector &data)
 {
 	int nBits = data.size();
 	
+	unsigned int *iSig = reinterpret_cast<unsigned int*>(signal.data());
+	unsigned int *iData = reinterpret_cast<unsigned int*>(data.data());
+	
 	for(int i=0; i<nBits; ++i)
 	{
-		signal[i] = data[i]? -1.0 : 1.0;
+		//signal[i] = data[i]? -1.0 : 1.0;
+		iSig[i] = iData[i] | *iOne;
 	}
 }
 

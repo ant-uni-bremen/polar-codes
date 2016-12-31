@@ -28,7 +28,6 @@ struct Candidate
 {
 	int srcPath;//="currentPath"
 	int decisionIndex;//=decision path index of respective constituent decoder
-	float newMetric;
 	int hints[4], nHints;
 };
 
@@ -36,6 +35,9 @@ struct PolarCode
 {
 	float *AlignedVector;
 	vec SIGN_MASK, ABS_MASK, ZERO;
+	__m128 sgnMask;
+	__m128 absMask;
+
 	int N, K, L, n;
 	vector<int> FZLookup;
 	vector<int> AcceleratedLookup;
@@ -44,7 +46,8 @@ struct PolarCode
 	vector<nodeInfo> simplifiedTree;
 		
 	typedef vector<float, aligned_allocator<float, sizeof(vec)> > aligned_float_vector;
-		
+	
+	aligned_float_vector initialLLR;
 	vector<vector<aligned_float_vector>> LLR;//[List][Stage][ValueIndex]
 	vector<aligned_float_vector> Bits;//[List]
 	
@@ -69,18 +72,18 @@ struct PolarCode
 	PolarCode(int N, int K, int L, float designSNR);
 	~PolarCode();
 
-	void encode(vector<bool> &encoded, vector<bool> &data);
+	void encode(aligned_float_vector &encoded, vector<float> &data);
 /*	void encode_systematic(vector<bool> &encoded, vector<bool> &data);
 	
 	void encoderB(int i, int j, vector<bool> &r, vector<bool> &v);*/
 	
-	bool decode(vector<bool> &decoded, vector<float> &LLR);
-	bool decodeOnePath(vector<bool> &decoded, vector<float> &LLR);
-	bool decodeMultiPath(vector<bool> &decoded, vector<float> &LLR);
+	bool decode(vector<float> &decoded, vector<float> &LLR);
+	bool decodeOnePath(vector<float> &decoded);
+	bool decodeMultiPath(vector<float> &decoded);
 	
 	void decodeOnePathRecursive(int stage, float *nodeBits, int nodeID);
 	void decodeMultiPathRecursive(int stage, int BitLocation, int nodeID);
-	void transform(aligned_float_vector &BitsIn, vector<bool> &BitsOut);
+	void transform(aligned_float_vector &Bits);
 	
 	void quick_abs(float *LLRin, float *LLRout, int size);
 	
@@ -101,6 +104,7 @@ struct PolarCode
 	void Combine_0RSimple(float *Bits, int size);
 
 	void SPC(float *LLRin, float *BitsOut, int size);
+	void SPC_4(float *LLRin, float *BitsOut);
 	void SPC_multiPath(int stage, int BitLocation);
 	
 	void P_RSPC(float *LLRin, float *BitsOut, int size);

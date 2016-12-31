@@ -8,6 +8,8 @@ class CRC8
 	unsigned char table[256];
 	void gen(unsigned char *crc, unsigned char m);
 	
+	std::vector<unsigned char> tmpBytes;
+	
 public:
 	CRC8();
 	~CRC8();
@@ -15,8 +17,8 @@ public:
 	bool check(unsigned char *data, int bytes, unsigned char checksum);
 	unsigned char generate(unsigned char *data, int bytes);
 	void generate(unsigned char *data, int bytes, unsigned char *checksum);
-	void addChecksum(std::vector<bool> &data);
-	bool check(std::vector<bool> &data);
+	void addChecksum(std::vector<float> &data);
+	bool check(std::vector<float> &data);
 };
 
 #endif
