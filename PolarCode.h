@@ -77,7 +77,7 @@ struct PolarCode
 	
 	void encoderB(int i, int j, vector<bool> &r, vector<bool> &v);*/
 	
-	bool decode(vector<float> &decoded, vector<float> &LLR);
+	bool decode(vector<float> &decoded, aligned_float_vector &LLR);
 	bool decodeOnePath(vector<float> &decoded);
 	bool decodeMultiPath(vector<float> &decoded);
 	

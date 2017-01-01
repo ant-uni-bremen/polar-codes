@@ -18,7 +18,8 @@
 
 #include "Parameters.h"
 
-const int MaxIters = 10000;
+const int MaxIters = 100000;
+const int ConcurrentThreads = 1;
 
 
 std::atomic<int> nextThread(-1), finishedThreads(0);
@@ -34,12 +35,21 @@ struct DataPoint
 	float effectiveRate;
 } *Graph;
 
+
+
+
+
+
+
+
+
 void simulate(int SimIndex)
 {
 	using namespace std;
 	using namespace std::chrono;
 	
 	int L = Graph[SimIndex].L;
+	int N = Graph[SimIndex].N;
 	float designSNR = Graph[SimIndex].designSNR;//dB
 	float EbN0 = Graph[SimIndex].EbN0;//dB
 	
@@ -99,13 +109,13 @@ void simulate(int SimIndex)
 
 	mt19937 RndGen(1);
 	uniform_int_distribution<unsigned char> RndDist(0, 1);
-	normal_distribution<float> NormDist(0.0, 1.0);
+//	normal_distribution<float> NormDist(0.0, 1.0);
 	vector<vector<float>> data(MaxIters, vector<float>(nBits,0.0));
 	vector<vector<float>> decodedData(MaxIters, vector<float>(Graph[SimIndex].K,0.0));
-	aligned_float_vector encodedData(Graph[SimIndex].N);
+	aligned_float_vector encodedData(N);
 	
-	vector<float> sig(Graph[SimIndex].N,0.0);
-	vector<vector<float>> LLR(MaxIters, vector<float>(Graph[SimIndex].N, 0.0));
+	aligned_float_vector sig(N,0.0);
+	vector<aligned_float_vector> LLR(MaxIters, aligned_float_vector(N));
 	//vector<bool> decodedData(PCparam_N,false);
 	
 	float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
@@ -127,31 +137,11 @@ void simulate(int SimIndex)
 		//Encode
 		PC.encode(encodedData, data[block]);
 			
-		//Modulate using simple BPSK
-		modulate(sig, encodedData);
-		
-		//Distort / Transmit via AWGN-channel
-		//(Signal+Noise) is normalized to noise power of 1
-		// afterwards it is equalized for some perfectly known rayleigh fading channel
-//		std::complex<float> channelCoeff, noise, sample;
-		
-		for(int i=0; i<Graph[SimIndex].N; ++i)
-		{
-/*			sample.real(sig[block][i]*factor);
-			sample.imag(0.0);
-			channelCoeff.real(NormDist(RndGen));
-			channelCoeff.imag(NormDist(RndGen));
-			noise.real(NormDist(RndGen));
-			noise.imag(NormDist(RndGen));
-			
-			noise /= channelCoeff;
-			sample += noise;
-			sig[i] = sample.real();*/
-			sig[i] = sig[i]*factor + NormDist(RndGen);
-		}
+		//Modulate using BPSK and add noise
+		modulateAndDistort(sig, encodedData, N, factor);
 			
 		//Demodulate
-		softDemod(LLR[block], sig, R, EbN0);
+		softDemod(LLR[block], sig, N, R, EbN0);
 	}
 
 	sprintf(message, "[%3d] Decoding with L = %d\n", SimIndex, L);

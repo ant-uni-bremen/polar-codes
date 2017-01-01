@@ -503,7 +503,7 @@ void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size)
 	else
 	{
 		//Copy the bits down, if Repetition bit was 0
-		memcpy(SPC1, SPC0, sizeof(float)*subSize);
+		memcpy(SPC1, SPC0, subSize<<2);
 	}
 }
 
@@ -930,9 +930,10 @@ void PolarCode::transform(aligned_float_vector &Bits)
 	}
 }
 
-bool PolarCode::decode(vector<float> &decoded, vector<float> &initLLR)
+bool PolarCode::decode(vector<float> &decoded, aligned_float_vector &initLLR)
 {
-	std::copy(initLLR.begin(), initLLR.end(), initialLLR.begin());
+	//std::copy(initLLR.begin(), initLLR.end(), initialLLR.begin());
+	memcpy(initialLLR.data(), initLLR.data(), N<<2);
 	if(decodeOnePath(decoded))
 	{
 		return true;
