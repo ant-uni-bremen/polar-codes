@@ -7,9 +7,6 @@
 #define EbN0_max    6.0
 #define EbN0_count 20
 
-
-#define ConcurrentThreads 1
-
 #define MinErrors      2000
 #define MinIters      10000
 
