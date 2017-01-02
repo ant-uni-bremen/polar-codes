@@ -38,6 +38,7 @@ public:
 };
 
 void Bits2Bytes(std::vector<float> &bits, unsigned char *bytes, int nBytes);
+void Bits2Bytes(float* fbits, unsigned char *bytes, int nBytes);
 
 void Bits2Bytes(unsigned char *bits, unsigned char *bytes, int nBytes);
 void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes);

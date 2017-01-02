@@ -6,7 +6,11 @@
 #include "Modem.h"
 #include "ArrayFuncs.h"
 
+#ifdef __AVX2__
 #define USE_AVX2
+#else
+#define USE_AVX
+#endif
 #include "lcg.h"
 
 //#include <immintrin.h>
@@ -64,7 +68,6 @@ void modulateAndDistort(aligned_float_vector &signal, aligned_float_vector &data
 #else
 		siga = add_ps(mul_ps(radius, costheta), siga);
 		sigb = add_ps(mul_ps(radius, sintheta), sigb);
-#warning FMA not used
 #endif
 		
 		store_ps(signal.data()+i, siga);
@@ -72,7 +75,7 @@ void modulateAndDistort(aligned_float_vector &signal, aligned_float_vector &data
 	}
 }
 
-void softDemod(aligned_float_vector &LLR, aligned_float_vector &signal, int size, float R, float EbN0)
+void softDemod(float *LLR, aligned_float_vector &signal, int size, float R, float EbN0)
 {	
 	float EbN0lin = pow(10.0, EbN0/10.0);
 	float factor = 2.0 * sqrt(2.0*R*EbN0lin);
@@ -82,7 +85,7 @@ void softDemod(aligned_float_vector &LLR, aligned_float_vector &signal, int size
 	{
 		vec llr = load_ps(signal.data()+i);
 		llr = mul_ps(llr, facVec);
-		store_ps(LLR.data()+i, llr);
+		store_ps(LLR+i, llr);
 	}
 }
 

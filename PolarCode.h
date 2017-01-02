@@ -69,17 +69,17 @@ struct PolarCode
 	
 	vector<bool> SysX, SysY;
 	
-	PolarCode(int N, int K, int L, float designSNR);
+	PolarCode(int N, int K, int L, float designSNR, bool encodeOnly=false);
 	~PolarCode();
 
-	void encode(aligned_float_vector &encoded, vector<float> &data);
+	void encode(aligned_float_vector &encoded, float* data);
 /*	void encode_systematic(vector<bool> &encoded, vector<bool> &data);
 	
 	void encoderB(int i, int j, vector<bool> &r, vector<bool> &v);*/
 	
-	bool decode(vector<float> &decoded, aligned_float_vector &LLR);
-	bool decodeOnePath(vector<float> &decoded);
-	bool decodeMultiPath(vector<float> &decoded);
+	bool decode(float* decoded, float* LLR);
+	bool decodeOnePath(float* decoded);
+	bool decodeMultiPath(float* ndecoded);
 	
 	void decodeOnePathRecursive(int stage, float *nodeBits, int nodeID);
 	void decodeMultiPathRecursive(int stage, int BitLocation, int nodeID);

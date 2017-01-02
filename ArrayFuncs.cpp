@@ -366,6 +366,25 @@ void Bits2Bytes(std::vector<float> &fbits, unsigned char *bytes, int nBytes)
 	}
 }
 
+void Bits2Bytes(float* fbits, unsigned char *bytes, int nBytes)
+{
+	unsigned int* bits = reinterpret_cast<unsigned int*>(fbits);
+	unsigned int tmp;
+	int j=0;
+	for(int i=0; i<nBytes; ++i)
+	{
+		tmp = bits[j++]>>24;
+		tmp |= bits[j++]>>25;
+		tmp |= bits[j++]>>26;
+		tmp |= bits[j++]>>27;
+		tmp |= bits[j++]>>28;
+		tmp |= bits[j++]>>29;
+		tmp |= bits[j++]>>30;
+		tmp |= bits[j++]>>31;
+		*bytes = static_cast<unsigned char>(tmp);
+		++bytes;
+	}
+}
 
 void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes)
 {

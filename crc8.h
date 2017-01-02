@@ -18,7 +18,9 @@ public:
 	unsigned char generate(unsigned char *data, int bytes);
 	void generate(unsigned char *data, int bytes, unsigned char *checksum);
 	void addChecksum(std::vector<float> &data);
+	void addChecksum(float* data, int nBits);
 	bool check(std::vector<float> &data);
+	bool check(float* data, int nBits);
 };
 
 #endif

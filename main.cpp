@@ -4,8 +4,11 @@
 #include <complex>
 #include <condition_variable>
 #include <cstring>
+#include <exception>
 #include <fstream>
 #include <iostream>
+#include <iterator>
+#include <list>
 #include <map>
 #include <mutex>
 #include <random>
@@ -18,10 +21,10 @@
 
 #include "Parameters.h"
 
-const int MinErrors =    2000;
-const int MinIters  =   10000;
-const int MaxIters  =  1000000;
-const int ConcurrentThreads = 3;
+const int BufferInterval   =  1000;
+const int MaxBufferSize    = 10000;
+const int BlocksToSimulate = 50000;
+const int ConcurrentThreads = 1;
 
 #ifdef FLEXIBLE_DECODING
 const int PCparam_N = 1024;
@@ -38,30 +41,266 @@ std::atomic<int> nextThread(-1), finishedThreads(0);
 std::map<int, std::atomic<float>> stopSNR;
 #endif
 
+
 struct DataPoint
 {
 	float designSNR, EbN0; int N,K,L;
-	int runs, errors;
+	int runs, bits, errors, biterrors;
 	float BLER, BER;
 	float time;//in seconds
 	float blps,cbps,pbps;//blocks/coded bits/payload bits per second
 	float effectiveRate;
 } *Graph;
 
+struct Block
+{
+	float* data;
+	float* LLR;
+	float* decodedData;
+	Block* next;
+};
+
+struct Buffer {
+	Block *ptr;
+	std::atomic<int> size;
+	std::mutex mtx;
+} SignalBuffer, CheckBuffer;
+
+std::atomic<bool> StopDecoder, bufferFilled;
+
+void generateSignals(int SimIndex)
+{
+	int L = Graph[SimIndex].L;
+	int N = Graph[SimIndex].N;
+	float designSNR = Graph[SimIndex].designSNR;//dB
+	float EbN0 = Graph[SimIndex].EbN0;//dB
+	float R = (float)Graph[SimIndex].K / Graph[SimIndex].N;
+#ifdef CRCSIZE
+	int nBits = (Graph[SimIndex].K-CRCSIZE);
+#else
+	int nBits = Graph[SimIndex].K;
+#endif
+	aligned_float_vector encodedData(N);
+	aligned_float_vector sig(N);
+	float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
+	mt19937 RndGen(SimIndex);
+
+	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, L, designSNR, true);
+	
+	Buffer mySigBuf;
+	mySigBuf.ptr = nullptr;
+	mySigBuf.size = 0;
+
+//	cout << "Generator starts" << endl;
+
+	for(int b=0; b<BlocksToSimulate; ++b)
+	{
+		while(SignalBuffer.size >= MaxBufferSize)
+		{
+			std::this_thread::yield();
+		}
+		
+		Block *block = new Block;
+		block->next = nullptr;
+		
+		try{
+			block->data = new float[Graph[SimIndex].K];
+			block->decodedData = new float[Graph[SimIndex].K];
+		}
+		catch(bad_alloc &ba)
+		{
+			cerr << "Problem at allocating memory: " << ba.what() << endl;
+		}
+		memset(block->decodedData, 0, Graph[SimIndex].K<<2);
+		block->LLR = (float*)_mm_malloc(N<<2, sizeof(vec));
+		
+		if(block->LLR == nullptr)
+		{
+			cerr << "_mm_malloc failed!" << endl;
+		}
+
+		//Generate random payload for testing
+		unsigned int* DataPtr = reinterpret_cast<unsigned int*>(block->data);
+		for(int i=0; i<nBits; i+=32)
+		{
+			unsigned int rawdata = RndGen();
+			for(int j=0;j<32;++j)
+			{
+				*(DataPtr++) = rawdata&0x80000000;
+				rawdata <<= 1;
+			}
+		}
+
+		//Encode
+		PC.encode(encodedData, block->data);
+
+		//Modulate using BPSK and add noise
+		modulateAndDistort(sig, encodedData, N, factor);
+
+		//Demodulate
+		softDemod(block->LLR, sig, N, R, EbN0);
+		
+		//Add to private decoding queue
+		block->next = mySigBuf.ptr;
+		mySigBuf.ptr = block;
+		mySigBuf.size++;
+		
+		if(mySigBuf.size >= BufferInterval || b+1 == BlocksToSimulate)
+		{
+			//Add to public decoding queue
+			SignalBuffer.mtx.lock();
+			Block* ptr = SignalBuffer.ptr;
+			if(ptr == nullptr)
+			{
+				SignalBuffer.ptr = mySigBuf.ptr;
+				SignalBuffer.size = mySigBuf.size+0;
+			}
+			else
+			{
+				while(ptr->next != nullptr)
+					ptr = ptr->next;
+				ptr->next = mySigBuf.ptr;
+				SignalBuffer.size += mySigBuf.size;
+			}			
+			mySigBuf.ptr = nullptr;
+			mySigBuf.size = 0;
+			if(SignalBuffer.size >= MaxBufferSize && !bufferFilled)
+			{
+				bufferFilled = true;
+			}
+			SignalBuffer.mtx.unlock();
+		}
+	}
+	StopDecoder = true;
+//	cout << "Generator finished" << endl;
+}
+
+void decodeSignals(int SimIndex)
+{
+	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].designSNR);
+	Block* BlockPtr = nullptr;
+//	cout << "Decoder starts" << endl;
+
+#warning TODO: Add private buffers to decoder and checker to reduce inter-thread communication time
+
+	while(!StopDecoder || SignalBuffer.size)
+	{
+		if(BlockPtr == nullptr)
+		{
+			while(SignalBuffer.ptr == nullptr && !StopDecoder)
+			{
+				std::this_thread::yield();
+			}
+			SignalBuffer.mtx.lock();
+			BlockPtr = SignalBuffer.ptr;
+			SignalBuffer.ptr = SignalBuffer.ptr->next;
+			SignalBuffer.size--,
+			SignalBuffer.mtx.unlock();
+		}
+		if(StopDecoder && !SignalBuffer.size)
+		{
+			return;
+		}
+
+		Block *block = BlockPtr;
+		
+		PC.decode(block->decodedData, block->LLR);
+		
+		//Push block into Checker
+		CheckBuffer.mtx.lock();
+		block->next = CheckBuffer.ptr;
+		CheckBuffer.ptr = block;
+		CheckBuffer.size++;
+		CheckBuffer.mtx.unlock();
+		
+		//Get next block from Generator
+		SignalBuffer.mtx.lock();
+		BlockPtr = SignalBuffer.ptr;
+		if(BlockPtr != nullptr)
+		{
+			SignalBuffer.ptr = SignalBuffer.ptr->next;
+			SignalBuffer.size--;
+		}
+		SignalBuffer.mtx.unlock();
+	}
+//	cout << "Decoder finished" << endl;
+}
+
+void checkDecodedData(int SimIndex)
+{
+#ifdef CRCSIZE
+	int nBits = (Graph[SimIndex].K-CRCSIZE);
+#else
+	int nBits = Graph[SimIndex].K;
+#endif
+
+	Block* BlockPtr = nullptr;
+
+//	cout << "Checker starts" << endl;
+	while(!StopDecoder || CheckBuffer.size)
+	{
+		if(BlockPtr == nullptr)
+		{
+			while(CheckBuffer.ptr == nullptr && !StopDecoder)
+			{
+				std::this_thread::yield();
+			}
+			if(StopDecoder)return;
+			
+			//Pop block
+			CheckBuffer.mtx.lock();
+			BlockPtr = CheckBuffer.ptr;
+			CheckBuffer.ptr = CheckBuffer.ptr->next;
+			CheckBuffer.size--;
+			CheckBuffer.mtx.unlock();
+		}
+
+		unsigned int *decData = reinterpret_cast<unsigned int*>(BlockPtr->decodedData);
+		unsigned int *orgData = reinterpret_cast<unsigned int*>(BlockPtr->data);
+		
+		int biterrors = 0;
+		for(int bit=0; bit<nBits; ++bit)
+		{
+			biterrors += (decData[bit]^orgData[bit])>>31;
+		}
+
+		Graph[SimIndex].runs++;
+		Graph[SimIndex].bits += nBits;
+		Graph[SimIndex].errors += !!biterrors;
+		Graph[SimIndex].biterrors += biterrors;
+		
+
+		delete [] BlockPtr->data;
+		delete [] BlockPtr->decodedData;
+		_mm_free(BlockPtr->LLR);
+		delete BlockPtr;
+		
+		//Get next block from Decoder
+		CheckBuffer.mtx.lock();
+		BlockPtr = CheckBuffer.ptr;
+		if(BlockPtr != nullptr)
+		{
+			CheckBuffer.ptr = CheckBuffer.ptr->next;
+			CheckBuffer.size--;
+		}
+		CheckBuffer.mtx.unlock();
+	}
+//	cout << "Checker finished" << endl;
+}
+
+
 
 void simulate(int SimIndex)
 {
 	using namespace std;
 	using namespace std::chrono;
-	
-	int L = Graph[SimIndex].L;
-	int N = Graph[SimIndex].N;
-	float designSNR = Graph[SimIndex].designSNR;//dB
-	float EbN0 = Graph[SimIndex].EbN0;//dB
-	
-	float R = (float)Graph[SimIndex].K / Graph[SimIndex].N;
-	
-	int runs = 0, errors = 0, biterrors = 0;
+
+#ifdef CRCSIZE
+	int nBits = (Graph[SimIndex].K-CRCSIZE);
+#else
+	int nBits = Graph[SimIndex].K;
+#endif
+
 	char message[128];
 	
 #ifdef ACCELERATED_MONTECARLO
@@ -73,6 +312,11 @@ void simulate(int SimIndex)
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	
+	Graph[SimIndex].runs = 0;
+	Graph[SimIndex].bits = 0;
+	Graph[SimIndex].errors = 0;
+	Graph[SimIndex].biterrors = 0;
+
 #ifdef ACCELERATED_MONTECARLO
 	if(EbN0 >= stopSNR[L])
 	{
@@ -90,8 +334,6 @@ void simulate(int SimIndex)
 		*/
 		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, EbN0, L);
 		std::cout << message;
-		Graph[SimIndex].runs = 0;
-		Graph[SimIndex].errors = 0;
 		Graph[SimIndex].BLER = 0;
 		Graph[SimIndex].time = 0;
 		Graph[SimIndex].blps = 0;
@@ -104,121 +346,61 @@ void simulate(int SimIndex)
 		return;
 	}
 #endif
-	
-	sprintf(message, "[%3d] Generating samples for Eb/N0 = %f dB\n", SimIndex, EbN0);
+
+	SignalBuffer.ptr = nullptr;
+	SignalBuffer.size = 0;
+	CheckBuffer.ptr = nullptr;
+	CheckBuffer.size = 0;
+	StopDecoder = false;
+	bufferFilled = false;
+
+	sprintf(message, "[%3d] Simulating Eb/N0 = %f dB, L = %d\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].L);
 	std::cout << message;
 
-	//Encoder
-	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, L, designSNR);
-
-#ifdef CRCSIZE
-	int nBits = (Graph[SimIndex].K-CRCSIZE);
-#else
-	int nBits = Graph[SimIndex].K;
-#endif
-
-	mt19937 RndGen(1);
-	uniform_int_distribution<unsigned char> RndDist(0, 1);
-	vector<vector<float>> data(MaxIters, vector<float>(nBits));
-	vector<vector<float>> decodedData(MaxIters, vector<float>(Graph[SimIndex].K,0.0));
-	aligned_float_vector encodedData(N);
 	
-	aligned_float_vector sig(N);
-	vector<aligned_float_vector> LLR(MaxIters, aligned_float_vector(N));
-	
-	float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
-	
-	for(int block = 0; block<MaxIters; ++block)
+	thread Generator(generateSignals, SimIndex);
+	while(!bufferFilled)
 	{
-		//Generate random payload for testing
-		unsigned int* DataPtr = reinterpret_cast<unsigned int*>(data[block].data());
-		for(int i=0; i<nBits; i+=32)
-		{
-			unsigned int rawdata = RndGen();
-			for(int j=0;j<32;++j)
-			{
-				*(DataPtr++) = rawdata&0x80000000;
-				rawdata <<= 1;
-			}
-		}
-
-		//Encode
-		PC.encode(encodedData, data[block]);
-			
-		//Modulate using BPSK and add noise
-		modulateAndDistort(sig, encodedData, N, factor);
-			
-		//Demodulate
-		softDemod(LLR[block], sig, N, R, EbN0);
+		std::this_thread::yield();
 	}
-
-	sprintf(message, "[%3d] Decoding with L = %d\n", SimIndex, L);
-	std::cout << message;
-
+//	cout << "Start" << endl;
 	high_resolution_clock::time_point TimeStart = high_resolution_clock::now();
+	thread Decoder(decodeSignals, SimIndex);
+	thread Checker(checkDecodedData, SimIndex);
 	
-#ifdef ACCELERATED_MONTECARLO
-	while(runs < MaxIters && !(errors>=MinErrors && runs>=MinIters))
+/*	while(!StopDecoder)
 	{
-		//Decode
-		if(!PC.decode(decodedData[runs], LLR[runs]))
-		{
-			++errors;
-		}
-		++runs;
-	}
-#else
-	for(;runs < MaxIters;++runs)
-	{
-		PC.decode(decodedData[runs], LLR[runs]);
-	}
-#endif
+		this_thread::sleep_for(chrono::milliseconds(1000));
+		BufferMutex.lock();
+		cout << "SignalBuffer: " << SignalBuffer.size() << endl
+			 << "CheckBuffer:  " << CheckBuffer.size() << endl
+			 << endl;
+		BufferMutex.unlock();
+	}*/
+	Generator.join();
+	Decoder.join();
+	Checker.join();
 	
 	high_resolution_clock::time_point TimeEnd = high_resolution_clock::now();
 	duration<float> TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
 	float time = TimeUsed.count();
 
-	errors = 0;
-	
-	for(int block=0; block<runs; ++block)
-	{
-		bool errorFound = false;
-		unsigned int* decData = reinterpret_cast<unsigned int*>(decodedData[block].data());
-		unsigned int* orgData = reinterpret_cast<unsigned int*>(data[block].data());
-		for(int i=0; i<nBits; ++i)
-		{
-			unsigned int a = decData[i];
-			unsigned int b = orgData[i];
-			if(a != b)
-			{
-				if(!errorFound)
-				{
-					++errors;
-					errorFound = true;
-				}
-				++biterrors;
-			}
-		}
-	}
-
-	Graph[SimIndex].runs = runs;
-	Graph[SimIndex].errors = errors;
-	Graph[SimIndex].BLER = errors;
-	Graph[SimIndex].BLER /= runs;
-	Graph[SimIndex].BER = biterrors;
-	Graph[SimIndex].BER /= runs*nBits;
+	//Graph[SimIndex].runs = runs;
+	//Graph[SimIndex].errors = errors;
+	Graph[SimIndex].BLER = (float)Graph[SimIndex].errors/Graph[SimIndex].runs;
+	Graph[SimIndex].BER = (float)Graph[SimIndex].biterrors/Graph[SimIndex].bits;
 	Graph[SimIndex].time = time;
-	Graph[SimIndex].blps = runs;
-	Graph[SimIndex].cbps = runs*Graph[SimIndex].N;
-	Graph[SimIndex].pbps = runs*nBits;
+	Graph[SimIndex].blps = Graph[SimIndex].runs;
+	Graph[SimIndex].cbps = Graph[SimIndex].runs*Graph[SimIndex].N;
+	Graph[SimIndex].pbps = Graph[SimIndex].bits;
 	Graph[SimIndex].blps /= time;
 	Graph[SimIndex].cbps /= time;
 	Graph[SimIndex].pbps /= time;
-	Graph[SimIndex].effectiveRate = (runs-errors+0.0)*nBits/time;
+	Graph[SimIndex].effectiveRate = (Graph[SimIndex].runs-Graph[SimIndex].errors+0.0)*nBits/time;
 
 	
 #ifdef ACCELERATED_MONTECARLO
-	if(runs == MaxIters && EbN0 < stopSNR[L])
+	if(Graph[SimIndex].runs == BlocksToSimulate && EbN0 < stopSNR[L])
 	{
 		stopSNR[L] = EbN0;
 	}
@@ -228,27 +410,15 @@ void simulate(int SimIndex)
 	sprintf(message, "[%3d] %3d Threads finished, BLER = %e\n", SimIndex, finished, Graph[SimIndex].BLER);
 	std::cout << message;
 
-	//Free the memory before starting the next thread
-	data.clear();
-	decodedData.clear();
-	encodedData.clear();
-	sig.clear();
-	LLR.clear();
-	PC.clear();
-
-	//Start the next thread
 	++nextThread;
-	
-	//At this point, all the objects are destroyed, which is too late for complicated memory stuff while the next thread
-	//already allocates that memory or might even generate it's data
 }
 
 
 int main(int argc, char** argv)
 {
 //	int Parameter[] = {1,2}, nParams = 2;
-//	int Parameter[] = {1,2,4}, nParams = 3;
-	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
+	int Parameter[] = {1, 2,4}, nParams = 3;
+//	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
 //	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
 
 

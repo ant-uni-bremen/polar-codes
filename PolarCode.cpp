@@ -601,60 +601,63 @@ void PolarCode::Repetition_hybrid(float *LLRin, float *BitsOut, int size)
 
 
 
-PolarCode::PolarCode(int N, int K, int L, float designSNR)
+PolarCode::PolarCode(int N, int K, int L, float designSNR, bool encodeOnly)
 {
-	AlignedVector = (float*)_mm_malloc(FLOATSPERVECTOR * sizeof(float), sizeof(vec));
-	SIGN_MASK = set1_ps(-0.0);
-	ZERO = set1_ps(0.0);
-	
-	{
-		float absmask; unsigned int *absptr=reinterpret_cast<unsigned int*>(&absmask);
-		*absptr = 0x7FFFFFFF;
-		ABS_MASK = set1_ps(absmask);
-	}
-	
-	sgnMask = _mm256_extractf128_ps(SIGN_MASK, 0);
-	absMask = _mm256_extractf128_ps(ABS_MASK, 0);
-
-	
 	this->N = N;
 	this->K = K;
 	this->L = L;
 	this->designSNR = designSNR;
-	
-	maxCandCount = L<<3;
-	Metric.resize(L);
-	newMetrics.resize(maxCandCount);
-	cand.resize(maxCandCount);
-	SimpleBits.resize(N);
-	
 	n = ceil(log2(N));
 
-	//Initialize all the arrays
 	FZLookup.resize(N);
 	simplifiedTree.resize(2*N-1);
 
 	Crc = new CRC8();
 	
-	absLLR.resize(N);
-
-	initialLLR.resize(N);
-	LLR.resize(L);
-	Bits.resize(L);
-	newLLR.resize(L);
-	newBits.resize(L);
-
-	for(int path=0; path<L; ++path)
+	if(!encodeOnly)
 	{
-		LLR[path].resize(n);
-		newLLR[path].resize(n);
-		Bits[path].resize(N);
-		newBits[path].resize(N);
-		for(int stage=0; stage<n; ++stage)
+		AlignedVector = (float*)_mm_malloc(FLOATSPERVECTOR * sizeof(float), sizeof(vec));
+		SIGN_MASK = set1_ps(-0.0);
+		ZERO = set1_ps(0.0);
+
 		{
-			LLR[path][stage].resize(std::max(FLOATSPERVECTOR, 1<<stage));
-			newLLR[path][stage].resize(std::max(FLOATSPERVECTOR, 1<<stage));
+			float absmask; unsigned int *absptr=reinterpret_cast<unsigned int*>(&absmask);
+			*absptr = 0x7FFFFFFF;
+			ABS_MASK = set1_ps(absmask);
 		}
+
+		sgnMask = _mm256_extractf128_ps(SIGN_MASK, 0);
+		absMask = _mm256_extractf128_ps(ABS_MASK, 0);
+
+		maxCandCount = L<<3;
+		Metric.resize(L);
+		newMetrics.resize(maxCandCount);
+		cand.resize(maxCandCount);
+		SimpleBits.resize(N);
+
+
+
+		absLLR.resize(N);
+
+		initialLLR.resize(N);
+		LLR.resize(L);
+		Bits.resize(L);
+		newLLR.resize(L);
+		newBits.resize(L);
+
+		for(int path=0; path<L; ++path)
+		{
+			LLR[path].resize(n);
+			newLLR[path].resize(n);
+			Bits[path].resize(N);
+			newBits[path].resize(N);
+			for(int stage=0; stage<n; ++stage)
+			{
+				LLR[path][stage].resize(std::max(FLOATSPERVECTOR, 1<<stage));
+				newLLR[path][stage].resize(std::max(FLOATSPERVECTOR, 1<<stage));
+			}
+		}
+
 	}
 	
 	pcc();
@@ -781,14 +784,14 @@ void PolarCode::pcc()
 	}
 }
 
-void PolarCode::encode(aligned_float_vector &encoded, vector<float> &data)
+void PolarCode::encode(aligned_float_vector &encoded, float* data)
 {
 	encoded.assign(N, 0.0);
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(encoded.data());
 	float *BitPtr = encoded.data();
 #ifdef CRCSIZE	
 	//Calculate CRC
-	Crc->addChecksum(data);
+	Crc->addChecksum(data, K-CRCSIZE);
 #endif
 	
 	//Insert the bits into Rate-1 channels
@@ -938,10 +941,10 @@ void PolarCode::transform(aligned_float_vector &Bits)
 	}
 }
 
-bool PolarCode::decode(vector<float> &decoded, aligned_float_vector &initLLR)
+bool PolarCode::decode(float* decoded, float* initLLR)
 {
-	//std::copy(initLLR.begin(), initLLR.end(), initialLLR.begin());
-	memcpy(initialLLR.data(), initLLR.data(), N<<2);
+	memcpy(initialLLR.data(), initLLR, N<<2);
+#ifdef CRCSIZE
 	if(decodeOnePath(decoded))
 	{
 		return true;
@@ -957,9 +960,19 @@ bool PolarCode::decode(vector<float> &decoded, aligned_float_vector &initLLR)
 		*/
 		return false;
 	}
+#else
+	if(L == 1)
+	{
+		return decodeOnePath(decoded);
+	}
+	else
+	{
+		return decodeMultiPath(decoded);
+	}
+#endif
 }
 
-bool PolarCode::decodeOnePath(vector<float> &decoded)
+bool PolarCode::decodeOnePath(float* decoded)
 {
 
 #ifdef FLEXIBLE_DECODING
@@ -980,7 +993,7 @@ bool PolarCode::decodeOnePath(vector<float> &decoded)
 	}
 
 #ifdef CRCSIZE
-	return Crc->check(decoded);
+	return Crc->check(decoded, K);
 #else
 	return true;
 #endif	
