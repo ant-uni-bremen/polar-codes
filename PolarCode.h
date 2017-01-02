@@ -132,7 +132,7 @@ struct PolarCode
 
 	unsigned int bitreversed_slow(unsigned int j);
 	void pcc();
-	void resetMemory();
+	void clear();
 	
 };
 

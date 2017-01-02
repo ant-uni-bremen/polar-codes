@@ -4,13 +4,13 @@
 #include <cmath>
 #include <string>
 
-#define SPECIALPARAMETERS_H
-#define PCparam_N 1024
-#define PCparam_K 520
-
 #include "../ArrayFuncs.h"
 
+
+const int PCparam_N = 128;
+const int PCparam_K = 2 *32+8;
 const float designSNR = 5.0;
+
 int n;
 
 enum nodeInfo
@@ -362,6 +362,10 @@ int main(void)
 
 	for(int i = 0; i<PCparam_K; ++i)
 	{
+		if(sorter.sorted[i] == 0)
+		{
+			std::cout << "Caution: Code uses unreliable channel " << sorter.permuted[i] << " for designSNR of " << designSNR << "!" << std::endl;
+		}
 		simplifiedTree[PCparam_N-1+sorter.permuted[i]] = nodeInfo::RateOne;
 	}
 	for(int i = PCparam_K; i<PCparam_N; ++i)
@@ -436,13 +440,17 @@ int main(void)
 	printMultiPathDecoder(n, 0, 0);
 	File.close();
 
-/*	File.open("../SpecialParameters.h");
+	File.open("../SpecialDecoderParams.h");
 	File
 	<< "#ifndef SPECIALPARAMETERS_H" << endl
 	<< "#define SPECIALPARAMETERS_H" << endl
-	<< "#define PCparam_N " << PCparam_N << endl
-	<< "#define PCparam_K " << PCparam_K << endl
+	<< endl
+	<< "const int PCparam_N = " << PCparam_N << ";" << endl
+	<< "const int PCparam_K = " << PCparam_K << ";" << endl
+	<< "const float designSNR = " << designSNR << ";" << endl
+	<< endl
 	<< "#endif" << endl;
-	File.close();*/
+	File.close();
+
 	return 0;
 }

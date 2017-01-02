@@ -7,17 +7,19 @@
 #define EbN0_max    6.0
 #define EbN0_count 20
 
-#define MinErrors      2000
-#define MinIters      10000
+/* The following two defines can be uncommented to change the
+ * behaviour of the simulation.
+ * 
+ * ACCELERATED_MONTECARLO skips computations of nearly error-free SNRs
+ * 
+ * FLEXIBLE_DECODING does not use the specialized decoder implementation.
+ * 					 Instead, the lookup tables are used to decide for the
+ *					 next decoding operation.
+ *
+ */
 
+//#define ACCELERATED_MONTECARLO
 //#define FLEXIBLE_DECODING
-
-#ifdef __DEBUG__
-//Can be commented out to suppress debugging output:
-//#define RATEONEDEBUGOUTPUT
-//#define DEBUGOUTPUT
-#endif
-
 
 
 /*

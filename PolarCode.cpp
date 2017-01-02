@@ -667,9 +667,21 @@ PolarCode::~PolarCode()
 	delete Crc;
 }
 
-void PolarCode::resetMemory()
+void PolarCode::clear()
 {
-
+	Metric.clear();
+	newMetrics.clear();
+	cand.clear();
+	SimpleBits.clear();
+	absLLR.clear();
+	initialLLR.clear();
+	LLR.clear();
+	Bits.clear();
+	newLLR.clear();
+	newBits.clear();
+	FZLookup.clear();
+	AcceleratedLookup.clear();
+	simplifiedTree.clear();
 }
 	
 unsigned int PolarCode::bitreversed_slow(unsigned int j)
@@ -707,10 +719,6 @@ void PolarCode::pcc()
 	
 	for(int i = 0; i<K; ++i)
 	{
-		if(sorter.sorted[i] == 0)
-		{
-			std::cout << "Caution: Lookup uses unreliable channel " << sorter.permuted[i] << " for designSNR of " << designSNR << "!" << std::endl;
-		}
 		FZLookup[sorter.permuted[i]] = true;//Bit is available for user data
 		simplifiedTree[N-1+sorter.permuted[i]] = nodeInfo::RateOne;
 	}
@@ -972,7 +980,7 @@ bool PolarCode::decodeOnePath(vector<float> &decoded)
 	}
 
 #ifdef CRCSIZE
-	return Crc->check(decoded);	
+	return Crc->check(decoded);
 #else
 	return true;
 #endif	

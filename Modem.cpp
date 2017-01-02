@@ -6,7 +6,7 @@
 #include "Modem.h"
 #include "ArrayFuncs.h"
 
-#define USE_AVX
+#define USE_AVX2
 #include "lcg.h"
 
 //#include <immintrin.h>
@@ -64,6 +64,7 @@ void modulateAndDistort(aligned_float_vector &signal, aligned_float_vector &data
 #else
 		siga = add_ps(mul_ps(radius, costheta), siga);
 		sigb = add_ps(mul_ps(radius, sintheta), sigb);
+#warning FMA not used
 #endif
 		
 		store_ps(signal.data()+i, siga);
