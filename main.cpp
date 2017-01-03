@@ -64,6 +64,7 @@ struct Buffer {
 	Block *ptr;
 	std::atomic<int> size;
 	std::mutex mtx;
+	std::condition_variable cv;
 } SignalBuffer, CheckBuffer;
 
 std::atomic<bool> StopDecoder, StopChecker, bufferFilled;
@@ -95,9 +96,10 @@ void generateSignals(int SimIndex)
 
 	for(int b=0; b<BlocksToSimulate; ++b)
 	{
-		while(SignalBuffer.size >= MaxBufferSize)
+		if(SignalBuffer.size >= MaxBufferSize)
 		{
-			std::this_thread::yield();
+			std::unique_lock<std::mutex> lck(SignalBuffer.mtx);
+			SignalBuffer.cv.wait(lck);
 		}
 
 		Block *block = new Block;
@@ -205,15 +207,18 @@ void decodeSignals(int SimIndex)
 		{
 			while(SignalBuffer.ptr == nullptr && !StopDecoder)
 			{
+				//Buffer underrun!!!
 				std::this_thread::yield();
 			}
-			SignalBuffer.mtx.lock();
+			std::unique_lock<std::mutex> lck(SignalBuffer.mtx);
+			//SignalBuffer.mtx.lock();
 			//Get $BufferInterval elements from generator
 			mySigBuf.ptr = SignalBuffer.ptr;
 			mySigBuf.size = (int)SignalBuffer.size;
 			SignalBuffer.ptr = nullptr;
 			SignalBuffer.size = 0;
-			SignalBuffer.mtx.unlock();
+			//SignalBuffer.mtx.unlock();
+			SignalBuffer.cv.notify_one();
 		}
 		if(StopDecoder && !mySigBuf.size)
 		{
@@ -233,7 +238,8 @@ void decodeSignals(int SimIndex)
 		
 		if(myChkBuf.size >= BufferInterval)
 		{
-			CheckBuffer.mtx.lock();
+			//CheckBuffer.mtx.lock();
+			std::unique_lock<std::mutex> lck(CheckBuffer.mtx);
 			Block *ptr = CheckBuffer.ptr;
 			if(ptr != nullptr)
 			{
@@ -257,7 +263,8 @@ void decodeSignals(int SimIndex)
 				CheckBuffer.ptr = myChkBuf.ptr;
 			}
 			CheckBuffer.size += myChkBuf.size;
-			CheckBuffer.mtx.unlock();
+			//CheckBuffer.mtx.unlock();
+			CheckBuffer.cv.notify_one();
 			myChkBuf.ptr = nullptr;
 			myChkBuf.size = 0;
 		}
@@ -267,7 +274,8 @@ void decodeSignals(int SimIndex)
 		mySigBuf.size--;
 	}
 	
-	CheckBuffer.mtx.lock();
+	//CheckBuffer.mtx.lock();
+	std::unique_lock<std::mutex> lck(CheckBuffer.mtx);
 	Block *ptr = CheckBuffer.ptr;
 	if(ptr != nullptr)
 	{
@@ -280,9 +288,10 @@ void decodeSignals(int SimIndex)
 		CheckBuffer.ptr = myChkBuf.ptr;
 	}
 	CheckBuffer.size += myChkBuf.size;
-	CheckBuffer.mtx.unlock();
-	
+	//CheckBuffer.mtx.unlock();
 	StopChecker = true;
+	CheckBuffer.cv.notify_one();
+	
 //	cout << "Decoder finished" << endl;
 }
 
@@ -303,9 +312,11 @@ void checkDecodedData(int SimIndex)
 	{
 		if(myChkBuf.ptr == nullptr)
 		{
-			while(CheckBuffer.ptr == nullptr && !StopChecker)
+			if(CheckBuffer.ptr == nullptr && !StopChecker)
 			{
-				std::this_thread::yield();
+				//std::this_thread::yield();
+				std::unique_lock<std::mutex> lck(CheckBuffer.mtx);
+				CheckBuffer.cv.wait(lck);
 			}
 			if(StopChecker && !CheckBuffer.size)return;
 			
