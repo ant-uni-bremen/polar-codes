@@ -24,7 +24,7 @@
 const int BufferInterval   =    1000;
 const int MaxBufferSize    =   10000;
 const int BlocksToSimulate =  100000;
-const int ConcurrentThreads = 2;
+const int ConcurrentThreads = 1;
 
 #ifdef FLEXIBLE_DECODING
 const int PCparam_N = 1024;
@@ -274,6 +274,7 @@ void decodeSignals(int SimIndex)
 		mySigBuf.size--;
 	}
 	
+	//Push remaining blocks to checker
 	std::unique_lock<std::mutex> lck(Graph[SimIndex].CheckBuffer.mtx);
 	Block *ptr = Graph[SimIndex].CheckBuffer.ptr;
 	if(ptr != nullptr)
@@ -366,17 +367,6 @@ void simulate(int SimIndex)
 
 	char message[128];
 
-/*
-#ifdef ACCELERATED_MONTECARLO
-	while(SimIndex > nextThread && EbN0 < stopSNR[L])
-#else
-	while(SimIndex > nextThread)
-#endif
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	}
-*/
-
 	{
 		std::unique_lock<std::mutex> thrlck(threadMutex);
 		threadCV.wait(thrlck);
@@ -439,15 +429,6 @@ void simulate(int SimIndex)
 	thread Decoder(decodeSignals, SimIndex);
 	thread Checker(checkDecodedData, SimIndex);
 	
-/*	while(!StopDecoder)
-	{
-		this_thread::sleep_for(chrono::milliseconds(1000));
-		BufferMutex.lock();
-		cout << "SignalBuffer: " << SignalBuffer.size() << endl
-			 << "CheckBuffer:  " << CheckBuffer.size() << endl
-			 << endl;
-		BufferMutex.unlock();
-	}*/
 	Decoder.join();
 	high_resolution_clock::time_point TimeEnd = high_resolution_clock::now();
 	Generator.join();
@@ -479,7 +460,6 @@ void simulate(int SimIndex)
 	sprintf(message, "[%3d] %3d Threads finished, BLER = %e\n", SimIndex, finished, Graph[SimIndex].BLER);
 	std::cout << message;
 
-//	++nextThread;
 	threadCV.notify_one();
 }
 
