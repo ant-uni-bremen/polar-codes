@@ -153,15 +153,28 @@ void generateSignals(int SimIndex)
 			if(ptr == nullptr)
 			{
 				SignalBuffer.ptr = mySigBuf.ptr;
-				SignalBuffer.size = (int)mySigBuf.size;
 			}
 			else
 			{
-				while(ptr->next != nullptr)
-					ptr = ptr->next;
-				ptr->next = mySigBuf.ptr;
-				SignalBuffer.size += mySigBuf.size;
+				//Find the last element of the smaller stack
+				//to put the bigger one onto it
+				//(the order of the blocks is irrelevant for this simulation)
+				if(SignalBuffer.size < mySigBuf.size)
+				{
+					while(ptr->next != nullptr)
+						ptr = ptr->next;
+					ptr->next = mySigBuf.ptr;
+				}
+				else
+				{
+					ptr = mySigBuf.ptr;
+					while(ptr->next != nullptr)
+						ptr = ptr->next;
+					ptr->next = SignalBuffer.ptr;
+					SignalBuffer.ptr = mySigBuf.ptr;
+				}
 			}			
+			SignalBuffer.size += (int)mySigBuf.size;
 			mySigBuf.ptr = nullptr;
 			mySigBuf.size = 0;
 			if(SignalBuffer.size >= MaxBufferSize && !bufferFilled)
@@ -224,9 +237,20 @@ void decodeSignals(int SimIndex)
 			Block *ptr = CheckBuffer.ptr;
 			if(ptr != nullptr)
 			{
-				while(ptr->next != nullptr)
-					ptr = ptr->next;
-				ptr->next = myChkBuf.ptr;
+				if(CheckBuffer.size < myChkBuf.size)
+				{
+					while(ptr->next != nullptr)
+						ptr = ptr->next;
+					ptr->next = myChkBuf.ptr;
+				}
+				else
+				{
+					ptr = myChkBuf.ptr;
+					while(ptr->next != nullptr)
+						ptr = ptr->next;
+					ptr->next = CheckBuffer.ptr;
+					CheckBuffer.ptr = myChkBuf.ptr;					
+				}
 			}
 			else
 			{
