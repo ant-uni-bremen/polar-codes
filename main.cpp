@@ -24,7 +24,7 @@
 const int BufferInterval   =    1000;
 const int MaxBufferSize    =   10000;
 const int BlocksToSimulate =  100000;
-const int ConcurrentThreads = 1;
+const int ConcurrentThreads = 2;
 
 #ifdef FLEXIBLE_DECODING
 const int PCparam_N = 1024;
@@ -35,22 +35,13 @@ const float designSNR = 5.0;
 #endif
 
 
-std::atomic<int> nextThread(-1), finishedThreads(0);
+std::atomic<int> finishedThreads(0);
+std::mutex threadMutex;
+std::condition_variable threadCV;
 
 #ifdef ACCELERATED_MONTECARLO
 std::map<int, std::atomic<float>> stopSNR;
 #endif
-
-
-struct DataPoint
-{
-	float designSNR, EbN0; int N,K,L;
-	int runs, bits, errors, biterrors;
-	float BLER, BER;
-	float time;//in seconds
-	float blps,cbps,pbps;//blocks/coded bits/payload bits per second
-	float effectiveRate;
-} *Graph;
 
 struct Block
 {
@@ -65,9 +56,21 @@ struct Buffer {
 	std::atomic<int> size;
 	std::mutex mtx;
 	std::condition_variable cv;
-} SignalBuffer, CheckBuffer;
+};
 
-std::atomic<bool> StopDecoder, StopChecker, bufferFilled;
+struct DataPoint
+{
+	float designSNR, EbN0; int N,K,L;
+	int runs, bits, errors, biterrors;
+	float BLER, BER;
+	float time;//in seconds
+	float blps,cbps,pbps;//blocks/coded bits/payload bits per second
+	float effectiveRate;
+	Buffer SignalBuffer, CheckBuffer;
+	std::atomic<bool> StopDecoder, StopChecker;
+	std::mutex preloadMutex;
+	std::condition_variable preloadCV;
+} *Graph;
 
 void generateSignals(int SimIndex)
 {
@@ -86,18 +89,20 @@ void generateSignals(int SimIndex)
 	float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
 	mt19937 RndGen(SimIndex);
 
-	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, L, designSNR, true);
+	PolarCode PC(N, Graph[SimIndex].K, L, designSNR, true);
 	
 	Buffer mySigBuf;
 	mySigBuf.ptr = nullptr;
 	mySigBuf.size = 0;
+	
+	bool bufferFilled = false;
 
 	for(int b=0; b<BlocksToSimulate; ++b)
 	{
-		if(SignalBuffer.size >= MaxBufferSize)
+		if(Graph[SimIndex].SignalBuffer.size >= MaxBufferSize)
 		{
-			std::unique_lock<std::mutex> lck(SignalBuffer.mtx);
-			SignalBuffer.cv.wait(lck);
+			std::unique_lock<std::mutex> lck(Graph[SimIndex].SignalBuffer.mtx);
+			Graph[SimIndex].SignalBuffer.cv.wait(lck);
 		}
 
 		Block *block = new Block;
@@ -150,18 +155,18 @@ void generateSignals(int SimIndex)
 		if(mySigBuf.size >= BufferInterval || b+1 == BlocksToSimulate)
 		{
 			//Add to public decoding queue
-			SignalBuffer.mtx.lock();
-			Block* ptr = SignalBuffer.ptr;
+			std::unique_lock<std::mutex> lck(Graph[SimIndex].SignalBuffer.mtx);
+			Block* ptr = Graph[SimIndex].SignalBuffer.ptr;
 			if(ptr == nullptr)
 			{
-				SignalBuffer.ptr = mySigBuf.ptr;
+				Graph[SimIndex].SignalBuffer.ptr = mySigBuf.ptr;
 			}
 			else
 			{
 				//Find the last element of the smaller stack
 				//to put the bigger one onto it
 				//(the order of the blocks is irrelevant for this simulation)
-				if(SignalBuffer.size < mySigBuf.size)
+				if(Graph[SimIndex].SignalBuffer.size < mySigBuf.size)
 				{
 					while(ptr->next != nullptr)
 						ptr = ptr->next;
@@ -172,21 +177,22 @@ void generateSignals(int SimIndex)
 					ptr = mySigBuf.ptr;
 					while(ptr->next != nullptr)
 						ptr = ptr->next;
-					ptr->next = SignalBuffer.ptr;
-					SignalBuffer.ptr = mySigBuf.ptr;
+					ptr->next = Graph[SimIndex].SignalBuffer.ptr;
+					Graph[SimIndex].SignalBuffer.ptr = mySigBuf.ptr;
 				}
 			}			
-			SignalBuffer.size += (int)mySigBuf.size;
+			Graph[SimIndex].SignalBuffer.size += (int)mySigBuf.size;
 			mySigBuf.ptr = nullptr;
 			mySigBuf.size = 0;
-			if(SignalBuffer.size >= MaxBufferSize && !bufferFilled)
+			if(Graph[SimIndex].SignalBuffer.size >= MaxBufferSize && !bufferFilled)
 			{
+				std::unique_lock<std::mutex> plck(Graph[SimIndex].preloadMutex);
+				Graph[SimIndex].preloadCV.notify_one();
 				bufferFilled = true;
 			}
-			SignalBuffer.mtx.unlock();
 		}
 	}
-	StopDecoder = true;
+	Graph[SimIndex].StopDecoder = true;
 }
 
 void decodeSignals(int SimIndex)
@@ -199,24 +205,24 @@ void decodeSignals(int SimIndex)
 	myChkBuf.ptr = nullptr;
 	myChkBuf.size = 0;
 
-	while(SignalBuffer.size || mySigBuf.size)
+	while(Graph[SimIndex].SignalBuffer.size || mySigBuf.size)
 	{
 		if(mySigBuf.ptr == nullptr)
 		{
-			while(SignalBuffer.ptr == nullptr && !StopDecoder)
+			while(Graph[SimIndex].SignalBuffer.ptr == nullptr && !Graph[SimIndex].StopDecoder)
 			{
 				//Buffer underrun!!!
 				std::this_thread::yield();
 			}
-			std::unique_lock<std::mutex> lck(SignalBuffer.mtx);
+			std::unique_lock<std::mutex> lck(Graph[SimIndex].SignalBuffer.mtx);
 			//Get $BufferInterval elements from generator
-			mySigBuf.ptr = SignalBuffer.ptr;
-			mySigBuf.size = (int)SignalBuffer.size;
-			SignalBuffer.ptr = nullptr;
-			SignalBuffer.size = 0;
-			SignalBuffer.cv.notify_one();
+			mySigBuf.ptr = Graph[SimIndex].SignalBuffer.ptr;
+			mySigBuf.size = (int)Graph[SimIndex].SignalBuffer.size;
+			Graph[SimIndex].SignalBuffer.ptr = nullptr;
+			Graph[SimIndex].SignalBuffer.size = 0;
+			Graph[SimIndex].SignalBuffer.cv.notify_one();
 		}
-		if(StopDecoder && !mySigBuf.size)
+		if(Graph[SimIndex].StopDecoder && !mySigBuf.size)
 		{
 			break;
 		}
@@ -234,11 +240,11 @@ void decodeSignals(int SimIndex)
 		
 		if(myChkBuf.size >= BufferInterval)
 		{
-			std::unique_lock<std::mutex> lck(CheckBuffer.mtx);
-			Block *ptr = CheckBuffer.ptr;
+			std::unique_lock<std::mutex> lck(Graph[SimIndex].CheckBuffer.mtx);
+			Block *ptr = Graph[SimIndex].CheckBuffer.ptr;
 			if(ptr != nullptr)
 			{
-				if(CheckBuffer.size < myChkBuf.size)
+				if(Graph[SimIndex].CheckBuffer.size < myChkBuf.size)
 				{
 					while(ptr->next != nullptr)
 						ptr = ptr->next;
@@ -249,16 +255,16 @@ void decodeSignals(int SimIndex)
 					ptr = myChkBuf.ptr;
 					while(ptr->next != nullptr)
 						ptr = ptr->next;
-					ptr->next = CheckBuffer.ptr;
-					CheckBuffer.ptr = myChkBuf.ptr;					
+					ptr->next = Graph[SimIndex].CheckBuffer.ptr;
+					Graph[SimIndex].CheckBuffer.ptr = myChkBuf.ptr;					
 				}
 			}
 			else
 			{
-				CheckBuffer.ptr = myChkBuf.ptr;
+				Graph[SimIndex].CheckBuffer.ptr = myChkBuf.ptr;
 			}
-			CheckBuffer.size += myChkBuf.size;
-			CheckBuffer.cv.notify_one();
+			Graph[SimIndex].CheckBuffer.size += myChkBuf.size;
+			Graph[SimIndex].CheckBuffer.cv.notify_one();
 			myChkBuf.ptr = nullptr;
 			myChkBuf.size = 0;
 		}
@@ -268,8 +274,8 @@ void decodeSignals(int SimIndex)
 		mySigBuf.size--;
 	}
 	
-	std::unique_lock<std::mutex> lck(CheckBuffer.mtx);
-	Block *ptr = CheckBuffer.ptr;
+	std::unique_lock<std::mutex> lck(Graph[SimIndex].CheckBuffer.mtx);
+	Block *ptr = Graph[SimIndex].CheckBuffer.ptr;
 	if(ptr != nullptr)
 	{
 		while(ptr->next != nullptr)
@@ -278,11 +284,11 @@ void decodeSignals(int SimIndex)
 	}
 	else
 	{
-		CheckBuffer.ptr = myChkBuf.ptr;
+		Graph[SimIndex].CheckBuffer.ptr = myChkBuf.ptr;
 	}
-	CheckBuffer.size += myChkBuf.size;
-	StopChecker = true;
-	CheckBuffer.cv.notify_one();
+	Graph[SimIndex].CheckBuffer.size += myChkBuf.size;
+	Graph[SimIndex].StopChecker = true;
+	Graph[SimIndex].CheckBuffer.cv.notify_one();
 }
 
 void checkDecodedData(int SimIndex)
@@ -297,24 +303,24 @@ void checkDecodedData(int SimIndex)
 	myChkBuf.ptr = nullptr;
 	myChkBuf.size = 0;
 
-	while(!StopChecker || CheckBuffer.size || myChkBuf.size)
+	while(!Graph[SimIndex].StopChecker || Graph[SimIndex].CheckBuffer.size || myChkBuf.size)
 	{
 		if(myChkBuf.ptr == nullptr)
 		{
-			if(CheckBuffer.ptr == nullptr && !StopChecker)
+			if(Graph[SimIndex].CheckBuffer.ptr == nullptr && !Graph[SimIndex].StopChecker)
 			{
-				std::unique_lock<std::mutex> lck(CheckBuffer.mtx);
-				CheckBuffer.cv.wait(lck);
+				std::unique_lock<std::mutex> lck(Graph[SimIndex].CheckBuffer.mtx);
+				Graph[SimIndex].CheckBuffer.cv.wait(lck);
 			}
-			if(StopChecker && !CheckBuffer.size)return;
+			if(Graph[SimIndex].StopChecker && !Graph[SimIndex].CheckBuffer.size)return;
 			
 			//Pop block
-			CheckBuffer.mtx.lock();
-			myChkBuf.ptr = CheckBuffer.ptr;
-			myChkBuf.size = (int)CheckBuffer.size;
-			CheckBuffer.ptr = nullptr;
-			CheckBuffer.size = 0;
-			CheckBuffer.mtx.unlock();
+			Graph[SimIndex].CheckBuffer.mtx.lock();
+			myChkBuf.ptr = Graph[SimIndex].CheckBuffer.ptr;
+			myChkBuf.size = (int)Graph[SimIndex].CheckBuffer.size;
+			Graph[SimIndex].CheckBuffer.ptr = nullptr;
+			Graph[SimIndex].CheckBuffer.size = 0;
+			Graph[SimIndex].CheckBuffer.mtx.unlock();
 		}
 		
 		Block* BlockPtr = myChkBuf.ptr;
@@ -359,7 +365,8 @@ void simulate(int SimIndex)
 #endif
 
 	char message[128];
-	
+
+/*
 #ifdef ACCELERATED_MONTECARLO
 	while(SimIndex > nextThread && EbN0 < stopSNR[L])
 #else
@@ -367,6 +374,12 @@ void simulate(int SimIndex)
 #endif
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+*/
+
+	{
+		std::unique_lock<std::mutex> thrlck(threadMutex);
+		threadCV.wait(thrlck);
 	}
 	
 	Graph[SimIndex].runs = 0;
@@ -404,22 +417,22 @@ void simulate(int SimIndex)
 	}
 #endif
 
-	SignalBuffer.ptr = nullptr;
-	SignalBuffer.size = 0;
-	CheckBuffer.ptr = nullptr;
-	CheckBuffer.size = 0;
-	StopDecoder = false;
-	StopChecker = false;
-	bufferFilled = false;
+	Graph[SimIndex].SignalBuffer.ptr = nullptr;
+	Graph[SimIndex].SignalBuffer.size = 0;
+	Graph[SimIndex].CheckBuffer.ptr = nullptr;
+	Graph[SimIndex].CheckBuffer.size = 0;
+	Graph[SimIndex].StopDecoder = false;
+	Graph[SimIndex].StopChecker = false;
 
 	sprintf(message, "[%3d] Simulating Eb/N0 = %f dB, L = %d\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].L);
 	std::cout << message;
 
 	
 	thread Generator(generateSignals, SimIndex);
-	while(!bufferFilled)
+
 	{
-		std::this_thread::yield();
+		std::unique_lock<std::mutex> plck(Graph[SimIndex].preloadMutex);
+		Graph[SimIndex].preloadCV.wait(plck);
 	}
 
 	high_resolution_clock::time_point TimeStart = high_resolution_clock::now();
@@ -466,7 +479,8 @@ void simulate(int SimIndex)
 	sprintf(message, "[%3d] %3d Threads finished, BLER = %e\n", SimIndex, finished, Graph[SimIndex].BLER);
 	std::cout << message;
 
-	++nextThread;
+//	++nextThread;
+	threadCV.notify_one();
 }
 
 
@@ -517,7 +531,12 @@ int main(int argc, char** argv)
 	}
 
 #ifndef __DEBUG__
-	nextThread = ConcurrentThreads-1;
+//	nextThread = ConcurrentThreads-1;
+	for(int i=0; i<ConcurrentThreads; ++i)
+	{
+		std::unique_lock<std::mutex> lck(threadMutex);
+		threadCV.notify_one();
+	}
 #endif
 
 #ifndef __DEBUG__
