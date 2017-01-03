@@ -657,7 +657,10 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR, bool encodeOnly)
 				newLLR[path][stage].resize(std::max(FLOATSPERVECTOR, 1<<stage));
 			}
 		}
-
+	}
+	else
+	{
+		AlignedVector = nullptr;
 	}
 	
 	pcc();
@@ -666,7 +669,10 @@ PolarCode::PolarCode(int N, int K, int L, float designSNR, bool encodeOnly)
 		
 PolarCode::~PolarCode()
 {
-	_mm_free(AlignedVector);
+	if(AlignedVector != nullptr)
+	{
+		_mm_free(AlignedVector);
+	}
 	delete Crc;
 }
 

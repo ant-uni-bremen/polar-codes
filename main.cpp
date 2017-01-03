@@ -21,9 +21,9 @@
 
 #include "Parameters.h"
 
-const int BufferInterval   =  1000;
-const int MaxBufferSize    = 10000;
-const int BlocksToSimulate = 50000;
+const int BufferInterval   =    1000;
+const int MaxBufferSize    =   10000;
+const int BlocksToSimulate = 1000000;
 const int ConcurrentThreads = 1;
 
 #ifdef FLEXIBLE_DECODING
@@ -153,7 +153,7 @@ void generateSignals(int SimIndex)
 			if(ptr == nullptr)
 			{
 				SignalBuffer.ptr = mySigBuf.ptr;
-				SignalBuffer.size = mySigBuf.size+0;
+				SignalBuffer.size = (int)mySigBuf.size;
 			}
 			else
 			{
@@ -178,50 +178,68 @@ void generateSignals(int SimIndex)
 void decodeSignals(int SimIndex)
 {
 	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].designSNR);
-	Block* BlockPtr = nullptr;
 //	cout << "Decoder starts" << endl;
 
-#warning TODO: Add private buffers to decoder and checker to reduce inter-thread communication time
+	Buffer mySigBuf, myChkBuf;
+	mySigBuf.ptr = nullptr;
+	mySigBuf.size = 0;
+	myChkBuf.ptr = nullptr;
+	myChkBuf.size = 0;
 
-	while(!StopDecoder || SignalBuffer.size)
+	while(!StopDecoder || SignalBuffer.size || mySigBuf.size)
 	{
-		if(BlockPtr == nullptr)
+		if(mySigBuf.ptr == nullptr)
 		{
 			while(SignalBuffer.ptr == nullptr && !StopDecoder)
 			{
 				std::this_thread::yield();
 			}
 			SignalBuffer.mtx.lock();
-			BlockPtr = SignalBuffer.ptr;
-			SignalBuffer.ptr = SignalBuffer.ptr->next;
-			SignalBuffer.size--,
+			//Get $BufferInterval elements from generator
+			mySigBuf.ptr = SignalBuffer.ptr;
+			mySigBuf.size = (int)SignalBuffer.size;
+			SignalBuffer.ptr = nullptr;
+			SignalBuffer.size = 0;
 			SignalBuffer.mtx.unlock();
 		}
-		if(StopDecoder && !SignalBuffer.size)
+		if(StopDecoder && !mySigBuf.size)
 		{
 			return;
 		}
 
-		Block *block = BlockPtr;
+		Block *block = mySigBuf.ptr;
 		
 		PC.decode(block->decodedData, block->LLR);
 		
+		Block *nextBlock = block->next;
 		//Push block into Checker
-		CheckBuffer.mtx.lock();
-		block->next = CheckBuffer.ptr;
-		CheckBuffer.ptr = block;
-		CheckBuffer.size++;
-		CheckBuffer.mtx.unlock();
+		block->next = myChkBuf.ptr;
+		myChkBuf.ptr = block;
+		myChkBuf.size++;
+		
+		if(myChkBuf.size >= BufferInterval)
+		{
+			CheckBuffer.mtx.lock();
+			Block *ptr = CheckBuffer.ptr;
+			if(ptr != nullptr)
+			{
+				while(ptr->next != nullptr)
+					ptr = ptr->next;
+				ptr->next = myChkBuf.ptr;
+			}
+			else
+			{
+				CheckBuffer.ptr = myChkBuf.ptr;
+			}
+			CheckBuffer.size += myChkBuf.size;
+			CheckBuffer.mtx.unlock();
+			myChkBuf.ptr = nullptr;
+			myChkBuf.size = 0;
+		}
 		
 		//Get next block from Generator
-		SignalBuffer.mtx.lock();
-		BlockPtr = SignalBuffer.ptr;
-		if(BlockPtr != nullptr)
-		{
-			SignalBuffer.ptr = SignalBuffer.ptr->next;
-			SignalBuffer.size--;
-		}
-		SignalBuffer.mtx.unlock();
+		mySigBuf.ptr = nextBlock;
+		mySigBuf.size--;
 	}
 //	cout << "Decoder finished" << endl;
 }
@@ -234,12 +252,14 @@ void checkDecodedData(int SimIndex)
 	int nBits = Graph[SimIndex].K;
 #endif
 
-	Block* BlockPtr = nullptr;
+	Buffer myChkBuf;
+	myChkBuf.ptr = nullptr;
+	myChkBuf.size = 0;
 
 //	cout << "Checker starts" << endl;
-	while(!StopDecoder || CheckBuffer.size)
+	while(!StopDecoder || CheckBuffer.size || myChkBuf.size)
 	{
-		if(BlockPtr == nullptr)
+		if(myChkBuf.ptr == nullptr)
 		{
 			while(CheckBuffer.ptr == nullptr && !StopDecoder)
 			{
@@ -249,11 +269,15 @@ void checkDecodedData(int SimIndex)
 			
 			//Pop block
 			CheckBuffer.mtx.lock();
-			BlockPtr = CheckBuffer.ptr;
-			CheckBuffer.ptr = CheckBuffer.ptr->next;
-			CheckBuffer.size--;
+			myChkBuf.ptr = CheckBuffer.ptr;
+			myChkBuf.size = (int)CheckBuffer.size;
+			CheckBuffer.ptr = nullptr;
+			CheckBuffer.size = 0;
 			CheckBuffer.mtx.unlock();
 		}
+		
+		Block* BlockPtr = myChkBuf.ptr;
+		Block* nextBlock = myChkBuf.ptr->next;
 
 		unsigned int *decData = reinterpret_cast<unsigned int*>(BlockPtr->decodedData);
 		unsigned int *orgData = reinterpret_cast<unsigned int*>(BlockPtr->data);
@@ -269,21 +293,19 @@ void checkDecodedData(int SimIndex)
 		Graph[SimIndex].errors += !!biterrors;
 		Graph[SimIndex].biterrors += biterrors;
 		
-
-		delete [] BlockPtr->data;
-		delete [] BlockPtr->decodedData;
-		_mm_free(BlockPtr->LLR);
-		delete BlockPtr;
+		try{
+			delete [] BlockPtr->data;
+			delete [] BlockPtr->decodedData;
+			_mm_free(BlockPtr->LLR);
+			delete BlockPtr;
+		}catch(...)
+		{
+			cerr << "Problem here!" << endl;
+		}
 		
 		//Get next block from Decoder
-		CheckBuffer.mtx.lock();
-		BlockPtr = CheckBuffer.ptr;
-		if(BlockPtr != nullptr)
-		{
-			CheckBuffer.ptr = CheckBuffer.ptr->next;
-			CheckBuffer.size--;
-		}
-		CheckBuffer.mtx.unlock();
+		myChkBuf.ptr = nextBlock;
+		myChkBuf.size--;
 	}
 //	cout << "Checker finished" << endl;
 }
@@ -377,11 +399,11 @@ void simulate(int SimIndex)
 			 << endl;
 		BufferMutex.unlock();
 	}*/
-	Generator.join();
 	Decoder.join();
+	high_resolution_clock::time_point TimeEnd = high_resolution_clock::now();
+	Generator.join();
 	Checker.join();
 	
-	high_resolution_clock::time_point TimeEnd = high_resolution_clock::now();
 	duration<float> TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
 	float time = TimeUsed.count();
 
