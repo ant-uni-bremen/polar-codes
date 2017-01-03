@@ -23,7 +23,7 @@
 
 const int BufferInterval   =    1000;
 const int MaxBufferSize    =   10000;
-const int BlocksToSimulate = 1000000;
+const int BlocksToSimulate =  100000;
 const int ConcurrentThreads = 1;
 
 #ifdef FLEXIBLE_DECODING
@@ -66,7 +66,7 @@ struct Buffer {
 	std::mutex mtx;
 } SignalBuffer, CheckBuffer;
 
-std::atomic<bool> StopDecoder, bufferFilled;
+std::atomic<bool> StopDecoder, StopChecker, bufferFilled;
 
 void generateSignals(int SimIndex)
 {
@@ -99,7 +99,7 @@ void generateSignals(int SimIndex)
 		{
 			std::this_thread::yield();
 		}
-		
+
 		Block *block = new Block;
 		block->next = nullptr;
 		
@@ -186,7 +186,7 @@ void decodeSignals(int SimIndex)
 	myChkBuf.ptr = nullptr;
 	myChkBuf.size = 0;
 
-	while(!StopDecoder || SignalBuffer.size || mySigBuf.size)
+	while(SignalBuffer.size || mySigBuf.size)
 	{
 		if(mySigBuf.ptr == nullptr)
 		{
@@ -204,12 +204,13 @@ void decodeSignals(int SimIndex)
 		}
 		if(StopDecoder && !mySigBuf.size)
 		{
-			return;
+			break;
 		}
 
 		Block *block = mySigBuf.ptr;
 		
 		PC.decode(block->decodedData, block->LLR);
+		
 		
 		Block *nextBlock = block->next;
 		//Push block into Checker
@@ -241,6 +242,23 @@ void decodeSignals(int SimIndex)
 		mySigBuf.ptr = nextBlock;
 		mySigBuf.size--;
 	}
+	
+	CheckBuffer.mtx.lock();
+	Block *ptr = CheckBuffer.ptr;
+	if(ptr != nullptr)
+	{
+		while(ptr->next != nullptr)
+			ptr = ptr->next;
+		ptr->next = myChkBuf.ptr;
+	}
+	else
+	{
+		CheckBuffer.ptr = myChkBuf.ptr;
+	}
+	CheckBuffer.size += myChkBuf.size;
+	CheckBuffer.mtx.unlock();
+	
+	StopChecker = true;
 //	cout << "Decoder finished" << endl;
 }
 
@@ -257,15 +275,15 @@ void checkDecodedData(int SimIndex)
 	myChkBuf.size = 0;
 
 //	cout << "Checker starts" << endl;
-	while(!StopDecoder || CheckBuffer.size || myChkBuf.size)
+	while(!StopChecker || CheckBuffer.size || myChkBuf.size)
 	{
 		if(myChkBuf.ptr == nullptr)
 		{
-			while(CheckBuffer.ptr == nullptr && !StopDecoder)
+			while(CheckBuffer.ptr == nullptr && !StopChecker)
 			{
 				std::this_thread::yield();
 			}
-			if(StopDecoder)return;
+			if(StopChecker && !CheckBuffer.size)return;
 			
 			//Pop block
 			CheckBuffer.mtx.lock();
@@ -374,6 +392,7 @@ void simulate(int SimIndex)
 	CheckBuffer.ptr = nullptr;
 	CheckBuffer.size = 0;
 	StopDecoder = false;
+	StopChecker = false;
 	bufferFilled = false;
 
 	sprintf(message, "[%3d] Simulating Eb/N0 = %f dB, L = %d\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].L);
