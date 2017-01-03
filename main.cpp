@@ -92,8 +92,6 @@ void generateSignals(int SimIndex)
 	mySigBuf.ptr = nullptr;
 	mySigBuf.size = 0;
 
-//	cout << "Generator starts" << endl;
-
 	for(int b=0; b<BlocksToSimulate; ++b)
 	{
 		if(SignalBuffer.size >= MaxBufferSize)
@@ -112,6 +110,7 @@ void generateSignals(int SimIndex)
 		catch(bad_alloc &ba)
 		{
 			cerr << "Problem at allocating memory: " << ba.what() << endl;
+			exit(EXIT_FAILURE);
 		}
 		memset(block->decodedData, 0, Graph[SimIndex].K<<2);
 		block->LLR = (float*)_mm_malloc(N<<2, sizeof(vec));
@@ -119,6 +118,7 @@ void generateSignals(int SimIndex)
 		if(block->LLR == nullptr)
 		{
 			cerr << "_mm_malloc failed!" << endl;
+			exit(EXIT_FAILURE);
 		}
 
 		//Generate random payload for testing
@@ -187,13 +187,11 @@ void generateSignals(int SimIndex)
 		}
 	}
 	StopDecoder = true;
-//	cout << "Generator finished" << endl;
 }
 
 void decodeSignals(int SimIndex)
 {
 	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].designSNR);
-//	cout << "Decoder starts" << endl;
 
 	Buffer mySigBuf, myChkBuf;
 	mySigBuf.ptr = nullptr;
@@ -211,13 +209,11 @@ void decodeSignals(int SimIndex)
 				std::this_thread::yield();
 			}
 			std::unique_lock<std::mutex> lck(SignalBuffer.mtx);
-			//SignalBuffer.mtx.lock();
 			//Get $BufferInterval elements from generator
 			mySigBuf.ptr = SignalBuffer.ptr;
 			mySigBuf.size = (int)SignalBuffer.size;
 			SignalBuffer.ptr = nullptr;
 			SignalBuffer.size = 0;
-			//SignalBuffer.mtx.unlock();
 			SignalBuffer.cv.notify_one();
 		}
 		if(StopDecoder && !mySigBuf.size)
@@ -238,7 +234,6 @@ void decodeSignals(int SimIndex)
 		
 		if(myChkBuf.size >= BufferInterval)
 		{
-			//CheckBuffer.mtx.lock();
 			std::unique_lock<std::mutex> lck(CheckBuffer.mtx);
 			Block *ptr = CheckBuffer.ptr;
 			if(ptr != nullptr)
@@ -263,7 +258,6 @@ void decodeSignals(int SimIndex)
 				CheckBuffer.ptr = myChkBuf.ptr;
 			}
 			CheckBuffer.size += myChkBuf.size;
-			//CheckBuffer.mtx.unlock();
 			CheckBuffer.cv.notify_one();
 			myChkBuf.ptr = nullptr;
 			myChkBuf.size = 0;
@@ -274,7 +268,6 @@ void decodeSignals(int SimIndex)
 		mySigBuf.size--;
 	}
 	
-	//CheckBuffer.mtx.lock();
 	std::unique_lock<std::mutex> lck(CheckBuffer.mtx);
 	Block *ptr = CheckBuffer.ptr;
 	if(ptr != nullptr)
@@ -288,11 +281,8 @@ void decodeSignals(int SimIndex)
 		CheckBuffer.ptr = myChkBuf.ptr;
 	}
 	CheckBuffer.size += myChkBuf.size;
-	//CheckBuffer.mtx.unlock();
 	StopChecker = true;
 	CheckBuffer.cv.notify_one();
-	
-//	cout << "Decoder finished" << endl;
 }
 
 void checkDecodedData(int SimIndex)
@@ -307,14 +297,12 @@ void checkDecodedData(int SimIndex)
 	myChkBuf.ptr = nullptr;
 	myChkBuf.size = 0;
 
-//	cout << "Checker starts" << endl;
 	while(!StopChecker || CheckBuffer.size || myChkBuf.size)
 	{
 		if(myChkBuf.ptr == nullptr)
 		{
 			if(CheckBuffer.ptr == nullptr && !StopChecker)
 			{
-				//std::this_thread::yield();
 				std::unique_lock<std::mutex> lck(CheckBuffer.mtx);
 				CheckBuffer.cv.wait(lck);
 			}
@@ -346,21 +334,15 @@ void checkDecodedData(int SimIndex)
 		Graph[SimIndex].errors += !!biterrors;
 		Graph[SimIndex].biterrors += biterrors;
 		
-		try{
-			delete [] BlockPtr->data;
-			delete [] BlockPtr->decodedData;
-			_mm_free(BlockPtr->LLR);
-			delete BlockPtr;
-		}catch(...)
-		{
-			cerr << "Problem here!" << endl;
-		}
+		delete [] BlockPtr->data;
+		delete [] BlockPtr->decodedData;
+		_mm_free(BlockPtr->LLR);
+		delete BlockPtr;
 		
 		//Get next block from Decoder
 		myChkBuf.ptr = nextBlock;
 		myChkBuf.size--;
 	}
-//	cout << "Checker finished" << endl;
 }
 
 
@@ -439,7 +421,7 @@ void simulate(int SimIndex)
 	{
 		std::this_thread::yield();
 	}
-//	cout << "Start" << endl;
+
 	high_resolution_clock::time_point TimeStart = high_resolution_clock::now();
 	thread Decoder(decodeSignals, SimIndex);
 	thread Checker(checkDecodedData, SimIndex);
@@ -461,8 +443,6 @@ void simulate(int SimIndex)
 	duration<float> TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
 	float time = TimeUsed.count();
 
-	//Graph[SimIndex].runs = runs;
-	//Graph[SimIndex].errors = errors;
 	Graph[SimIndex].BLER = (float)Graph[SimIndex].errors/Graph[SimIndex].runs;
 	Graph[SimIndex].BER = (float)Graph[SimIndex].biterrors/Graph[SimIndex].bits;
 	Graph[SimIndex].time = time;
