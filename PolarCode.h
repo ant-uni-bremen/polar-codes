@@ -40,7 +40,7 @@ struct PolarCode
 
 	int N, K, L, n;
 	vector<int> FZLookup;
-	vector<int> AcceleratedLookup;
+	vector<int> AcceleratedLookup, AcceleratedFrozenLookup;
 	float designSNR;
 	
 	vector<nodeInfo> simplifiedTree;

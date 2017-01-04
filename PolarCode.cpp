@@ -743,6 +743,10 @@ void PolarCode::pcc()
 		{
 			AcceleratedLookup.push_back(i);
 		}
+		else
+		{
+			AcceleratedFrozenLookup.push_back(i);
+		}
 	}
 	
 	for(int lev=n-1; lev>=0; --lev)
@@ -793,8 +797,7 @@ void PolarCode::pcc()
 void PolarCode::encode(aligned_float_vector &encoded, float* data)
 {
 	encoded.assign(N, 0.0);
-	unsigned int *iBit = reinterpret_cast<unsigned int*>(encoded.data());
-	float *BitPtr = encoded.data();
+
 #ifdef CRCSIZE	
 	//Calculate CRC
 	Crc->addChecksum(data, K-CRCSIZE);
@@ -807,40 +810,15 @@ void PolarCode::encode(aligned_float_vector &encoded, float* data)
 	}
 	
 	//Encode
-	int B, nB, base, inc;
-	for(int i=n-1; i>=0; --i)
+	transform(encoded);
+
+#ifdef SYSTEMATIC_CODING
+	for(int i=0; i<N-K; ++i)
 	{
-		B = 1<<(n-i-1);
-		nB = 1<<i;
-		inc = B<<1;
-		if(B>=FLOATSPERVECTOR)
-		{
-			base = 0;
-			for(int j=0; j<nB; ++j)
-			{
-				for(int l=0; l<B; l+=FLOATSPERVECTOR)
-				{
-					vec Bit_l = load_ps(BitPtr+base+l);
-					vec Bit_r = load_ps(BitPtr+base+l+B);
-					Bit_l = xor_ps(Bit_l, Bit_r);
-					store_ps(BitPtr+base+l, Bit_l);
-				}
-				base += inc;
-			}
-		}
-		else
-		{
-			base = 0;
-			for(int j=0; j<nB; ++j)
-			{
-				for(int l=0; l<B; ++l)
-				{
-					iBit[base+l] ^= iBit[base+l+B];
-				}
-				base += inc;
-			}
-		}
+		encoded[AcceleratedFrozenLookup[i]] = 0;
 	}
+	transform(encoded);
+#endif
 }
 
 /*
@@ -990,8 +968,10 @@ bool PolarCode::decodeOnePath(float* decoded)
 #include "SpecialDecoder.cpp"
 
 #endif
-	
+
+#ifndef SYSTEMATIC_CODING
 	transform(SimpleBits);
+#endif
 
 	for(int bit=0; bit<K; ++bit)
 	{

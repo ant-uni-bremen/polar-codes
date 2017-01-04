@@ -7,8 +7,10 @@
 #include "../ArrayFuncs.h"
 
 
-const int PCparam_N = 1024;
-const int PCparam_K = 16 *32+8;
+//const int PCparam_N = 1024;
+//const int PCparam_K = 16 *32+8;
+const int PCparam_N = 128;
+const int PCparam_K = 2 *32+8;
 const float designSNR = 5.0;
 
 int n;

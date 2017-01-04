@@ -20,6 +20,7 @@
 
 //#define ACCELERATED_MONTECARLO
 //#define FLEXIBLE_DECODING
+#define SYSTEMATIC_CODING
 
 
 /*

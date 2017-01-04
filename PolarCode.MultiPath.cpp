@@ -110,17 +110,31 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 	sorter.set(newMetrics, candCtr);
 	sorter.stableSortDescending();
 	
+	vector<int> lastOne(PathCount, -1);
+	for(int path=0; path<newPathCount; ++path)
+	{
+		lastOne[cand[sorter.permuted[path]].srcPath] = path;
+	}
+	
 	for(int path=0; path<newPathCount; ++path)
 	{
 		Candidate selCand = cand[sorter.permuted[path]];//selected Candidate
 
 		//Save everything
-		for(int cstage=stage; cstage < n; ++cstage)
+		if(path != lastOne[selCand.srcPath])
 		{
-			memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
+			for(int cstage=stage; cstage < n; ++cstage)
+			{
+				memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
+			}
+			memcpy(newBits[path].data(), Bits[selCand.srcPath].data(), 4<<n);
 		}
-		memcpy(newBits[path].data(), Bits[selCand.srcPath].data(), 4<<n);
-		
+		else
+		{
+			std::swap(newLLR[path], LLR[selCand.srcPath]);
+			std::swap(newBits[path], Bits[selCand.srcPath]);
+		}
+
 		//Compose the new path
 		Metric[path] = sorter.sorted[path];
 		if(size<FLOATSPERVECTOR)
@@ -270,17 +284,31 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 	sorter.set(newMetrics, candCtr);
 	sorter.stableSortDescending();
 
+	vector<int> lastOne(PathCount, -1);
+	for(int path=0; path<newPathCount; ++path)
+	{
+		lastOne[cand[sorter.permuted[path]].srcPath] = path;
+	}
+
 	for(int path=0; path<newPathCount; ++path)
 	{
 		Candidate selCand = cand[sorter.permuted[path]];//selected Candidate
-		
+
 		//Save everything
-		for(int cstage=stage; cstage < n; ++cstage)
+		if(path != lastOne[selCand.srcPath])
 		{
-			memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
+			for(int cstage=stage; cstage < n; ++cstage)
+			{
+				memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
+			}
+			memcpy(newBits[path].data(), Bits[selCand.srcPath].data(), 4<<n);
 		}
-		memcpy(newBits[path].data(), Bits[selCand.srcPath].data(), 4<<n);
-		
+		else
+		{
+			std::swap(newLLR[path], LLR[selCand.srcPath]);
+			std::swap(newBits[path], Bits[selCand.srcPath]);
+		}
+
 		//Compose the new path
 		Metric[path] = sorter.sorted[path];
 		if(size<FLOATSPERVECTOR)
@@ -367,17 +395,31 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 	sorter.set(newMetrics, candCtr);
 	sorter.stableSortDescending();
 
+	vector<int> lastOne(PathCount, -1);
+	for(int path=0; path<newPathCount; ++path)
+	{
+		lastOne[cand[sorter.permuted[path]].srcPath] = path;
+	}
+
 	for(int path=0; path<newPathCount; ++path)
 	{
 		Candidate selCand = cand[sorter.permuted[path]];//selected Candidate
-			
+
 		//Save everything
-		for(int cstage=stage; cstage < n; ++cstage)
+		if(path != lastOne[selCand.srcPath])
 		{
-			memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
+			for(int cstage=stage; cstage < n; ++cstage)
+			{
+				memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
+			}
+			memcpy(newBits[path].data(), Bits[selCand.srcPath].data(), 4<<n);
 		}
-		memcpy(newBits[path].data(), Bits[selCand.srcPath].data(), 4<<n);
-		
+		else
+		{
+			std::swap(newLLR[path], LLR[selCand.srcPath]);
+			std::swap(newBits[path], Bits[selCand.srcPath]);
+		}
+
 		//Compose the new path
 		Metric[path] = sorter.sorted[path];
 		float value; unsigned int *iValue = reinterpret_cast<unsigned int*>(&value);
@@ -410,7 +452,9 @@ bool PolarCode::decodeMultiPath(float* decoded)
 	//Select the most likely path which passes the CRC test
 	for(int path=0; path<PathCount; ++path)
 	{
+#ifndef SYSTEMATIC_CODING
 		transform(Bits[path]);
+#endif
 		for(int bit=0; bit<K; ++bit)
 		{
 			decoded[bit] = Bits[path][AcceleratedLookup[bit]];

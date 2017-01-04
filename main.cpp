@@ -22,8 +22,8 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;
-const int MaxBufferSize    =   10000;
-const int BlocksToSimulate =  100000;
+const int MaxBufferSize    =  500000;
+const int BlocksToSimulate = 1000000;
 const int ConcurrentThreads = 1;
 
 #ifdef FLEXIBLE_DECODING
@@ -35,9 +35,9 @@ const float designSNR = 5.0;
 #endif
 
 
-std::atomic<int> finishedThreads(0);
-std::mutex threadMutex;
-std::condition_variable threadCV;
+std::atomic<unsigned int> finishedThreads(0);
+std::mutex threadMutex[ConcurrentThreads];
+std::condition_variable threadCV[ConcurrentThreads];
 
 #ifdef ACCELERATED_MONTECARLO
 std::map<int, std::atomic<float>> stopSNR;
@@ -204,15 +204,22 @@ void decodeSignals(int SimIndex)
 	mySigBuf.size = 0;
 	myChkBuf.ptr = nullptr;
 	myChkBuf.size = 0;
+	
+	int decodedBlocks = 0;
 
-	while(Graph[SimIndex].SignalBuffer.size || mySigBuf.size)
+	while(decodedBlocks < BlocksToSimulate)
 	{
 		if(mySigBuf.ptr == nullptr)
 		{
-			while(Graph[SimIndex].SignalBuffer.ptr == nullptr && !Graph[SimIndex].StopDecoder)
+			if(Graph[SimIndex].SignalBuffer.ptr == nullptr && !Graph[SimIndex].StopDecoder)
 			{
 				//Buffer underrun!!!
-				std::this_thread::yield();
+				cout << "Buffer underrun!" << endl;
+				Graph[SimIndex].SignalBuffer.cv.notify_one();
+				while(Graph[SimIndex].SignalBuffer.ptr == nullptr && !Graph[SimIndex].StopDecoder)
+				{
+					std::this_thread::yield();
+				}
 			}
 			std::unique_lock<std::mutex> lck(Graph[SimIndex].SignalBuffer.mtx);
 			//Get $BufferInterval elements from generator
@@ -222,14 +229,11 @@ void decodeSignals(int SimIndex)
 			Graph[SimIndex].SignalBuffer.size = 0;
 			Graph[SimIndex].SignalBuffer.cv.notify_one();
 		}
-		if(Graph[SimIndex].StopDecoder && !mySigBuf.size)
-		{
-			break;
-		}
 
 		Block *block = mySigBuf.ptr;
 		
 		PC.decode(block->decodedData, block->LLR);
+		++decodedBlocks;
 		
 		
 		Block *nextBlock = block->next;
@@ -303,8 +307,10 @@ void checkDecodedData(int SimIndex)
 	Buffer myChkBuf;
 	myChkBuf.ptr = nullptr;
 	myChkBuf.size = 0;
+	
+	int checkedBlocks = 0;
 
-	while(!Graph[SimIndex].StopChecker || Graph[SimIndex].CheckBuffer.size || myChkBuf.size)
+	while(checkedBlocks < BlocksToSimulate)
 	{
 		if(myChkBuf.ptr == nullptr)
 		{
@@ -313,7 +319,7 @@ void checkDecodedData(int SimIndex)
 				std::unique_lock<std::mutex> lck(Graph[SimIndex].CheckBuffer.mtx);
 				Graph[SimIndex].CheckBuffer.cv.wait(lck);
 			}
-			if(Graph[SimIndex].StopChecker && !Graph[SimIndex].CheckBuffer.size)return;
+			if(Graph[SimIndex].StopChecker && !myChkBuf.size && !Graph[SimIndex].CheckBuffer.size)return;
 			
 			//Pop block
 			Graph[SimIndex].CheckBuffer.mtx.lock();
@@ -346,6 +352,8 @@ void checkDecodedData(int SimIndex)
 		_mm_free(BlockPtr->LLR);
 		delete BlockPtr;
 		
+		++checkedBlocks;
+		
 		//Get next block from Decoder
 		myChkBuf.ptr = nextBlock;
 		myChkBuf.size--;
@@ -366,11 +374,11 @@ void simulate(int SimIndex)
 #endif
 
 	char message[128];
+	
+	++finishedThreads;
 
-	{
-		std::unique_lock<std::mutex> thrlck(threadMutex);
-		threadCV.wait(thrlck);
-	}
+	unique_lock<mutex> thrlck(threadMutex[SimIndex%ConcurrentThreads]);
+	threadCV[SimIndex%ConcurrentThreads].wait(thrlck);
 	
 	Graph[SimIndex].runs = 0;
 	Graph[SimIndex].bits = 0;
@@ -460,15 +468,15 @@ void simulate(int SimIndex)
 	sprintf(message, "[%3d] %3d Threads finished, BLER = %e\n", SimIndex, finished, Graph[SimIndex].BLER);
 	std::cout << message;
 
-	threadCV.notify_one();
+	threadCV[SimIndex%ConcurrentThreads].notify_one();
 }
 
 
 int main(int argc, char** argv)
 {
 //	int Parameter[] = {1,2}, nParams = 2;
-	int Parameter[] = {1, 2,4}, nParams = 3;
-//	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
+//	int Parameter[] = {1, 2,4}, nParams = 3;
+	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
 //	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
 
 
@@ -481,10 +489,6 @@ int main(int argc, char** argv)
 		std::cout << "Error opening the file!" << std::endl;
 		return 0;
 	}
-
-#ifdef __DEBUG__
-	nextThread = 0;
-#endif
 
 	int idCounter = 0;
 	for(int l=0; l<nParams; ++l)
@@ -502,29 +506,27 @@ int main(int argc, char** argv)
 			//Graph[idCounter].L = 1;
 			//Graph[idCounter].designSNR = Parameter[l];
 			
-#ifndef __DEBUG__
 			Threads.push_back(std::thread(simulate, idCounter++));
-#else
-			simulate(idCounter++);
-#endif
 		}
 	}
 
-#ifndef __DEBUG__
-//	nextThread = ConcurrentThreads-1;
+	//Wait some time to let all threads lock up
+	while(finishedThreads != Threads.size())
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+	finishedThreads = 0;
 	for(int i=0; i<ConcurrentThreads; ++i)
 	{
-		std::unique_lock<std::mutex> lck(threadMutex);
-		threadCV.notify_one();
+		//And then release the first $ConcurrentThreads threads
+		threadCV[i].notify_one();
 	}
-#endif
 
-#ifndef __DEBUG__
+	//Wait for all threads to return
 	for(auto& Thr : Threads)
 	{
 		Thr.join();
 	}
-#endif
 	
 	File << "\"L\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
