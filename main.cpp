@@ -22,8 +22,8 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;
-const int MaxBufferSize    =  500000;
-const int BlocksToSimulate = 1000000;
+const int MaxBufferSize    =   50000;
+const int BlocksToSimulate =  100000;
 const int ConcurrentThreads = 1;
 
 #ifdef FLEXIBLE_DECODING
@@ -475,8 +475,8 @@ void simulate(int SimIndex)
 int main(int argc, char** argv)
 {
 //	int Parameter[] = {1,2}, nParams = 2;
-//	int Parameter[] = {1, 2,4}, nParams = 3;
-	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
+	int Parameter[] = {1, 2, 4}, nParams = 3;
+//	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
 //	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
 
 
