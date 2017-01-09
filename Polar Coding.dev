@@ -29,7 +29,7 @@ IncludeVersionInfo=0
 SupportXPThemes=0
 CompilerSet=0
 CompilerSettings=00010jbac0100000000000000
-UnitCount=14
+UnitCount=15
 
 [VersionInfo]
 Major=1
@@ -189,4 +189,14 @@ Link=0
 Priority=1000
 OverrideBuildCmd=0
 BuildCmd=$(CPP) -c SpecialMultiPathDecoder.cpp -o obj/SpecialMultiPathDecoder.o $(CXXFLAGS)
+
+[Unit15]
+FileName=SpecialSystematicEncoder.cpp
+CompileCpp=1
+Folder=
+Compile=0
+Link=0
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=$(CPP) -c SpecialSystematicEncoder.cpp -o obj/SpecialSystematicEncoder.o $(CXXFLAGS)
 

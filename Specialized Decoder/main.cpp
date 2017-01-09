@@ -322,6 +322,39 @@ void printMultiPathDecoder(int stage, int BitLocation, int nodeID)
 	}
 }
 
+void printSystematicEncoder(int stage, int BitLocation, int nodeID)
+{
+	int leftNode  = (nodeID<<1)+1;
+	int rightNode = leftNode+1;
+	int subStageLength = 1<<(stage-1);
+	
+//	unsigned int* iData = reinterpret_cast<unsigned int*>(encoded.data());
+	
+	//Calculate right node
+	if(simplifiedTree[rightNode] != RateOne)
+		printSystematicEncoder(stage-1, BitLocation+subStageLength, rightNode);
+	
+	if(simplifiedTree[leftNode] != RateZero)
+	{
+		//XOR left and right to left
+		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
+		File << "	iData[i+" << BitLocation << "] ^= iData[i+" << (BitLocation+subStageLength) << "];" << endl;
+		//Calculate left node
+		if(simplifiedTree[leftNode] != RateOne)
+			printSystematicEncoder(stage-1, BitLocation, leftNode);
+		//XOR left and right to left part of parent node
+		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
+		File << "	iData[i+" << BitLocation << "] ^= iData[i+" << (BitLocation+subStageLength) << "];" << endl;
+	}
+	else
+	{
+		//copy right to left
+		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
+		File << "	iData[i+" << BitLocation << "] = iData[i+" << (BitLocation+subStageLength) << "];" << endl;
+	}
+}
+
+
 
 unsigned int bitreversed_slow(unsigned int j, unsigned int n)
 {
@@ -440,6 +473,10 @@ int main(void)
 
 	File.open("../SpecialMultiPathDecoder.cpp");
 	printMultiPathDecoder(n, 0, 0);
+	File.close();
+	
+	File.open("../SpecialSystematicEncoder.cpp");
+	printSystematicEncoder(n, 0, 0);
 	File.close();
 
 	File.open("../SpecialDecoderParams.h");

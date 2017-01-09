@@ -814,7 +814,11 @@ void PolarCode::encode(aligned_float_vector &encoded, float* data)
 #ifndef SYSTEMATIC_CODING
 	transform(encoded);
 #else
-	subEncodeSystematic(encoded, n, 0, 0);
+//	subEncodeSystematic(encoded, n, 0, 0);
+
+unsigned int* iData = reinterpret_cast<unsigned int*>(encoded.data());
+#include "SpecialSystematicEncoder.cpp"
+
 #endif
 }
 
