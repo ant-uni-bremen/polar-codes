@@ -22,8 +22,8 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;
-const int MaxBufferSize    =   50000;
-const int BlocksToSimulate =  100000;
+const int MaxBufferSize    =   700000;
+const int BlocksToSimulate =  1000000;
 const int ConcurrentThreads = 1;
 
 #ifdef FLEXIBLE_DECODING

@@ -322,13 +322,47 @@ void printMultiPathDecoder(int stage, int BitLocation, int nodeID)
 	}
 }
 
+void printSysEncXOR(int BitLocation, int Length)
+{
+	if(Length < 8)
+	{
+		for(int i=0; i<Length; ++i)
+		{
+			File << "iData[" << (BitLocation+i) << "] ^= iData[" << (BitLocation+Length+i) << "];" << endl;
+		}
+	}
+/*	else if(Length == 4)
+	{
+		File
+		<< "x128a = _mm_load_ps(fData+" << BitLocation << ");" << endl
+		<< "x128b = _mm_load_ps(fData+" << (BitLocation+Length) << ");" << endl
+		<< "x128c = _mm_xor_ps(x128a, x128b);" << endl
+		<< "_mm_store_ps(fData+" << BitLocation << ", x128c);" << endl;
+	}*/
+	else if(Length == 8)
+	{
+		File
+		<< "x256a = _mm256_load_ps(fData+" << BitLocation << ");" << endl
+		<< "x256b = _mm256_load_ps(fData+" << (BitLocation+Length) << ");" << endl
+		<< "x256c = _mm256_xor_ps(x256a, x256b);" << endl
+		<< "_mm256_store_ps(fData+" << BitLocation << ", x256c);" << endl;
+	}
+	else
+	{
+		File << "for(int i=0; i<" << Length << "; i+=8) {" << endl
+		<< "	x256a = _mm256_load_ps(fData+" << BitLocation << "+i);" << endl
+		<< "	x256b = _mm256_load_ps(fData+" << (BitLocation+Length) << "+i);" << endl
+		<< "	x256c = _mm256_xor_ps(x256a, x256b);" << endl
+		<< "	_mm256_store_ps(fData+" << BitLocation << "+i, x256c);" << endl
+		<< "}" << endl;
+	}
+}
+
 void printSystematicEncoder(int stage, int BitLocation, int nodeID)
 {
 	int leftNode  = (nodeID<<1)+1;
 	int rightNode = leftNode+1;
 	int subStageLength = 1<<(stage-1);
-	
-//	unsigned int* iData = reinterpret_cast<unsigned int*>(encoded.data());
 	
 	//Calculate right node
 	if(simplifiedTree[rightNode] != RateOne)
@@ -337,20 +371,26 @@ void printSystematicEncoder(int stage, int BitLocation, int nodeID)
 	if(simplifiedTree[leftNode] != RateZero)
 	{
 		//XOR left and right to left
-		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
-		File << "	iData[i+" << BitLocation << "] ^= iData[i+" << (BitLocation+subStageLength) << "];" << endl;
-		//Calculate left node
+		printSysEncXOR(BitLocation, subStageLength);
+//		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
+//		File << "	iData[i+" << BitLocation << "] ^= iData[i+" << (BitLocation+subStageLength) << "];" << endl;
+			//Calculate left node
 		if(simplifiedTree[leftNode] != RateOne)
 			printSystematicEncoder(stage-1, BitLocation, leftNode);
 		//XOR left and right to left part of parent node
-		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
-		File << "	iData[i+" << BitLocation << "] ^= iData[i+" << (BitLocation+subStageLength) << "];" << endl;
-	}
+		printSysEncXOR(BitLocation, subStageLength);
+//		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
+//		File << "	iData[i+" << BitLocation << "] ^= iData[i+" << (BitLocation+subStageLength) << "];" << endl;
+		}
 	else
 	{
 		//copy right to left
-		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
-		File << "	iData[i+" << BitLocation << "] = iData[i+" << (BitLocation+subStageLength) << "];" << endl;
+//		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
+//		File << "	iData[i+" << BitLocation << "] = iData[i+" << (BitLocation+subStageLength) << "];" << endl;
+		if(subStageLength == 1)
+			File << "iData[" << BitLocation << "] = iData[" << (BitLocation+subStageLength) << "];" << endl;
+		else
+			File << "memcpy(iData+" << BitLocation << ", iData+" << (BitLocation+subStageLength) << ", " << (subStageLength<<2) << ");" << endl;
 	}
 }
 
@@ -476,6 +516,9 @@ int main(void)
 	File.close();
 	
 	File.open("../SpecialSystematicEncoder.cpp");
+	File << "__m128 x128a, x128b, x128c;" << endl << "__m256 x256a, x256b, x256c;" << endl
+	     << "unsigned int* iData = reinterpret_cast<unsigned int*>(encoded.data());" << endl
+	     << "float* fData = encoded.data();" << endl;
 	printSystematicEncoder(n, 0, 0);
 	File.close();
 
