@@ -22,7 +22,7 @@ CRC8::CRC8()
 
 CRC8::~CRC8()
 {
-	
+
 }
 
 void CRC8::gen(unsigned char *crc, unsigned char m)
@@ -71,7 +71,7 @@ void CRC8::addChecksum(std::vector<float> &data)
 	Bits2Bytes(data, tmpBytes.data(), nBytes);
 	crcbyte = generate(tmpBytes.data(), nBytes);
 	Bytes2Bits(&crcbyte, crcbits, 1);
-	
+
 	data.resize(nBits+8);
 	unsigned int* iData = reinterpret_cast<unsigned int*>(data.data());
 	for(int i=0; i<8; ++i)
@@ -101,10 +101,10 @@ bool CRC8::check(std::vector<float> &data)
 {
 	int nBits = data.size(), nBytes = nBits>>3;
 	tmpBytes.resize(nBytes);
-	
+
 	Bits2Bytes(data, tmpBytes.data(), nBytes);
 	bool result = check(tmpBytes.data(), nBytes-1, tmpBytes[nBytes-1]);
-	
+
 	return result;
 }
 

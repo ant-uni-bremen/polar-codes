@@ -810,78 +810,51 @@ void PolarCode::encode(aligned_float_vector &encoded, float* data)
 	}
 	
 	//Encode
+	
+#ifndef SYSTEMATIC_CODING
 	transform(encoded);
-
-#ifdef SYSTEMATIC_CODING
-	for(int i=0; i<N-K; ++i)
-	{
-		encoded[AcceleratedFrozenLookup[i]] = 0;
-	}
-	transform(encoded);
+#else
+	subEncodeSystematic(encoded, n, 0, 0);
 #endif
 }
 
-/*
-void PolarCode::encode_systematic(vector<bool> &encoded, vector<bool> &data)
+void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, int BitLocation, int nodeID)
 {
-	SysY.resize(N);
-	std::copy(FZLookup.begin(), FZLookup.end(), SysY.begin());
-	encoded.assign(N, 0);
-#ifdef CRCSIZE	
-	//Calculate CRC
-	Crc->addChecksum(data);
-#endif
+	int leftNode  = (nodeID<<1)+1;
+	int rightNode = leftNode+1;
+	int subStageLength = 1<<(stage-1);
 	
-	//Insert the bits into Rate-1 channels
-	for(int i=0; i<K; ++i)
-	{
-		SysX[AcceleratedLookup[i]] = data[i];
-	}
+	unsigned int* iData = reinterpret_cast<unsigned int*>(encoded.data());
 	
-	//Encode
-	vector<bool> r(N, false);
-	EncoderB(0, N-1, r, encoded);
-}
-
-void PolarCode::encoderB(int i, int j, vector<bool> &r, vector<bool> &v)
-{
-	int m = (i+j)>>1;
-	int L = j-i+1;
-	v.assign(L, 0.0);
-	if(L==1)
+	//Calculate right node
+	if(simplifiedTree[rightNode] != RateOne)
+		subEncodeSystematic(encoded, stage-1, BitLocation+subStageLength, rightNode);
+	
+	if(simplifiedTree[leftNode] != RateZero)
 	{
-		if(FZLookup[i])
+		//XOR left and right to left
+		for(int i=0; i<subStageLength; ++i)
 		{
-			v[0] = SysY[i] = SysX[i]!=r[0];
+			iData[BitLocation+i] ^= iData[BitLocation+subStageLength+i];
 		}
-		else
+		//Calculate left node
+		if(simplifiedTree[leftNode] != RateOne)
+			subEncodeSystematic(encoded, stage-1, BitLocation, leftNode);
+		//XOR left and right to left part of parent node
+		for(int i=0; i<subStageLength; ++i)
 		{
-			SysX[i] = SysY[i]!=r[0];
-			v[0] = SysY[i];
+			iData[BitLocation+i] ^= iData[BitLocation+subStageLength+i];
 		}
 	}
 	else
 	{
-		vector<bool> v1(L>>1, 0.0), v2(L>>1, 0.0);
-		vector<bool> r1(L>>1), r2(L>>1);
-		std::copy(r.begin(), r.begin()+(L>>1)+1, r2.begin());
-		std::copy(r.begin()+(L>>1)+1, r.end(), r1.begin());
-		
-		EncoderB(m+1, j, r1, v1);
-		for(unsigned int k=0; k<(L>>1); ++k)
+		//copy right to left
+		for(int i=0; i<subStageLength; ++i)
 		{
-			v2[k] = r2[k]!=v1[k];
+			iData[BitLocation+i] = iData[BitLocation+subStageLength+i];
 		}
-		EncoderB(i, m, v2, v2);
-		for(unsigned int k=0; k<(L>>1); ++k)
-		{
-			v2[k] = v2[k]!=v1[k];
-		}
-		std::copy(v2.begin(), v2.end(), v.begin());
-		std::copy(v1.begin(), v1.end(), v.begin()+(L>>1));
 	}
-}*/
-
+}
 
 
 void PolarCode::transform(aligned_float_vector &Bits)

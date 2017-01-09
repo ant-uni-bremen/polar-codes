@@ -73,9 +73,7 @@ struct PolarCode
 	~PolarCode();
 
 	void encode(aligned_float_vector &encoded, float* data);
-/*	void encode_systematic(vector<bool> &encoded, vector<bool> &data);
-	
-	void encoderB(int i, int j, vector<bool> &r, vector<bool> &v);*/
+	void subEncodeSystematic(aligned_float_vector &encoded, int stage, int BitLocation, int nodeID);
 	
 	bool decode(float* decoded, float* LLR);
 	bool decodeOnePath(float* decoded);
