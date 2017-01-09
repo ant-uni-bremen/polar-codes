@@ -7,10 +7,10 @@
 #include "../ArrayFuncs.h"
 
 
-//const int PCparam_N = 1024;
-//const int PCparam_K = 16 *32+8;
-const int PCparam_N = 128;
-const int PCparam_K = 2 *32+8;
+const int PCparam_N = 2048;
+const int PCparam_K = 32 *32+8;
+//const int PCparam_N = 128;
+//const int PCparam_K = 2 *32+8;
 const float designSNR = 5.0;
 
 int n;
@@ -136,9 +136,9 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 			File << "Rate0(BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
 			cout << "Right rate 0, left is " << simplifiedTree[leftNode] << "!";
 			break;
-/*		case RateOne:
+		case RateOne:
 			File << "Rate1(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
-			break;*/
+			break;
 		case RepetitionNode:
 		case RateHalf:
 			File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << (BitLocation+subStageLength) << ", " << subStageLength << ");" << endl;
@@ -331,14 +331,6 @@ void printSysEncXOR(int BitLocation, int Length)
 			File << "iData[" << (BitLocation+i) << "] ^= iData[" << (BitLocation+Length+i) << "];" << endl;
 		}
 	}
-/*	else if(Length == 4)
-	{
-		File
-		<< "x128a = _mm_load_ps(fData+" << BitLocation << ");" << endl
-		<< "x128b = _mm_load_ps(fData+" << (BitLocation+Length) << ");" << endl
-		<< "x128c = _mm_xor_ps(x128a, x128b);" << endl
-		<< "_mm_store_ps(fData+" << BitLocation << ", x128c);" << endl;
-	}*/
 	else if(Length == 8)
 	{
 		File
@@ -372,21 +364,17 @@ void printSystematicEncoder(int stage, int BitLocation, int nodeID)
 	{
 		//XOR left and right to left
 		printSysEncXOR(BitLocation, subStageLength);
-//		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
-//		File << "	iData[i+" << BitLocation << "] ^= iData[i+" << (BitLocation+subStageLength) << "];" << endl;
-			//Calculate left node
+
+		//Calculate left node
 		if(simplifiedTree[leftNode] != RateOne)
 			printSystematicEncoder(stage-1, BitLocation, leftNode);
+
 		//XOR left and right to left part of parent node
 		printSysEncXOR(BitLocation, subStageLength);
-//		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
-//		File << "	iData[i+" << BitLocation << "] ^= iData[i+" << (BitLocation+subStageLength) << "];" << endl;
-		}
+	}
 	else
 	{
 		//copy right to left
-//		File << "for(int i=0; i<" << subStageLength << "; ++i)" << endl;
-//		File << "	iData[i+" << BitLocation << "] = iData[i+" << (BitLocation+subStageLength) << "];" << endl;
 		if(subStageLength == 1)
 			File << "iData[" << BitLocation << "] = iData[" << (BitLocation+subStageLength) << "];" << endl;
 		else
@@ -493,20 +481,6 @@ int main(void)
 		cout << "Root node is not Rate-R! Expect problems!" << endl;
 	}
 
-/*	File.open("../FZLookup.cpp");
-
-	File << "bool bFZLookup[" << PCparam_N << "] = {";
-	for(int i=0; i<PCparam_N; ++i)
-	{
-		File << FZLookup[i];
-		if(i+1 != PCparam_N)
-		{
-			File << ',';
-		}
-	}
-	File << "};" << endl;
-	File.close();*/
-
 	File.open("../SpecialDecoder.cpp");
 	printDecoder(n, 0, 0);
 	File.close();
@@ -516,7 +490,7 @@ int main(void)
 	File.close();
 	
 	File.open("../SpecialSystematicEncoder.cpp");
-	File << "__m128 x128a, x128b, x128c;" << endl << "__m256 x256a, x256b, x256c;" << endl
+	File << "__m256 x256a, x256b, x256c;" << endl
 	     << "unsigned int* iData = reinterpret_cast<unsigned int*>(encoded.data());" << endl
 	     << "float* fData = encoded.data();" << endl;
 	printSystematicEncoder(n, 0, 0);

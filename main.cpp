@@ -22,8 +22,8 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;
-const int MaxBufferSize    =   700000;
-const int BlocksToSimulate =  1000000;
+const int MaxBufferSize    =   40000;
+const int BlocksToSimulate =  100000;
 const int ConcurrentThreads = 1;
 
 #ifdef FLEXIBLE_DECODING
@@ -374,16 +374,16 @@ void simulate(int SimIndex)
 #endif
 
 	char message[128];
-	
+	Graph[SimIndex].runs = 0;
+	Graph[SimIndex].bits = 0;
+	Graph[SimIndex].errors = 0;
+	Graph[SimIndex].biterrors = 0;
+
 	++finishedThreads;
 
 	unique_lock<mutex> thrlck(threadMutex[SimIndex%ConcurrentThreads]);
 	threadCV[SimIndex%ConcurrentThreads].wait(thrlck);
 	
-	Graph[SimIndex].runs = 0;
-	Graph[SimIndex].bits = 0;
-	Graph[SimIndex].errors = 0;
-	Graph[SimIndex].biterrors = 0;
 
 #ifdef ACCELERATED_MONTECARLO
 	if(EbN0 >= stopSNR[L])
@@ -475,8 +475,8 @@ void simulate(int SimIndex)
 int main(int argc, char** argv)
 {
 //	int Parameter[] = {1,2}, nParams = 2;
-	int Parameter[] = {1, 2, 4}, nParams = 3;
-//	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
+//	int Parameter[] = {1, 2, 4}, nParams = 3;
+	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
 //	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
 
 

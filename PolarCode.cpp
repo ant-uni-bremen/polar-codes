@@ -814,10 +814,12 @@ void PolarCode::encode(aligned_float_vector &encoded, float* data)
 #ifndef SYSTEMATIC_CODING
 	transform(encoded);
 #else
-//	subEncodeSystematic(encoded, n, 0, 0);
 
+#ifdef FLEXIBLE_DECODING
+	subEncodeSystematic(encoded, n, 0, 0);
+#else
 #include "SpecialSystematicEncoder.cpp"
-
+#endif
 #endif
 }
 
@@ -828,6 +830,7 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 	int subStageLength = 1<<(stage-1);
 
 	unsigned int* iData = reinterpret_cast<unsigned int*>(encoded.data());
+	float *fData = encoded.data();
 
 	//Calculate right node
 	if(simplifiedTree[rightNode] != RateOne)
@@ -836,26 +839,53 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 	if(simplifiedTree[leftNode] != RateZero)
 	{
 		//XOR left and right to left
-		for(int i=0; i<subStageLength; ++i)
+		if(subStageLength<8)
 		{
-			iData[BitLocation+i] ^= iData[BitLocation+subStageLength+i];
+			for(int i=0; i<subStageLength; ++i)
+			{
+				iData[BitLocation+i] ^= iData[BitLocation+subStageLength+i];
+			}
+		}
+		else
+		{
+			for(int i=0; i<subStageLength; i+=8)
+			{
+				vec a = load_ps(fData+BitLocation+i);
+				vec b = load_ps(fData+BitLocation+subStageLength+i);
+				vec c = xor_ps(a, b);
+				store_ps(fData+BitLocation+i, c);
+			}
 		}
 		//Calculate left node
 		if(simplifiedTree[leftNode] != RateOne)
 			subEncodeSystematic(encoded, stage-1, BitLocation, leftNode);
 		//XOR left and right to left part of parent node
-		for(int i=0; i<subStageLength; ++i)
+		if(subStageLength<8)
 		{
-			iData[BitLocation+i] ^= iData[BitLocation+subStageLength+i];
+			for(int i=0; i<subStageLength; ++i)
+			{
+				iData[BitLocation+i] ^= iData[BitLocation+subStageLength+i];
+			}
+		}
+		else
+		{
+			for(int i=0; i<subStageLength; i+=8)
+			{
+				vec a = load_ps(fData+BitLocation+i);
+				vec b = load_ps(fData+BitLocation+subStageLength+i);
+				vec c = xor_ps(a, b);
+				store_ps(fData+BitLocation+i, c);
+			}
 		}
 	}
 	else
 	{
 		//copy right to left
-		for(int i=0; i<subStageLength; ++i)
+/*		for(int i=0; i<subStageLength; ++i)
 		{
 			iData[BitLocation+i] = iData[BitLocation+subStageLength+i];
-		}
+		}*/
+		memcpy(iData+BitLocation, iData+BitLocation+subStageLength, subStageLength<<2);
 	}
 }
 
