@@ -16,10 +16,12 @@
  * 					 Instead, the lookup tables are used to decide for the
  *					 next decoding operation.
  *
+ * SYSTEMATIC_CODING utilizes systematic polar codes
+ *
  */
 
 //#define ACCELERATED_MONTECARLO
-//#define FLEXIBLE_DECODING
+#define FLEXIBLE_DECODING
 #define SYSTEMATIC_CODING
 
 

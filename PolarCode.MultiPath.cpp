@@ -484,13 +484,12 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 	int leftNode  = (nodeID<<1)+1;
 	int rightNode = leftNode+1;
 	int subStageLength = 1<<(stage-1);
-	vector<float*> LLRptr(PathCount);
 
 	//Calculate LLRs for all paths
 	for(int currentPath=0; currentPath<PathCount; ++currentPath)
 	{
-		LLRptr[currentPath] = stage==n ? initialLLR.data() : LLR[currentPath][stage].data();
-		F_function_hybrid(LLRptr[currentPath], LLR[currentPath][stage-1].data(), subStageLength);
+		F_function_hybrid( (stage==n) ? initialLLR.data() : LLR[currentPath][stage].data()
+						 , LLR[currentPath][stage-1].data(), subStageLength);
 	}
 
 	switch(simplifiedTree[leftNode])
@@ -523,14 +522,16 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 	{
 		for(int currentPath=0; currentPath<PathCount; ++currentPath)
 		{
-			G_function_hybrid(LLRptr[currentPath], LLR[currentPath][stage-1].data(), Bits[currentPath].data()+BitLocation, subStageLength);
+			G_function_hybrid( (stage==n) ? initialLLR.data() : LLR[currentPath][stage].data()
+			                 , LLR[currentPath][stage-1].data(), Bits[currentPath].data()+BitLocation, subStageLength);
 		}
 	}
 	else
 	{
 		for(int currentPath=0; currentPath<PathCount; ++currentPath)
 		{
-			G_function_0R_hybrid(LLRptr[currentPath], LLR[currentPath][stage-1].data(), subStageLength);
+			G_function_0R_hybrid( (stage==n) ? initialLLR.data() : LLR[currentPath][stage].data()
+			                    , LLR[currentPath][stage-1].data(), subStageLength);
 		}
 	}
 	

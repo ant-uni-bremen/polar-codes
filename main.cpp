@@ -22,17 +22,28 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;
-const int MaxBufferSize    =   40000;
+const int MaxBufferSize    =   50000;
 const int BlocksToSimulate =  100000;
 const int ConcurrentThreads = 1;
 
 #ifdef FLEXIBLE_DECODING
-const int PCparam_N = 1024;
-const int PCparam_K =  520;
+//const int PCparam_N = 1024;
+//const int PCparam_K =  768+8;
+//const float designSNR = 5.0;
+const int PCparam_N = 128;
+const int PCparam_K =  64+32 +8;//Rate 3/4, CRC8
 const float designSNR = 5.0;
 #else
 #include "SpecialDecoderParams.h"
 #endif
+
+
+//	int Parameter[] = {2,1}, nParams = 2;
+	int Parameter[] = {1, 2, 4}, nParams = 3;
+//	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
+//	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
+
+
 
 
 std::atomic<unsigned int> finishedThreads(0);
@@ -128,10 +139,20 @@ void generateSignals(int SimIndex)
 
 		//Generate random payload for testing
 		unsigned int* DataPtr = reinterpret_cast<unsigned int*>(block->data);
-		for(int i=0; i<nBits; i+=32)
+		unsigned int nInts = nBits>>5;
+		unsigned int nRem = nBits&0x1F;
+		for(unsigned int i=0; i<nInts; ++i)
 		{
 			unsigned int rawdata = RndGen();
 			for(int j=0;j<32;++j)
+			{
+				DataPtr[(i<<5)|j] = rawdata&0x80000000;
+				rawdata <<= 1;
+			}
+		}
+		{
+			unsigned int rawdata = RndGen();
+			for(unsigned int j=0;j<nRem;++j)
 			{
 				*(DataPtr++) = rawdata&0x80000000;
 				rawdata <<= 1;
@@ -474,12 +495,6 @@ void simulate(int SimIndex)
 
 int main(int argc, char** argv)
 {
-//	int Parameter[] = {1,2}, nParams = 2;
-//	int Parameter[] = {1, 2, 4}, nParams = 3;
-	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
-//	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
-
-
 	Graph = new DataPoint[EbN0_count*nParams];
 	std::vector<std::thread> Threads;
 	

@@ -836,10 +836,11 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 	if(simplifiedTree[rightNode] != RateOne)
 		subEncodeSystematic(encoded, stage-1, BitLocation+subStageLength, rightNode);
 
+	//Calculate left node
 	if(simplifiedTree[leftNode] != RateZero)
 	{
-		//XOR left and right to left
-		if(subStageLength<8)
+		//XOR left and right to left, to get the left child node bits
+		if(subStageLength<FLOATSPERVECTOR)
 		{
 			for(int i=0; i<subStageLength; ++i)
 			{
@@ -848,7 +849,7 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 		}
 		else
 		{
-			for(int i=0; i<subStageLength; i+=8)
+			for(int i=0; i<subStageLength; i+=FLOATSPERVECTOR)
 			{
 				vec a = load_ps(fData+BitLocation+i);
 				vec b = load_ps(fData+BitLocation+subStageLength+i);
@@ -860,7 +861,7 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 		if(simplifiedTree[leftNode] != RateOne)
 			subEncodeSystematic(encoded, stage-1, BitLocation, leftNode);
 		//XOR left and right to left part of parent node
-		if(subStageLength<8)
+		if(subStageLength<FLOATSPERVECTOR)
 		{
 			for(int i=0; i<subStageLength; ++i)
 			{
@@ -869,7 +870,7 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 		}
 		else
 		{
-			for(int i=0; i<subStageLength; i+=8)
+			for(int i=0; i<subStageLength; i+=FLOATSPERVECTOR)
 			{
 				vec a = load_ps(fData+BitLocation+i);
 				vec b = load_ps(fData+BitLocation+subStageLength+i);
