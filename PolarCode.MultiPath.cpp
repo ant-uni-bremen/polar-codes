@@ -464,6 +464,10 @@ bool PolarCode::decodeMultiPath(float* decoded)
 			return true;
 		}
 	}
+#else
+#ifndef SYSTEMATIC_CODING
+	transform(Bits[0]);
+#endif
 #endif
 
 	//Give out the most likely path, if no crc is fulfilled

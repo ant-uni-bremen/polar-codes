@@ -1,14 +1,11 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#define CRCSIZE 8
+//#define CRCSIZE 8
 
-#define EbN0_min    0.0
-#define EbN0_max    6.0
-#define EbN0_count 20
 
-/* The following two defines can be uncommented to change the
- * behaviour of the simulation.
+/* The following two defines can be used to change the behaviour
+ * of the simulation.
  * 
  * ACCELERATED_MONTECARLO skips computations of nearly error-free SNRs
  * 
@@ -22,7 +19,7 @@
 
 //#define ACCELERATED_MONTECARLO
 #define FLEXIBLE_DECODING
-#define SYSTEMATIC_CODING
+//#define SYSTEMATIC_CODING
 
 
 /*

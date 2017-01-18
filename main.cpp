@@ -22,24 +22,35 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;
-const int MaxBufferSize    =   50000;
-const int BlocksToSimulate =  100000;
+const int MaxBufferSize    =   5000;
+const int BlocksToSimulate =  10000;
 const int ConcurrentThreads = 1;
 
+const float EbN0_min = -4;
+const float EbN0_max = 7;
+const int EbN0_count = 20;
+
+
 #ifdef FLEXIBLE_DECODING
-//const int PCparam_N = 1024;
-//const int PCparam_K =  768+8;
-//const float designSNR = 5.0;
-const int PCparam_N = 128;
-const int PCparam_K =  64+32 +8;//Rate 3/4, CRC8
+const int PCparam_N = 1024;
+const int PCparam_K =  768
+#ifdef CRCSIZE
+	+CRCSIZE
+#endif
+	;
 const float designSNR = 5.0;
+//const int PCparam_N = 32;
+//const int PCparam_K = 16;
+//const float designSNR = 5.0;
 #else
 #include "SpecialDecoderParams.h"
 #endif
 
 
+//	int Parameter[] = {1}, nParams = 1;
 //	int Parameter[] = {2,1}, nParams = 2;
-	int Parameter[] = {1, 2, 4}, nParams = 3;
+//	int Parameter[] = {1, 2, 4}, nParams = 3;
+	int Parameter[] = {1, 2, 4, 16}, nParams = 4;
 //	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
 //	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
 
@@ -97,7 +108,7 @@ void generateSignals(int SimIndex)
 #endif
 	aligned_float_vector encodedData(N);
 	aligned_float_vector sig(N);
-	float factor = sqrt(R) * pow(10.0, EbN0/20.0)  * sqrt(2.0);
+	float factor = sqrt(pow(10.0, EbN0/10.0)  * 2.0);
 	mt19937 RndGen(SimIndex);
 
 	PolarCode PC(N, Graph[SimIndex].K, L, designSNR, true);

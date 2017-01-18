@@ -78,7 +78,7 @@ void modulateAndDistort(aligned_float_vector &signal, aligned_float_vector &data
 void softDemod(float *LLR, aligned_float_vector &signal, int size, float R, float EbN0)
 {	
 	float EbN0lin = pow(10.0, EbN0/10.0);
-	float factor = 2.0 * sqrt(2.0*R*EbN0lin);
+	float factor = 2.0 * sqrt(2.0*EbN0lin);
 	vec facVec = set1_ps(factor);
 
 	for(int i=0; i<size; i+=FLOATSPERVECTOR)
