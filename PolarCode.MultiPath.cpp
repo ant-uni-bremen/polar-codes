@@ -448,39 +448,39 @@ bool PolarCode::decodeMultiPath(float* decoded)
 
 #endif
 
-#ifdef CRCSIZE
-	//Select the most likely path which passes the CRC test
-	for(int path=0; path<PathCount; ++path)
+	if(useCRC)
 	{
+		//Select the most likely path which passes the CRC test
+		for(int path=0; path<PathCount; ++path)
+		{
 #ifndef SYSTEMATIC_CODING
-		transform(Bits[path]);
+			transform(Bits[path]);
 #endif
-		for(int bit=0; bit<K; ++bit)
-		{
-			decoded[bit] = Bits[path][AcceleratedLookup[bit]];
-		}
-		if(Crc->check(decoded, K))
-		{
-			return true;
+			for(int bit=0; bit<K; ++bit)
+			{
+				decoded[bit] = Bits[path][AcceleratedLookup[bit]];
+			}
+			if(Crc->check(decoded, K))
+			{
+				return true;
+			}
 		}
 	}
-#else
+	else
+	{
+		//Select the most likely path
 #ifndef SYSTEMATIC_CODING
-	transform(Bits[0]);
+		transform(Bits[0]);
 #endif
-#endif
-
-	//Give out the most likely path, if no crc is fulfilled
+	}
+	//Give out the most likely path, if no crc is not used or didn't pass the check
 	for(int bit=0; bit<K; ++bit)
 	{
 		decoded[bit] = Bits[0][AcceleratedLookup[bit]];
 	}
-	
-#ifdef CRCSIZE
-	return false;
-#else
-	return true;//No check possible without CRC
-#endif
+
+	/* Return true, if CRC-check is deactivated */	
+	return !useCRC;
 }
 
 void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)

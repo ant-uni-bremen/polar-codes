@@ -1,9 +1,6 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-//#define CRCSIZE 8
-
-
 /* The following two defines can be used to change the behaviour
  * of the simulation.
  * 

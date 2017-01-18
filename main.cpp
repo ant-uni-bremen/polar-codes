@@ -22,38 +22,23 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;
-const int MaxBufferSize    =   5000;
-const int BlocksToSimulate =  10000;
+const int MaxBufferSize    =   50000;
+const int BlocksToSimulate =  100000;
 const int ConcurrentThreads = 1;
 
 const float EbN0_min = -4;
-const float EbN0_max = 7;
+const float EbN0_max =  6;
 const int EbN0_count = 20;
 
 
-#ifdef FLEXIBLE_DECODING
-const int PCparam_N = 1024;
-const int PCparam_K =  768
-#ifdef CRCSIZE
-	+CRCSIZE
-#endif
-	;
 const float designSNR = 5.0;
-//const int PCparam_N = 32;
-//const int PCparam_K = 16;
-//const float designSNR = 5.0;
-#else
-#include "SpecialDecoderParams.h"
-#endif
 
 
-//	int Parameter[] = {1}, nParams = 1;
-//	int Parameter[] = {2,1}, nParams = 2;
-//	int Parameter[] = {1, 2, 4}, nParams = 3;
-	int Parameter[] = {1, 2, 4, 16}, nParams = 4;
-//	int Parameter[] = {1, 2, 4, 8, 16}, nParams = 5;
-//	float Parameter[] = {0, 2, 5, 6, 10}; int nParams = 5;
+int ParameterN[] = {32, 64, 128, 1024, 2048}, nParams = 5;
+int ParameterK[] = {16, 32,  64,  512, 1024};
+int L = 1;
 
+const bool useCRC = false;
 
 
 
@@ -82,7 +67,7 @@ struct Buffer {
 
 struct DataPoint
 {
-	float designSNR, EbN0; int N,K,L;
+	float designSNR, EbN0; int N,K,L; bool useCRC;
 	int runs, bits, errors, biterrors;
 	float BLER, BER;
 	float time;//in seconds
@@ -101,17 +86,16 @@ void generateSignals(int SimIndex)
 	float designSNR = Graph[SimIndex].designSNR;//dB
 	float EbN0 = Graph[SimIndex].EbN0;//dB
 	float R = (float)Graph[SimIndex].K / Graph[SimIndex].N;
-#ifdef CRCSIZE
-	int nBits = (Graph[SimIndex].K-CRCSIZE);
-#else
+
 	int nBits = Graph[SimIndex].K;
-#endif
+	if(Graph[SimIndex].useCRC)nBits-=8;
+
 	aligned_float_vector encodedData(N);
 	aligned_float_vector sig(N);
 	float factor = sqrt(pow(10.0, EbN0/10.0)  * 2.0);
 	mt19937 RndGen(SimIndex);
 
-	PolarCode PC(N, Graph[SimIndex].K, L, designSNR, true);
+	PolarCode PC(N, Graph[SimIndex].K, L, Graph[SimIndex].useCRC, designSNR, true);
 	
 	Buffer mySigBuf;
 	mySigBuf.ptr = nullptr;
@@ -229,7 +213,7 @@ void generateSignals(int SimIndex)
 
 void decodeSignals(int SimIndex)
 {
-	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].designSNR);
+	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].useCRC, Graph[SimIndex].designSNR);
 
 	Buffer mySigBuf, myChkBuf;
 	mySigBuf.ptr = nullptr;
@@ -330,11 +314,8 @@ void decodeSignals(int SimIndex)
 
 void checkDecodedData(int SimIndex)
 {
-#ifdef CRCSIZE
-	int nBits = (Graph[SimIndex].K-CRCSIZE);
-#else
 	int nBits = Graph[SimIndex].K;
-#endif
+	if(Graph[SimIndex].useCRC)nBits-=8;
 
 	Buffer myChkBuf;
 	myChkBuf.ptr = nullptr;
@@ -398,12 +379,6 @@ void simulate(int SimIndex)
 {
 	using namespace std;
 	using namespace std::chrono;
-
-#ifdef CRCSIZE
-	int nBits = (Graph[SimIndex].K-CRCSIZE);
-#else
-	int nBits = Graph[SimIndex].K;
-#endif
 
 	char message[128];
 	Graph[SimIndex].runs = 0;
@@ -477,6 +452,9 @@ void simulate(int SimIndex)
 	duration<float> TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
 	float time = TimeUsed.count();
 
+	int nBits = Graph[SimIndex].K;
+	if(Graph[SimIndex].useCRC)nBits-=8;
+
 	Graph[SimIndex].BLER = (float)Graph[SimIndex].errors/Graph[SimIndex].runs;
 	Graph[SimIndex].BER = (float)Graph[SimIndex].biterrors/Graph[SimIndex].bits;
 	Graph[SimIndex].time = time;
@@ -519,16 +497,21 @@ int main(int argc, char** argv)
 	int idCounter = 0;
 	for(int l=0; l<nParams; ++l)
 	{
+		if(useCRC)
+		{
+			ParameterK[l] += 8;
+		}
 #ifdef ACCELERATED_MONTECARLO
 		stopSNR[Parameter[l]] = INFINITY;
 #endif
 		for(int i=0; i<EbN0_count; ++i)
 		{
 			Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
-			Graph[idCounter].N = PCparam_N;
-			Graph[idCounter].K = PCparam_K;
-			Graph[idCounter].L = Parameter[l];
+			Graph[idCounter].N = ParameterN[l];
+			Graph[idCounter].K = ParameterK[l];
+			Graph[idCounter].L = L;
 			Graph[idCounter].designSNR = designSNR;
+			Graph[idCounter].useCRC = useCRC;
 			//Graph[idCounter].L = 1;
 			//Graph[idCounter].designSNR = Parameter[l];
 			
@@ -554,11 +537,11 @@ int main(int argc, char** argv)
 		Thr.join();
 	}
 	
-	File << "\"L\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"N\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
 	for(int i=0; i<EbN0_count*nParams; ++i)
 	{
-		File << Graph[i].L << ',' << Graph[i].EbN0 << ',';
+		File << Graph[i].N << ',' << Graph[i].EbN0 << ',';
 		if(Graph[i].BLER>0.0)
 		{
 			File << Graph[i].BLER << ',';

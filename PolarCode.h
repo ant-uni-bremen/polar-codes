@@ -39,6 +39,8 @@ struct PolarCode
 	__m128 absMask;
 
 	int N, K, L, n;
+	bool useCRC;
+	
 	vector<int> FZLookup;
 	vector<int> AcceleratedLookup, AcceleratedFrozenLookup;
 	float designSNR;
@@ -69,7 +71,7 @@ struct PolarCode
 	
 	vector<bool> SysX, SysY;
 	
-	PolarCode(int N, int K, int L, float designSNR, bool encodeOnly=false);
+	PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool encodeOnly=false);
 	~PolarCode();
 
 	void encode(aligned_float_vector &encoded, float* data);

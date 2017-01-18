@@ -601,18 +601,19 @@ void PolarCode::Repetition_hybrid(float *LLRin, float *BitsOut, int size)
 
 
 
-PolarCode::PolarCode(int N, int K, int L, float designSNR, bool encodeOnly)
+PolarCode::PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool encodeOnly)
 {
 	this->N = N;
 	this->K = K;
 	this->L = L;
+	this->useCRC = useCRC;
 	this->designSNR = designSNR;
 	n = ceil(log2(N));
 
 	FZLookup.resize(N);
 	simplifiedTree.resize(2*N-1);
 
-	Crc = new CRC8();
+	Crc = useCRC ? new CRC8() : nullptr;
 
 	if(!encodeOnly)
 	{
@@ -673,7 +674,10 @@ PolarCode::~PolarCode()
 	{
 		_mm_free(AlignedVector);
 	}
-	delete Crc;
+	if(Crc != nullptr)
+	{
+		delete Crc;
+	}
 }
 
 void PolarCode::clear()
@@ -798,10 +802,12 @@ void PolarCode::encode(aligned_float_vector &encoded, float* data)
 {
 	encoded.assign(N, 0.0);
 
-#ifdef CRCSIZE
 	//Calculate CRC
-	Crc->addChecksum(data, K-CRCSIZE);
-#endif
+	if(useCRC)
+	{
+		Crc->addChecksum(data, K-8);
+	}
+
 
 	//Insert the bits into Rate-1 channels
 	for(int i=0; i<K; ++i)
@@ -935,32 +941,34 @@ void PolarCode::transform(aligned_float_vector &Bits)
 bool PolarCode::decode(float* decoded, float* initLLR)
 {
 	memcpy(initialLLR.data(), initLLR, N<<2);
-#ifdef CRCSIZE
-	if(decodeOnePath(decoded))
+
+	if(useCRC)
 	{
-		return true;
+		if(decodeOnePath(decoded))
+		{
+			return true;
+		}
+		else if(L > 1)
+		{
+			return decodeMultiPath(decoded);
+		}
+		else
+		{
+			/* For a list size of one, there is no need to try again.
+			   Every path pruning would decide for the ML path.
+			*/
+			return false;
+		}
+	} else {
+		if(L == 1)
+		{
+			return decodeOnePath(decoded);
+		}
+		else
+		{
+			return decodeMultiPath(decoded);
+		}
 	}
-	else if(L > 1)
-	{
-		return decodeMultiPath(decoded);
-	}
-	else
-	{
-		/* For a list size of one, there is no need to try again.
-		   Every path pruning would decide for the ML path.
-		*/
-		return false;
-	}
-#else
-	if(L == 1)
-	{
-		return decodeOnePath(decoded);
-	}
-	else
-	{
-		return decodeMultiPath(decoded);
-	}
-#endif
 }
 
 bool PolarCode::decodeOnePath(float* decoded)
@@ -985,11 +993,10 @@ bool PolarCode::decodeOnePath(float* decoded)
 		decoded[bit] = SimpleBits[AcceleratedLookup[bit]];
 	}
 
-#ifdef CRCSIZE
-	return Crc->check(decoded, K);
-#else
-	return true;
-#endif
+	if(useCRC)
+		return Crc->check(decoded, K);
+	else
+		return true;
 }
 
 void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
