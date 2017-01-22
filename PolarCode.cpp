@@ -977,12 +977,10 @@ bool PolarCode::decodeOnePath(float* decoded)
 #ifdef FLEXIBLE_DECODING
 	decodeOnePathRecursive(n,SimpleBits.data(),0);
 #else
-
 	float *BitPtr = SimpleBits.data();
-
 #include "SpecialDecoder.cpp"
-
 #endif
+
 
 #ifndef SYSTEMATIC_CODING
 	transform(SimpleBits);
