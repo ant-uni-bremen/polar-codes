@@ -21,9 +21,8 @@
 
 #include "Parameters.h"
 
-const int BufferInterval   =    1000;
-const int MaxBufferSize    =   50000;
-const int BlocksToSimulate =  100000;
+const int BufferInterval   =    1000;//Blocks
+const long long BitsToSimulate = 30000000;//Bits
 const int ConcurrentThreads = 1;
 
 const float EbN0_min = -4;
@@ -36,9 +35,7 @@ const float designSNR = 5.0;
 
 int ParameterN[] = {32, 64, 128, 1024, 2048}, nParams = 5;
 int ParameterK[] = {16, 32,  64,  512, 1024};
-int L = 1;
-
-const bool useCRC = false;
+int L = 16;
 
 
 
@@ -67,16 +64,25 @@ struct Buffer {
 
 struct DataPoint
 {
+	//Codec-Parameters
 	float designSNR, EbN0; int N,K,L; bool useCRC;
+
+	//Simulation-Parameters
+	int BlocksToSimulate;
+	int MaxBufferSize;
+	
+	//Simulator information
+	std::atomic<bool> StopDecoder, StopChecker;
+	std::mutex preloadMutex;
+	std::condition_variable preloadCV;
+	Buffer SignalBuffer, CheckBuffer;
+
+	//Statistics
 	int runs, bits, errors, biterrors;
 	float BLER, BER;
 	float time;//in seconds
 	float blps,cbps,pbps;//blocks/coded bits/payload bits per second
 	float effectiveRate;
-	Buffer SignalBuffer, CheckBuffer;
-	std::atomic<bool> StopDecoder, StopChecker;
-	std::mutex preloadMutex;
-	std::condition_variable preloadCV;
 } *Graph;
 
 void generateSignals(int SimIndex)
@@ -86,6 +92,9 @@ void generateSignals(int SimIndex)
 	float designSNR = Graph[SimIndex].designSNR;//dB
 	float EbN0 = Graph[SimIndex].EbN0;//dB
 	float R = (float)Graph[SimIndex].K / Graph[SimIndex].N;
+	
+	int BlocksToSimulate = Graph[SimIndex].BlocksToSimulate;
+	int MaxBufferSize = Graph[SimIndex].MaxBufferSize;
 
 	int nBits = Graph[SimIndex].K;
 	if(Graph[SimIndex].useCRC)nBits-=8;
@@ -213,6 +222,8 @@ void generateSignals(int SimIndex)
 
 void decodeSignals(int SimIndex)
 {
+	int BlocksToSimulate = Graph[SimIndex].BlocksToSimulate;
+
 	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].useCRC, Graph[SimIndex].designSNR);
 
 	Buffer mySigBuf, myChkBuf;
@@ -314,6 +325,7 @@ void decodeSignals(int SimIndex)
 
 void checkDecodedData(int SimIndex)
 {
+	int BlocksToSimulate = Graph[SimIndex].BlocksToSimulate;
 	int nBits = Graph[SimIndex].K;
 	if(Graph[SimIndex].useCRC)nBits-=8;
 
@@ -429,7 +441,7 @@ void simulate(int SimIndex)
 	Graph[SimIndex].StopDecoder = false;
 	Graph[SimIndex].StopChecker = false;
 
-	sprintf(message, "[%3d] Simulating Eb/N0 = %f dB, L = %d\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].L);
+	sprintf(message, "[%3d] Simulating Eb/N0 = %f dB, N = %d, L = %d, %s CRC\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].N, Graph[SimIndex].L, Graph[SimIndex].useCRC?"with":"without");
 	std::cout << message;
 
 	
@@ -484,7 +496,7 @@ void simulate(int SimIndex)
 
 int main(int argc, char** argv)
 {
-	Graph = new DataPoint[EbN0_count*nParams];
+	Graph = new DataPoint[EbN0_count*nParams*2];
 	std::vector<std::thread> Threads;
 	
 	std::ofstream File("../results/Simulation.csv");
@@ -495,27 +507,33 @@ int main(int argc, char** argv)
 	}
 
 	int idCounter = 0;
-	for(int l=0; l<nParams; ++l)
+	for(int useCRC=0; useCRC<2; ++useCRC)
 	{
-		if(useCRC)
+		for(int l=0; l<nParams; ++l)
 		{
-			ParameterK[l] += 8;
-		}
+			if(useCRC)
+			{
+				ParameterK[l] += 8;
+			}
 #ifdef ACCELERATED_MONTECARLO
-		stopSNR[Parameter[l]] = INFINITY;
+			stopSNR[Parameter[l]] = INFINITY;
 #endif
-		for(int i=0; i<EbN0_count; ++i)
-		{
-			Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
-			Graph[idCounter].N = ParameterN[l];
-			Graph[idCounter].K = ParameterK[l];
-			Graph[idCounter].L = L;
-			Graph[idCounter].designSNR = designSNR;
-			Graph[idCounter].useCRC = useCRC;
-			//Graph[idCounter].L = 1;
-			//Graph[idCounter].designSNR = Parameter[l];
-			
-			Threads.push_back(std::thread(simulate, idCounter++));
+			for(int i=0; i<EbN0_count; ++i)
+			{
+				Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
+				Graph[idCounter].N = ParameterN[l];
+				Graph[idCounter].K = ParameterK[l];
+				Graph[idCounter].L = (useCRC==1)?L:1;
+				Graph[idCounter].designSNR = designSNR;
+				Graph[idCounter].useCRC = useCRC;
+				//Graph[idCounter].L = 1;
+				//Graph[idCounter].designSNR = Parameter[l];
+				
+				Graph[idCounter].BlocksToSimulate = BitsToSimulate/ParameterN[l];
+				Graph[idCounter].MaxBufferSize = Graph[idCounter].BlocksToSimulate>>1;
+
+				Threads.push_back(std::thread(simulate, idCounter++));
+			}
 		}
 	}
 
@@ -539,7 +557,7 @@ int main(int argc, char** argv)
 	
 	File << "\"N\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
-	for(int i=0; i<EbN0_count*nParams; ++i)
+	for(int i=0; i<EbN0_count*nParams*2; ++i)
 	{
 		File << Graph[i].N << ',' << Graph[i].EbN0 << ',';
 		if(Graph[i].BLER>0.0)

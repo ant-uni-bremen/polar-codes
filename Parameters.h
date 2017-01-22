@@ -29,35 +29,9 @@
 
 
 /*
-	AVX512: 512 bit per register
 	AVX:    256 bit per register
 	float:   32 bit per value
 */
-
-//#define CONFIG_AVX512
-
-#ifdef CONFIG_AVX512
-
-#include <immintrin.h>
-
-#define FLOATSPERVECTOR 16
-#define vec __m512
-
-#define set1_ps _mm512_set1_ps
-#define load_ps _mm512_load_ps
-#define store_ps _mm512_store_ps
-
-#define and_ps _mm512_and_ps
-#define andnot_ps _mm512_andnot_ps
-#define or_ps _mm512_or_ps
-#define xor_ps _mm512_xor_ps
-
-#define add_ps _mm512_add_ps
-#define mul_ps _mm512_mul_ps
-
-#define min_ps _mm512_min_ps
-
-#else
 
 #include <immintrin.h>
 
@@ -103,4 +77,4 @@ static inline float reduce_xor_ps(__m256 x) {
 }
 
 #endif
-#endif
+
