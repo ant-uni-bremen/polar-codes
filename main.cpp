@@ -26,18 +26,24 @@ const int MaxBufferSize    =   50000;
 const int BlocksToSimulate =  100000;
 const int ConcurrentThreads = 1;
 
-const float EbN0_min = -4;
-const float EbN0_max =  6;
+const float EbN0_min =  0;
+const float EbN0_max =  7;
 const int EbN0_count = 20;
 
-
+/* Code length comparison
 const float designSNR = 5.0;
-
-
 int ParameterN[] = {32, 64, 128, 1024, 2048}, nParams = 5;
 int ParameterK[] = {16, 32,  64,  512, 1024};
 int L = 1;
+const bool useCRC = false;
+*/
 
+/* Design-SNR measurement */
+float designParam[] = {0, 2, 4, 6, 8, 10};
+const int nParams = 6;
+const int N = 2048;
+const int K = 1024;
+const int L = 1;
 const bool useCRC = false;
 
 
@@ -92,7 +98,7 @@ void generateSignals(int SimIndex)
 
 	aligned_float_vector encodedData(N);
 	aligned_float_vector sig(N);
-	float factor = sqrt(pow(10.0, EbN0/10.0)  * 2.0);
+	float factor = sqrt(pow(10.0, EbN0/10.0)  * 2.0 * R);
 	mt19937 RndGen(SimIndex);
 
 	PolarCode PC(N, Graph[SimIndex].K, L, Graph[SimIndex].useCRC, designSNR, true);
@@ -497,23 +503,34 @@ int main(int argc, char** argv)
 	int idCounter = 0;
 	for(int l=0; l<nParams; ++l)
 	{
+		/* Code length comparison
 		if(useCRC)
 		{
 			ParameterK[l] += 8;
 		}
+		*/
 #ifdef ACCELERATED_MONTECARLO
 		stopSNR[Parameter[l]] = INFINITY;
 #endif
 		for(int i=0; i<EbN0_count; ++i)
 		{
 			Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
+			
+			/* Code length comparison
 			Graph[idCounter].N = ParameterN[l];
 			Graph[idCounter].K = ParameterK[l];
 			Graph[idCounter].L = L;
 			Graph[idCounter].designSNR = designSNR;
 			Graph[idCounter].useCRC = useCRC;
-			//Graph[idCounter].L = 1;
-			//Graph[idCounter].designSNR = Parameter[l];
+			*/
+			
+			/* design-SNR measurement */
+			Graph[idCounter].N = N;
+			Graph[idCounter].K = K;
+			Graph[idCounter].L = L;
+			Graph[idCounter].designSNR = designParam[l];
+			Graph[idCounter].useCRC = useCRC;
+
 			
 			Threads.push_back(std::thread(simulate, idCounter++));
 		}
@@ -537,11 +554,11 @@ int main(int argc, char** argv)
 		Thr.join();
 	}
 	
-	File << "\"N\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"designSNR\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
 	for(int i=0; i<EbN0_count*nParams; ++i)
 	{
-		File << Graph[i].N << ',' << Graph[i].EbN0 << ',';
+		File << Graph[i].designSNR << ',' << Graph[i].EbN0 << ',';
 		if(Graph[i].BLER>0.0)
 		{
 			File << Graph[i].BLER << ',';
