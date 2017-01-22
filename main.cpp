@@ -22,7 +22,7 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;//Blocks
-const long long BitsToSimulate = 30000000;//Bits
+const long long BitsToSimulate = 200000000;//Bits
 const int ConcurrentThreads = 1;
 
 const float EbN0_min =  0;
@@ -39,8 +39,8 @@ const bool useCRC = false;
 /* Design-SNR measurement */
 float designParam[] = {0, 2, 4, 6, 8, 10};
 const int nParams = 6;
-const int N = 2048;
-const int K = 1024;
+const int N = 128;
+const int K = 64;
 const int L = 1;
 
 
@@ -513,8 +513,10 @@ int main(int argc, char** argv)
 	}
 
 	int idCounter = 0;
-	for(int useCRC=0; useCRC<2; ++useCRC)
-	{
+/*	for(int useCRC=0; useCRC<2; ++useCRC)
+	{*/
+	const bool useCRC = false;
+	
 		for(int l=0; l<nParams; ++l)
 		{
 		/* Code length comparison
@@ -546,13 +548,13 @@ int main(int argc, char** argv)
 			Graph[idCounter].useCRC = useCRC;
 
 				
-				Graph[idCounter].BlocksToSimulate = BitsToSimulate/ParameterN[l];
+				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N /*ParameterN[l]*/;
 				Graph[idCounter].MaxBufferSize = Graph[idCounter].BlocksToSimulate>>1;
 
 				Threads.push_back(std::thread(simulate, idCounter++));
 			}
 		}
-	}
+	//} CRC
 
 	//Wait some time to let all threads lock up
 	while(finishedThreads != Threads.size())
