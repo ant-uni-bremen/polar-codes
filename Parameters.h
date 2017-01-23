@@ -15,9 +15,9 @@
  */
 
 //#define ACCELERATED_MONTECARLO
-#define FLEXIBLE_DECODING
-#define SYSTEMATIC_CODING
-
+//#define FLEXIBLE_DECODING
+//#define SYSTEMATIC_CODING
+//#define ONLY_SCDECODING
 
 /*
 	IMPORTANT: Remember to recompile every(!) file that relies on this header!!!

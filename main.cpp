@@ -22,7 +22,7 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;//Blocks
-const long long BitsToSimulate = 200000000;//Bits
+const long long BitsToSimulate = 100000000;//Bits
 const int ConcurrentThreads = 1;
 
 const float EbN0_min =  0;
@@ -36,14 +36,19 @@ int ParameterK[] = {16, 32,  64,  512, 1024};
 int L = 16;
 const bool useCRC = false;
 */
-/* Design-SNR measurement */
+/* Design-SNR measurement 
 float designParam[] = {0, 2, 4, 6, 8, 10};
 const int nParams = 6;
 const int N = 128;
 const int K = 64;
 const int L = 1;
-
-
+*/
+/* List length comparison */
+const float designSNR = 5.0;
+const int N = 128;
+const int K = 2*32+8;
+int ParameterL[] = {1, 2, 4, 8, 16}; const int nParams = 5;
+const bool useCRC = true;
 
 std::atomic<unsigned int> finishedThreads(0);
 std::mutex threadMutex[ConcurrentThreads];
@@ -515,7 +520,6 @@ int main(int argc, char** argv)
 	int idCounter = 0;
 /*	for(int useCRC=0; useCRC<2; ++useCRC)
 	{*/
-	const bool useCRC = false;
 	
 		for(int l=0; l<nParams; ++l)
 		{
@@ -540,14 +544,21 @@ int main(int argc, char** argv)
 				Graph[idCounter].useCRC = useCRC;
 			*/
 			
-			/* design-SNR measurement */
+			/* design-SNR measurement
 			Graph[idCounter].N = N;
 			Graph[idCounter].K = K;
 			Graph[idCounter].L = L;
 			Graph[idCounter].designSNR = designParam[l];
 			Graph[idCounter].useCRC = useCRC;
-
+ 			*/
 				
+			/* List length comparison */
+			Graph[idCounter].N = N;
+			Graph[idCounter].K = K;
+			Graph[idCounter].L = ParameterL[l];
+			Graph[idCounter].designSNR = designSNR;
+			Graph[idCounter].useCRC = useCRC;
+
 				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N /*ParameterN[l]*/;
 				Graph[idCounter].MaxBufferSize = Graph[idCounter].BlocksToSimulate>>1;
 
@@ -574,11 +585,11 @@ int main(int argc, char** argv)
 		Thr.join();
 	}
 	
-	File << "\"designSNR\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"L\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
 	for(int i=0; i<EbN0_count*nParams*2; ++i)
 	{
-		File << Graph[i].designSNR << ',' << Graph[i].EbN0 << ',';
+		File << Graph[i].L << ',' << Graph[i].EbN0 << ',';
 		if(Graph[i].BLER>0.0)
 		{
 			File << Graph[i].BLER << ',';
