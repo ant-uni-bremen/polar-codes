@@ -43,7 +43,7 @@ const __m256 one = _mm256_set1_ps(1.0f);
 const __m256 minustwo = _mm256_set1_ps(-2.0f);
 LCG<__m256> r;
 
-void modulateAndDistort(aligned_float_vector &signal, aligned_float_vector &data, int size, float factor)
+void modulateAndDistort(float *signal, aligned_float_vector &data, int size, float factor)
 {
 	assert(size % 16 == 0);
 
@@ -62,6 +62,7 @@ void modulateAndDistort(aligned_float_vector &signal, aligned_float_vector &data
         __m256 sintheta, costheta;
         sincos256_ps(theta, &sintheta, &costheta);
 
+		//Add noise to signal
 #ifdef __FMA__
 		siga = _mm256_fmadd_ps(radius, costheta, siga);
 		sigb = _mm256_fmadd_ps(radius, sintheta, sigb);
@@ -69,23 +70,14 @@ void modulateAndDistort(aligned_float_vector &signal, aligned_float_vector &data
 		siga = add_ps(mul_ps(radius, costheta), siga);
 		sigb = add_ps(mul_ps(radius, sintheta), sigb);
 #endif
+
+		//Demodulate
+		siga = mul_ps(siga, facVec);
+		sigb = mul_ps(sigb, facVec);
 		
-		store_ps(signal.data()+i, siga);
-		store_ps(signal.data()+i+8, sigb);
-	}
-}
-
-void softDemod(float *LLR, aligned_float_vector &signal, int size, float R, float EbN0)
-{	
-	float EbN0lin = pow(10.0, EbN0*0.1);
-	float factor = 2.0 * sqrt(2.0*R*EbN0lin);
-	vec facVec = set1_ps(factor);
-
-	for(int i=0; i<size; i+=FLOATSPERVECTOR)
-	{
-		vec llr = load_ps(signal.data()+i);
-		llr = mul_ps(llr, facVec);
-		store_ps(LLR+i, llr);
+		//Save
+		store_ps(signal+i, siga);
+		store_ps(signal+i+8, sigb);
 	}
 }
 

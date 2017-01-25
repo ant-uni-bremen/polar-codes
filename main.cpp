@@ -22,7 +22,7 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;//Blocks
-const long long BitsToSimulate = 100000000;//Bits
+const long long BitsToSimulate = 10000000;//Bits
 const int ConcurrentThreads = 1;
 
 const float EbN0_min =  0;
@@ -159,17 +159,19 @@ void generateSignals(int SimIndex)
 		for(unsigned int i=0; i<nInts; ++i)
 		{
 			unsigned int rawdata = RndGen();
+			unsigned int offset = i<<5;
 			for(int j=0;j<32;++j)
 			{
-				DataPtr[(i<<5)|j] = rawdata&0x80000000;
+				DataPtr[offset|j] = rawdata&0x80000000;
 				rawdata <<= 1;
 			}
 		}
 		{
 			unsigned int rawdata = RndGen();
+			unsigned int offset = nInts<<5;
 			for(unsigned int j=0;j<nRem;++j)
 			{
-				*(DataPtr++) = rawdata&0x80000000;
+				DataPtr[offset|j] = rawdata&0x80000000;
 				rawdata <<= 1;
 			}
 		}
@@ -177,11 +179,8 @@ void generateSignals(int SimIndex)
 		//Encode
 		PC.encode(encodedData, block->data);
 
-		//Modulate using BPSK and add noise
-		modulateAndDistort(sig, encodedData, N, factor);
-
-		//Demodulate
-		softDemod(block->LLR, sig, N, R, EbN0);
+		//Modulate using BPSK, add noise and demodulate
+		modulateAndDistort(block->LLR, encodedData, N, factor);
 		
 		//Add to private decoding queue
 		block->next = mySigBuf.ptr;
@@ -223,7 +222,7 @@ void generateSignals(int SimIndex)
 			if(Graph[SimIndex].SignalBuffer.size >= MaxBufferSize && !bufferFilled)
 			{
 				std::unique_lock<std::mutex> plck(Graph[SimIndex].preloadMutex);
-				Graph[SimIndex].preloadCV.notify_one();
+				Graph[SimIndex].preloadCV.notify_all();
 				bufferFilled = true;
 			}
 		}
@@ -244,6 +243,12 @@ void decodeSignals(int SimIndex)
 	myChkBuf.size = 0;
 	
 	int decodedBlocks = 0;
+	
+	{
+		std::unique_lock<std::mutex> plck(Graph[SimIndex].preloadMutex);
+		Graph[SimIndex].preloadCV.wait(plck);
+	}
+
 
 	while(decodedBlocks < BlocksToSimulate)
 	{
@@ -455,20 +460,28 @@ void simulate(int SimIndex)
 	sprintf(message, "[%3d] Simulating Eb/N0 = %f dB, N = %d, L = %d, %s CRC\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].N, Graph[SimIndex].L, Graph[SimIndex].useCRC?"with":"without");
 	std::cout << message;
 
-	
+	//Start generator and decoder
 	thread Generator(generateSignals, SimIndex);
-
+	thread Decoder(decodeSignals, SimIndex);
+	
+	//Wait for actual start of decoding
 	{
 		std::unique_lock<std::mutex> plck(Graph[SimIndex].preloadMutex);
 		Graph[SimIndex].preloadCV.wait(plck);
 	}
-
+	//Now start the timer
 	high_resolution_clock::time_point TimeStart = high_resolution_clock::now();
-	thread Decoder(decodeSignals, SimIndex);
+	
+	//and the bit error checker
 	thread Checker(checkDecodedData, SimIndex);
 	
+	//...
+	
+	//Wait for decoder and then stop the timer
 	Decoder.join();
 	high_resolution_clock::time_point TimeEnd = high_resolution_clock::now();
+	
+	//Also wait for the other two threads
 	Generator.join();
 	Checker.join();
 	
