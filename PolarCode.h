@@ -74,12 +74,12 @@ struct PolarCode
 	PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool encodeOnly=false);
 	~PolarCode();
 
-	void encode(aligned_float_vector &encoded, float* data);
+	void encode(aligned_float_vector &encoded, unsigned char* data);
 	void subEncodeSystematic(aligned_float_vector &encoded, int stage, int BitLocation, int nodeID);
 	
-	bool decode(float* decoded, float* LLR);
-	bool decodeOnePath(float* decoded);
-	bool decodeMultiPath(float* ndecoded);
+	bool decode(unsigned char* decoded, float* LLR);
+	bool decodeOnePath(unsigned char* decoded);
+	bool decodeMultiPath(unsigned char* decoded);
 	
 	void decodeOnePathRecursive(int stage, float *nodeBits, int nodeID);
 	void decodeMultiPathRecursive(int stage, int BitLocation, int nodeID);

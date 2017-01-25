@@ -3,8 +3,6 @@
 
 #include "AlignedAllocator.h"
 
-void modulateAndDistort(aligned_float_vector &signal, aligned_float_vector &data, int size, float factor);
-void softDemod(float* LLR, aligned_float_vector &signal, int size, float R, float EbN0);
-
+void modulateAndDistort(float *signal, aligned_float_vector &data, int size, float factor);
 
 #endif

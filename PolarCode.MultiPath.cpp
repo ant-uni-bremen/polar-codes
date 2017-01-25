@@ -435,7 +435,7 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 	PathCount = newPathCount;
 }
 
-bool PolarCode::decodeMultiPath(float* decoded)
+bool PolarCode::decodeMultiPath(unsigned char* decoded)
 {
 	Metric[0] = 0.0;
 	PathCount = 1;
@@ -456,11 +456,20 @@ bool PolarCode::decodeMultiPath(float* decoded)
 #ifndef SYSTEMATIC_CODING
 			transform(Bits[path]);
 #endif
-			for(int bit=0; bit<K; ++bit)
+
+			int bytes = K>>3;
+			int bit = 0;
+			unsigned int *iBit = reinterpret_cast<unsigned int*>(Bits[path].data());
+			for(int byte = 0; byte<bytes; ++byte)
 			{
-				decoded[bit] = Bits[path][AcceleratedLookup[bit]];
+				unsigned char thisByte = 0;
+				for(int b=0;b<8;++b)
+				{
+					thisByte |= (iBit[AcceleratedLookup[bit++]]>>(24+b));
+				}
+				decoded[byte] = thisByte;
 			}
-			if(Crc->check(decoded, K))
+			if(Crc->check(decoded, bytes-1, decoded[bytes-1]))
 			{
 				return true;
 			}
@@ -473,10 +482,19 @@ bool PolarCode::decodeMultiPath(float* decoded)
 		transform(Bits[0]);
 #endif
 	}
+
 	//Give out the most likely path, if no crc is not used or didn't pass the check
-	for(int bit=0; bit<K; ++bit)
+	int bytes = K>>3;
+	int bit = 0;
+	unsigned int *iBit = reinterpret_cast<unsigned int*>(Bits[0].data());
+	for(int byte = 0; byte<bytes; ++byte)
 	{
-		decoded[bit] = Bits[0][AcceleratedLookup[bit]];
+		unsigned char thisByte = 0;
+		for(int b=0;b<8;++b)
+		{
+			thisByte |= (iBit[AcceleratedLookup[bit++]]>>(24+b));
+		}
+		decoded[byte] = thisByte;
 	}
 
 	/* Return true, if CRC-check is deactivated */	

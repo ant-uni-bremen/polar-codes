@@ -798,21 +798,30 @@ void PolarCode::pcc()
 	}
 }
 
-void PolarCode::encode(aligned_float_vector &encoded, float* data)
+void PolarCode::encode(aligned_float_vector &encoded, unsigned char* data)
 {
 	encoded.assign(N, 0.0);
 
 	//Calculate CRC
 	if(useCRC)
 	{
-		Crc->addChecksum(data, K-8);
+		int lastByte = (K>>3)-1;
+		Crc->generate(data, lastByte, data+lastByte);
 	}
 
-
 	//Insert the bits into Rate-1 channels
-	for(int i=0; i<K; ++i)
+	int bit=0; int bytes=K>>3;
+	unsigned int bitpool, currentBit; float* fBit=reinterpret_cast<float*>(&currentBit);
+	for(int byte=0; byte<bytes; ++byte)
 	{
-		encoded[AcceleratedLookup[i]] = data[i];
+		bitpool = data[byte];
+		bitpool <<= 24;
+		for(int tbit=0; tbit<8; ++tbit)
+		{
+			currentBit = bitpool&0x80000000;
+			encoded[AcceleratedLookup[bit++]] = *fBit;
+			bitpool <<= 1;
+		}
 	}
 
 	//Encode
@@ -938,7 +947,7 @@ void PolarCode::transform(aligned_float_vector &Bits)
 	}
 }
 
-bool PolarCode::decode(float* decoded, float* initLLR)
+bool PolarCode::decode(unsigned char* decoded, float* initLLR)
 {
 	memcpy(initialLLR.data(), initLLR, N<<2);
 
@@ -971,7 +980,7 @@ bool PolarCode::decode(float* decoded, float* initLLR)
 	}
 }
 
-bool PolarCode::decodeOnePath(float* decoded)
+bool PolarCode::decodeOnePath(unsigned char* decoded)
 {
 
 #ifdef FLEXIBLE_DECODING
@@ -986,13 +995,22 @@ bool PolarCode::decodeOnePath(float* decoded)
 	transform(SimpleBits);
 #endif
 
-	for(int bit=0; bit<K; ++bit)
+
+	int bytes = K>>3;
+	int bit = 0;
+	unsigned int *iBit = reinterpret_cast<unsigned int*>(SimpleBits.data());
+	for(int byte = 0; byte<bytes; ++byte)
 	{
-		decoded[bit] = SimpleBits[AcceleratedLookup[bit]];
+		unsigned char thisByte = 0;
+		for(int b=0;b<8;++b)
+		{
+			thisByte |= (iBit[AcceleratedLookup[bit++]]>>(24+b));
+		}
+		decoded[byte] = thisByte;
 	}
 
 	if(useCRC)
-		return Crc->check(decoded, K);
+		return Crc->check(decoded, bytes-1, decoded[bytes-1]);
 	else
 		return true;
 }

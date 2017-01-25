@@ -60,9 +60,9 @@ std::map<int, std::atomic<float>> stopSNR;
 
 struct Block
 {
-	float* data;
+	unsigned char* data;
 	float* LLR;
-	float* decodedData;
+	unsigned char* decodedData;
 	Block* next;
 };
 
@@ -113,7 +113,6 @@ void generateSignals(int SimIndex)
 	aligned_float_vector encodedData(N);
 	aligned_float_vector sig(N);
 	float factor = sqrt(pow(10.0, EbN0/10.0)  * 2.0 * R);
-	mt19937 RndGen(SimIndex);
 
 	PolarCode PC(N, Graph[SimIndex].K, L, Graph[SimIndex].useCRC, designSNR, true);
 	
@@ -135,15 +134,15 @@ void generateSignals(int SimIndex)
 		block->next = nullptr;
 		
 		try{
-			block->data = new float[Graph[SimIndex].K];
-			block->decodedData = new float[Graph[SimIndex].K];
+			block->data = new unsigned char[Graph[SimIndex].K>>3];
+			block->decodedData = new unsigned char[Graph[SimIndex].K>>3];
 		}
 		catch(bad_alloc &ba)
 		{
 			cerr << "Problem at allocating memory: " << ba.what() << endl;
 			exit(EXIT_FAILURE);
 		}
-		memset(block->decodedData, 0, Graph[SimIndex].K<<2);
+		memset(block->decodedData, 0, Graph[SimIndex].K>>3);
 		block->LLR = (float*)_mm_malloc(N<<2, sizeof(vec));
 		
 		if(block->LLR == nullptr)
@@ -155,24 +154,19 @@ void generateSignals(int SimIndex)
 		//Generate random payload for testing
 		unsigned int* DataPtr = reinterpret_cast<unsigned int*>(block->data);
 		unsigned int nInts = nBits>>5;
-		unsigned int nRem = nBits&0x1F;
+		unsigned int nRem = (nBits>>3)&3;
+		unsigned int rawdata;
 		for(unsigned int i=0; i<nInts; ++i)
 		{
-			unsigned int rawdata = RndGen();
-			unsigned int offset = i<<5;
-			for(int j=0;j<32;++j)
-			{
-				DataPtr[offset|j] = rawdata&0x80000000;
-				rawdata <<= 1;
-			}
+			_rdrand32_step(DataPtr+i);
 		}
 		{
-			unsigned int rawdata = RndGen();
-			unsigned int offset = nInts<<5;
+			unsigned int offset = nInts<<2;
+			_rdrand32_step(&rawdata);
 			for(unsigned int j=0;j<nRem;++j)
 			{
-				DataPtr[offset|j] = rawdata&0x80000000;
-				rawdata <<= 1;
+				block->data[offset|j] = static_cast<char>(rawdata&0xFF);
+				rawdata >>= 8;
 			}
 		}
 
@@ -344,6 +338,7 @@ void checkDecodedData(int SimIndex)
 	int BlocksToSimulate = Graph[SimIndex].BlocksToSimulate;
 	int nBits = Graph[SimIndex].K;
 	if(Graph[SimIndex].useCRC)nBits-=8;
+	int nBytes = nBits>>3;
 
 	Buffer myChkBuf;
 	myChkBuf.ptr = nullptr;
@@ -374,15 +369,18 @@ void checkDecodedData(int SimIndex)
 		Block* BlockPtr = myChkBuf.ptr;
 		Block* nextBlock = myChkBuf.ptr->next;
 
-		unsigned int *decData = reinterpret_cast<unsigned int*>(BlockPtr->decodedData);
-		unsigned int *orgData = reinterpret_cast<unsigned int*>(BlockPtr->data);
-		
 		int biterrors = 0;
-		for(int bit=0; bit<nBits; ++bit)
+		for(int byte=0; byte < nBytes; ++byte)
 		{
-			biterrors += (decData[bit]^orgData[bit])>>31;
+			unsigned char currentByteA = BlockPtr->decodedData[byte],
+						  currentByteB = BlockPtr->data[byte],
+						  cmpByte = currentByteA^currentByteB;
+			for(int bit=0; bit<8; ++bit)
+			{
+				biterrors += ((cmpByte)>>bit)&1;
+			}
 		}
-
+		
 		Graph[SimIndex].runs++;
 		Graph[SimIndex].bits += nBits;
 		Graph[SimIndex].errors += !!biterrors;
@@ -583,7 +581,7 @@ int main(int argc, char** argv)
 	//Wait some time to let all threads lock up
 	while(finishedThreads != Threads.size())
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 	finishedThreads = 0;
 	for(int i=0; i<ConcurrentThreads; ++i)

@@ -13,7 +13,7 @@
 #endif
 #include "lcg.h"
 
-//#include <immintrin.h>
+#include <immintrin.h>
 
 using namespace std;
 
