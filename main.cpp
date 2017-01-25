@@ -22,7 +22,7 @@
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;//Blocks
-const long long BitsToSimulate = 10000000;//Bits
+const long long BitsToSimulate = 200000000;//Bits
 const int ConcurrentThreads = 1;
 
 const float EbN0_min =  0;
@@ -45,9 +45,9 @@ const int L = 1;
 */
 /* List length comparison */
 const float designSNR = 5.0;
-const int N = 128;
-const int K = 2*32+8;
-int ParameterL[] = {1, 2, 4, 8, 16}; const int nParams = 5;
+const int N = 2048;
+const int K = 32*32+8;
+int ParameterL[] = {1, 2, 4}; const int nParams = 3;
 const bool useCRC = true;
 
 std::atomic<unsigned int> finishedThreads(0);
