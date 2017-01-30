@@ -17,39 +17,39 @@
 
 #include "ArrayFuncs.h"
 #include "PolarCode.h"
-#include "Modem.h"
 
 #include "Parameters.h"
 
 const int BufferInterval   =    1000;//Blocks
-const long long BitsToSimulate = 200000000;//Bits
+const long long BitsToSimulate = 100000000;//Bits
 const int ConcurrentThreads = 1;
 
 const float EbN0_min =  0;
 const float EbN0_max =  7;
 const int EbN0_count = 20;
 
-/* Code length comparison
-const float designSNR = 5.0;
-int ParameterN[] = {32, 64, 128, 1024, 2048}, nParams = 5;
-int ParameterK[] = {16, 32,  64,  512, 1024};
-int L = 16;
+/* Code length comparison*/
+const float designSNR = 4.5;
+int ParameterN[] = {128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768}, nParams = 9;
+int ParameterK[] = {64,  128, 256,  512, 1024, 2048, 4096,  8192, 16384};
+int L = 1;
 const bool useCRC = false;
-*/
-/* Design-SNR measurement 
-float designParam[] = {0, 2, 4, 6, 8, 10};
-const int nParams = 6;
-const int N = 128;
-const int K = 64;
+
+/* Design-SNR measurement
+float designParam[] = {3.0, 4.0, 4.5, 5.0};
+const int nParams = 4;
+const int N = 1024;
+const int K = 512;
 const int L = 1;
-*/
-/* List length comparison */
-const float designSNR = 5.0;
+const bool useCRC = false;
+ */
+/* List length comparison
+const float designSNR = 4.0;
 const int N = 2048;
 const int K = 32*32+8;
 int ParameterL[] = {1, 2, 4}; const int nParams = 3;
 const bool useCRC = true;
-
+ */
 std::atomic<unsigned int> finishedThreads(0);
 std::mutex threadMutex[ConcurrentThreads];
 std::condition_variable threadCV[ConcurrentThreads];
@@ -174,7 +174,7 @@ void generateSignals(int SimIndex)
 		PC.encode(encodedData, block->data);
 
 		//Modulate using BPSK, add noise and demodulate
-		modulateAndDistort(block->LLR, encodedData, N, factor);
+		PC.modulateAndDistort(block->LLR, encodedData, N, factor);
 		
 		//Add to private decoding queue
 		block->next = mySigBuf.ptr;
@@ -547,13 +547,13 @@ int main(int argc, char** argv)
 			{
 				Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			
-			/* Code length comparison
+			/* Code length comparison*/
 				Graph[idCounter].N = ParameterN[l];
 				Graph[idCounter].K = ParameterK[l];
 				Graph[idCounter].L = (useCRC==1)?L:1;
 				Graph[idCounter].designSNR = designSNR;
 				Graph[idCounter].useCRC = useCRC;
-			*/
+			
 			
 			/* design-SNR measurement
 			Graph[idCounter].N = N;
@@ -563,14 +563,15 @@ int main(int argc, char** argv)
 			Graph[idCounter].useCRC = useCRC;
  			*/
 				
-			/* List length comparison */
+			/* List length comparison
 			Graph[idCounter].N = N;
 			Graph[idCounter].K = K;
 			Graph[idCounter].L = ParameterL[l];
 			Graph[idCounter].designSNR = designSNR;
 			Graph[idCounter].useCRC = useCRC;
+			*/
 
-				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N /*ParameterN[l]*/;
+				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  /*N*/ ParameterN[l];
 				Graph[idCounter].MaxBufferSize = Graph[idCounter].BlocksToSimulate>>1;
 
 				Threads.push_back(std::thread(simulate, idCounter++));
@@ -596,11 +597,11 @@ int main(int argc, char** argv)
 		Thr.join();
 	}
 	
-	File << "\"L\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"N\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
-	for(int i=0; i<EbN0_count*nParams*2; ++i)
+	for(int i=0; i<EbN0_count*nParams; ++i)
 	{
-		File << Graph[i].L << ',' << Graph[i].EbN0 << ',';
+		File << Graph[i].N << ',' << Graph[i].EbN0 << ',';
 		if(Graph[i].BLER>0.0)
 		{
 			File << Graph[i].BLER << ',';

@@ -112,6 +112,7 @@ public:
         __m256 f = _mm256_sub_ps(_mm256_castsi256_ps(u), *(__m256*)_ps256_1);
         return f;
     }
+    void seed(__m256i s){x=s;}
 
 private:
     __m256i x;
@@ -136,6 +137,7 @@ public:
         __m256 f = _mm256_sub_ps(_mm256_castsi256_ps(u), *(__m256*)_ps256_1);
         return f;
     }
+    void seed(__m256i s){x=s;}
 
 private:
     __m256i x;

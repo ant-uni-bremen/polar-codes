@@ -8,6 +8,14 @@
 #include "AlignedAllocator.h"
 #include "crc8.h"
 
+#ifdef __AVX2__
+#define USE_AVX2
+#else
+#define USE_AVX
+#endif
+#include "lcg.h"
+
+
 float logdomain_sum(float x, float y);
 float logdomain_diff(float x, float y);
 
@@ -30,6 +38,10 @@ struct Candidate
 	int decisionIndex;//=decision path index of respective constituent decoder
 	int hints[4], nHints;
 };
+
+const __m256 twopi = _mm256_set1_ps(2.0f * 3.14159265358979323846f);
+const __m256 one = _mm256_set1_ps(1.0f);
+const __m256 minustwo = _mm256_set1_ps(-2.0f);
 
 struct PolarCode
 {
@@ -69,13 +81,15 @@ struct PolarCode
 	int maxCandCount;
 	CRC8 *Crc;
 	
-	vector<bool> SysX, SysY;
-	
+	LCG<__m256> r;
+
 	PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool encodeOnly=false);
 	~PolarCode();
 
 	void encode(aligned_float_vector &encoded, unsigned char* data);
 	void subEncodeSystematic(aligned_float_vector &encoded, int stage, int BitLocation, int nodeID);
+	
+	void modulateAndDistort(float *signal, aligned_float_vector &data, int size, float factor);
 	
 	bool decode(unsigned char* decoded, float* LLR);
 	bool decodeOnePath(unsigned char* decoded);

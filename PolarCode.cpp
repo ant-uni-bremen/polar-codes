@@ -614,6 +614,15 @@ PolarCode::PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool enc
 	simplifiedTree.resize(2*N-1);
 
 	Crc = useCRC ? new CRC8() : nullptr;
+	
+	unsigned __int64 randomseed[4];
+	
+	_rdseed64_step(randomseed+0);
+	_rdseed64_step(randomseed+1);
+	_rdseed64_step(randomseed+2);
+	_rdseed64_step(randomseed+3);
+	
+	r.seed(_mm256_set_epi64x(randomseed[0], randomseed[1], randomseed[2], randomseed[3]));
 
 	if(!encodeOnly)
 	{
@@ -944,6 +953,43 @@ void PolarCode::transform(aligned_float_vector &Bits)
 				base += inc;
 			}
 		}
+	}
+}
+
+void PolarCode::modulateAndDistort(float *signal, aligned_float_vector &data, int size, float factor)
+{
+	vec facVec = set1_ps(factor);
+	for(int i=0; i<size; i+=16)
+	{
+		vec siga = load_ps(data.data()+i);
+		vec sigb = load_ps(data.data()+i+8);
+		siga = or_ps(siga, one); sigb = or_ps(sigb, one);//Modulate
+		siga = mul_ps(siga, facVec); sigb = mul_ps(sigb, facVec);//Scale
+
+		//Generate Gaussian noise
+        __m256 u1 = _mm256_sub_ps(one, r()); // [0, 1) -> (0, 1]
+        __m256 u2 = r();
+		__m256 radius = _mm256_sqrt_ps(_mm256_mul_ps(minustwo, log256_ps(u1)));
+		__m256 theta = _mm256_mul_ps(twopi, u2);
+        __m256 sintheta, costheta;
+        sincos256_ps(theta, &sintheta, &costheta);
+
+		//Add noise to signal
+#ifdef __FMA__
+		siga = _mm256_fmadd_ps(radius, costheta, siga);
+		sigb = _mm256_fmadd_ps(radius, sintheta, sigb);
+#else
+		siga = add_ps(mul_ps(radius, costheta), siga);
+		sigb = add_ps(mul_ps(radius, sintheta), sigb);
+#endif
+
+		//Demodulate
+		siga = mul_ps(siga, facVec);
+		sigb = mul_ps(sigb, facVec);
+
+		//Save
+		store_ps(signal+i, siga);
+		store_ps(signal+i+8, sigb);
 	}
 }
 

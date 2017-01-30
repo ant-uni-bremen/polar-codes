@@ -29,7 +29,7 @@ IncludeVersionInfo=0
 SupportXPThemes=0
 CompilerSet=0
 CompilerSettings=00010jbac0100000000001000
-UnitCount=15
+UnitCount=13
 
 [VersionInfo]
 Major=1
@@ -120,47 +120,7 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
 
-[Unit8]
-FileName=Modem.h
-CompileCpp=1
-Folder=
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit9]
-FileName=Modem.cpp
-CompileCpp=1
-Folder=
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
 [Unit10]
-FileName=Parameters.h
-CompileCpp=1
-Folder=
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit11]
-FileName=AlignedAllocator.h
-CompileCpp=1
-Folder=
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit12]
 FileName=PolarCode.MultiPath.cpp
 CompileCpp=1
 Folder=
@@ -170,7 +130,7 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=$(CPP) -c PolarCode.MultiPath.cpp -o obj/PolarCode.MultiPath.o $(CXXFLAGS)
 
-[Unit13]
+[Unit11]
 FileName=SpecialDecoder.cpp
 CompileCpp=1
 Folder=
@@ -179,6 +139,26 @@ Link=0
 Priority=1000
 OverrideBuildCmd=0
 BuildCmd=$(CPP) -c SpecialDecoder.cpp -o obj/SpecialDecoder.o $(CXXFLAGS)
+
+[Unit12]
+FileName=SpecialMultiPathDecoder.cpp
+CompileCpp=1
+Folder=
+Compile=0
+Link=0
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=$(CPP) -c SpecialMultiPathDecoder.cpp -o obj/SpecialMultiPathDecoder.o $(CXXFLAGS)
+
+[Unit13]
+FileName=SpecialSystematicEncoder.cpp
+CompileCpp=1
+Folder=
+Compile=0
+Link=0
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=$(CPP) -c SpecialSystematicEncoder.cpp -o obj/SpecialSystematicEncoder.o $(CXXFLAGS)
 
 [Unit14]
 FileName=SpecialMultiPathDecoder.cpp
@@ -199,4 +179,24 @@ Link=0
 Priority=1000
 OverrideBuildCmd=0
 BuildCmd=$(CPP) -c SpecialSystematicEncoder.cpp -o obj/SpecialSystematicEncoder.o $(CXXFLAGS)
+
+[Unit8]
+FileName=Parameters.h
+CompileCpp=1
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit9]
+FileName=AlignedAllocator.h
+CompileCpp=1
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
 
