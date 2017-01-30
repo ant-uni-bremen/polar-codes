@@ -530,7 +530,7 @@ void PolarCode::RepSPC_8(float *LLRin, float *BitsOut)
 
 	__m128 SPCVec = _mm_add_ps(_mm_xor_ps(LLR_l, RepSumVec), LLR_r);//Load SPC-LLRs
 	__m128 SPCsgn = _mm_and_ps(SPCVec, sgnMask);//Hard decision
-	RepSumVec = _mm_xor_ps(RepSumVec, SPCsgn);
+	RepSumVec = _mm_xor_ps(RepSumVec, SPCsgn);//Combine
 	_mm_store_ps(BitsOut, RepSumVec);//Store Repetition bits
 	_mm_store_ps(BitsOut+4, SPCsgn);//Store SPC bits
 
@@ -569,6 +569,18 @@ void PolarCode::Repetition(float *LLRin, float *BitsOut, int size)
 	{
 		BitsOut[i] = bit;
 	}
+}
+
+void PolarCode::Repetition_vectorized_4(float *LLRin, float *BitsOut)
+{
+	float Sum=0;
+
+	__m128 LLRsum = _mm_set1_ps(0.0);
+	LLRsum = _mm_load_ps(LLRin);
+	Sum = _mm_reduce_add_ps(LLRsum);
+	__m128 BitLLR = _mm_set1_ps(Sum);
+	__m128 BitDecision = _mm_and_ps(BitLLR, sgnMask);
+	_mm_store_ps(BitsOut, BitDecision);
 }
 
 void PolarCode::Repetition_vectorized(float *LLRin, float *BitsOut, int size)
@@ -721,7 +733,7 @@ void PolarCode::pcc()
 {
 	vector<float> z(N, 0.0);
 	float designSNRlin = pow(10.0, designSNR/10.0);
-	z[0] = -((float)K/N)*designSNRlin;
+	z[0] = exp(-((float)K/N)*designSNRlin);
 
 	float T; int B;
 
@@ -731,23 +743,23 @@ void PolarCode::pcc()
 		for(int j = 0; j < N; j+=(B<<1))
 		{
 			T = z[j];
-			z[j] = logdomain_diff(log(2.0)+T, 2*T);
-			z[j+B] = 2*T;
+			z[j+B] = T*T;
+			z[j] = 2*T - z[j+B];
 		}
 	}
 
 	sorter.set(z);
-	sorter.stableSort();
+	sorter.stableSortDescending();
 
 	for(int i = 0; i<K; ++i)
 	{
-		FZLookup[sorter.permuted[i]] = true;//Bit is available for user data
-		simplifiedTree[N-1+sorter.permuted[i]] = nodeInfo::RateOne;
+		FZLookup[sorter.permuted[N-i-1]] = true;//Bit is available for user data
+		simplifiedTree[N-1+sorter.permuted[N-i-1]] = nodeInfo::RateOne;
 	}
 	for(int i = K; i<N; ++i)
 	{
-		FZLookup[sorter.permuted[i]] = false;//Freeze bit
-		simplifiedTree[N-1+sorter.permuted[i]] = nodeInfo::RateZero;
+		FZLookup[sorter.permuted[N-i-1]] = false;//Freeze bit
+		simplifiedTree[N-1+sorter.permuted[N-i-1]] = nodeInfo::RateZero;
 	}
 
 	for(int i=0; i<N; ++i)
@@ -780,10 +792,10 @@ void PolarCode::pcc()
 			{
 				simplifiedTree[idx] = RateOne;
 			}
-/*			else if((Left == RateHalf || Left == SPCnode) && Right == RateOne && lev>=n-2)
+			else if((Left == RateHalf || Left == SPCnode) && Right == RateOne && lev>=n-2)
 			{
 				simplifiedTree[idx] = SPCnode;
-			}*/
+			}
 			else if(Left == RateZero && (Right == RateHalf || Right == RepetitionNode))
 			{
 				simplifiedTree[idx] = RepetitionNode;
@@ -818,7 +830,7 @@ void PolarCode::encode(aligned_float_vector &encoded, unsigned char* data)
 		Crc->generate(data, lastByte, data+lastByte);
 	}
 
-	//Insert the bits into Rate-1 channels
+	//Insert the bits into Rate-1 channels as float bits (sign bit: 0 => 0.0, 1 => -0.0)
 	int bit=0; int bytes=K>>3;
 	unsigned int bitpool, currentBit; float* fBit=reinterpret_cast<float*>(&currentBit);
 	for(int byte=0; byte<bytes; ++byte)
@@ -1087,7 +1099,14 @@ void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 		Repetition_hybrid(LLR[0][stage-1].data(), nodeBits, subStageLength);
 		break;
 	case SPCnode:
-		SPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
+		if(subStageLength == 4)
+		{
+			SPC_4(LLR[0][stage-1].data(), nodeBits);
+		}
+		else
+		{
+			SPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
+		}
 		break;
 	case RepSPCnode:
 		if(subStageLength == 8)
@@ -1163,7 +1182,14 @@ void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 			Repetition_hybrid(LLR[0][stage-1].data(), rightBits, subStageLength);
 			break;
 		case SPCnode:
-			SPC(LLR[0][stage-1].data(), rightBits, subStageLength);
+			if(subStageLength == 4)
+			{
+				SPC_4(LLR[0][stage-1].data(), rightBits);
+			}
+			else
+			{
+				SPC(LLR[0][stage-1].data(), rightBits, subStageLength);
+			}
 			break;
 		case RepSPCnode:
 			if(subStageLength == 8)

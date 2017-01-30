@@ -50,8 +50,7 @@ void PolarCode::Rate0_multiPath(int stage, int BitLocation)
 				vec LLRin = load_ps(LLR[path][stage].data()+i);
 				punishment = add_ps(punishment, min_ps(LLRin, ZERO));
 			}
-			float pun = reduce_add_ps(punishment);
-			Metric[path] += pun;
+			Metric[path] += reduce_add_ps(punishment);
 		}
 	}
 }
@@ -424,9 +423,21 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 		Metric[path] = sorter.sorted[path];
 		float value; unsigned int *iValue = reinterpret_cast<unsigned int*>(&value);
 		*iValue = selCand.decisionIndex<<31;
-		for(int bit=0; bit<size; ++bit)
+		if(size < FLOATSPERVECTOR)
 		{
-			newBits[path][BitLocation+bit] = value;
+			for(int bit=0; bit<size; ++bit)
+			{
+				newBits[path][BitLocation+bit] = value;
+			}
+		}
+		else
+		{
+			vec valueVector = set1_ps(value);
+			float *bitPtr = newBits[path].data()+BitLocation;
+			for(int bit=0; bit<size; bit+=FLOATSPERVECTOR)
+			{
+				store_ps(bitPtr+bit, valueVector);
+			}
 		}
 	}
 

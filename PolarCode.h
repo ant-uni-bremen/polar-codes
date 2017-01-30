@@ -127,6 +127,7 @@ struct PolarCode
 
 	void Repetition(float *LLRin, float *BitsOut, int size);
 	void Repetition_vectorized(float *LLRin, float *BitsOut, int size);
+	void Repetition_vectorized_4(float *LLRin, float *BitsOut);
 	void Repetition_hybrid(float *LLRin, float *BitsOut, int size);
 	void Repetition_multiPath(int stage, int BitLocation);
 	

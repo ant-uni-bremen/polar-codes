@@ -78,7 +78,14 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 		break;
 	case RepetitionNode:
 	case RateHalf:
-		File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		if(subStageLength == 4)
+		{
+			File << "Repetition_vectorized_4(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ");" << endl;
+		}
+		else
+		{
+			File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
 		break;
 	case SPCnode:
 		if(subStageLength == 4)
