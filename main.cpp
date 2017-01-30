@@ -28,13 +28,13 @@ const float EbN0_min =  0;
 const float EbN0_max =  7;
 const int EbN0_count = 20;
 
-/* Code length comparison*/
+/* Code length comparison
 const float designSNR = 4.0;
 int ParameterN[] = {128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768}, nParams = 9;
 int ParameterK[] = {64,  128, 256,  512, 1024, 2048, 4096,  8192, 16384};
 int L = 1;
 const bool useCRC = false;
-
+*/
 /* Design-SNR measurement
 float designParam[] = {3.0, 4.0, 4.5, 5.0};
 const int nParams = 4;
@@ -560,13 +560,13 @@ int main(int argc, char** argv)
 			{
 				Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			
-			/* Code length comparison*/
+			/* Code length comparison
 				Graph[idCounter].N = ParameterN[l];
 				Graph[idCounter].K = ParameterK[l];
 				Graph[idCounter].L = (useCRC==1)?L:1;
 				Graph[idCounter].designSNR = designSNR;
 				Graph[idCounter].useCRC = useCRC;
-			
+			*/
 			
 			/* design-SNR measurement
 			Graph[idCounter].N = N;
@@ -593,7 +593,7 @@ int main(int argc, char** argv)
  			
  			
  			
-				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  /*N*/ ParameterN[l];
+				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N /*ParameterN[l]*/;
 				Graph[idCounter].MaxBufferSize = Graph[idCounter].BlocksToSimulate>>1;
 
 				Threads.push_back(std::thread(simulate, idCounter++));
