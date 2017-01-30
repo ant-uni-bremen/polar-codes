@@ -7,10 +7,10 @@
 #include "../ArrayFuncs.h"
 
 
-//const int PCparam_N = 2048;
-//const int PCparam_K = 32 *32+8;
-const int PCparam_N = 128;
-const int PCparam_K = 2 *32+8;
+const int PCparam_N = 2048;
+const int PCparam_K = 32 *32+8;
+//const int PCparam_N = 128;
+//const int PCparam_K = 2 *32+8;
 const float designSNR = 5.0;
 
 int n;
@@ -78,7 +78,14 @@ void printDecoder(int stage, int BitLocation, int nodeID)
 		break;
 	case RepetitionNode:
 	case RateHalf:
-		File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		if(subStageLength == 4)
+		{
+			File << "Repetition_vectorized_4(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ");" << endl;
+		}
+		else
+		{
+			File << "Repetition" << vectorized << "(LLR[0][" << (stage-1) << "].data(), BitPtr+" << BitLocation << ", " << subStageLength << ");" << endl;
+		}
 		break;
 	case SPCnode:
 		if(subStageLength == 4)
