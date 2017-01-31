@@ -12,6 +12,8 @@
  *
  * SYSTEMATIC_CODING utilizes systematic polar codes
  *
+ * ONLY_SCDECODING   disables Fast-SSC decoding
+ *
  */
 
 //#define ACCELERATED_MONTECARLO

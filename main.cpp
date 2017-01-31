@@ -28,6 +28,12 @@ const float EbN0_min =  0;
 const float EbN0_max =  7;
 const int EbN0_count = 20;
 
+/* In the following, you can manually select between four different parameters
+ * to be varied. After (un)commenting, do not forget to (un)comment the
+ * respective parametrization near the end of this file and adapt the csv-output!
+ */
+ 
+
 /* Code length comparison
 const float designSNR = 4.0;
 int ParameterN[] = {128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768}, nParams = 9;
@@ -44,6 +50,11 @@ const int L = 1;
 const bool useCRC = false;
  */
 /* List length comparison
+ * This is the only simulation case, where you can disable the FLEXIBLE_DECODING switch
+ * in Parameters.h. Be careful to generate the correct coders using the subproject in
+ * the "Specialized Decoder"-directory and then explicitly rebuild PolarCode.cpp and
+ * PolarCode.MultiPath.cpp to include the specialized decoders.
+ * 
 const float designSNR = 4.0;
 const int N = 2048;
 const int K = floor(2048.0* 5.0/6.0 /8.0)*8+8;
