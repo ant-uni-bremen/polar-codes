@@ -545,7 +545,7 @@ int main(int argc, char** argv)
 	Graph = new DataPoint[EbN0_count*nParams*2];
 	std::vector<std::thread> Threads;
 	
-	std::ofstream File("../results/Simulation.csv");
+    std::ofstream File("Simulation.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;

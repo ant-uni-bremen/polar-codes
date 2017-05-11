@@ -627,12 +627,12 @@ PolarCode::PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool enc
 
 	Crc = useCRC ? new CRC8() : nullptr;
 	
-	unsigned __int64 randomseed[4];
+    unsigned long long randomseed[4];
 	
-	_rdseed64_step(randomseed+0);
-	_rdseed64_step(randomseed+1);
-	_rdseed64_step(randomseed+2);
-	_rdseed64_step(randomseed+3);
+    _rdrand64_step(randomseed+0);
+    _rdrand64_step(randomseed+1);
+    _rdrand64_step(randomseed+2);
+    _rdrand64_step(randomseed+3);
 	
 	r.seed(_mm256_set_epi64x(randomseed[0], randomseed[1], randomseed[2], randomseed[3]));
 
