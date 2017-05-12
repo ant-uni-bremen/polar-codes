@@ -20,8 +20,8 @@
 
 #include "Parameters.h"
 
-const int BufferInterval   =    1000;//Blocks
-const long long BitsToSimulate = 200000000;//Bits
+const int BufferInterval		=      1000;//Blocks
+const long long BitsToSimulate	= 200000000;//Bits
 const int ConcurrentThreads = 1;
 
 const float EbN0_min =  0;
@@ -41,14 +41,14 @@ int ParameterK[] = {64,  128, 256,  512, 1024, 2048, 4096,  8192, 16384};
 int L = 1;
 const bool useCRC = false;
 */
-/* Design-SNR measurement
-float designParam[] = {3.0, 4.0, 4.5, 5.0};
-const int nParams = 4;
-const int N = 2048;
-const int K = floor(2048.0* 5.0/6.0 /8.0)*8+8;
+/* Design-SNR measurement */
+float designParam[] = {-1.59, 0.0, 2.0, 4.0, 6.0};
+const int nParams = 5;
+const int N = 1<<8;
+const int K = floor(N *   1.0/2.0   / 8)*8 /*+8*/;
 const int L = 1;
 const bool useCRC = false;
- */
+
 /* List length comparison
  * This is the only simulation case, where you can disable the FLEXIBLE_DECODING switch
  * in Parameters.h. Be careful to generate the correct coders using the subproject in
@@ -62,14 +62,14 @@ int ParameterL[] = {1, 2, 4, 8}; const int nParams = 4;
 const bool useCRC = true;
  */
 
-/* Rate comparison */
+/* Rate comparison
 const float designSNR = 4.0;
 const int nParams = 5;
 const int N = 2048;
 float ParameterR[] = {1.0/2.0, 2.0/3.0, 3.0/4.0, 5.0/6.0, 0.9};
 const int L = 1;
 const bool useCRC = false;
-
+ */
  
 std::atomic<unsigned int> finishedThreads(0);
 std::mutex threadMutex[ConcurrentThreads];
@@ -247,6 +247,7 @@ void generateSignals(int SimIndex)
 
 void decodeSignals(int SimIndex)
 {
+	using namespace std::chrono;
 	int BlocksToSimulate = Graph[SimIndex].BlocksToSimulate;
 
 	PolarCode PC(Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].useCRC, Graph[SimIndex].designSNR);
@@ -271,8 +272,8 @@ void decodeSignals(int SimIndex)
 		{
 			if(Graph[SimIndex].SignalBuffer.ptr == nullptr && !Graph[SimIndex].StopDecoder)
 			{
-				//Buffer underrun!!!
-				cout << "Buffer underrun!" << endl;
+				//No data available at the moment
+				//cout << "Waiting for new data..." << endl;
 				Graph[SimIndex].SignalBuffer.cv.notify_one();
 				while(Graph[SimIndex].SignalBuffer.ptr == nullptr && !Graph[SimIndex].StopDecoder)
 				{
@@ -290,7 +291,13 @@ void decodeSignals(int SimIndex)
 
 		Block *block = mySigBuf.ptr;
 		
+		high_resolution_clock::time_point TimeStart = high_resolution_clock::now();
 		PC.decode(block->decodedData, block->LLR);
+		high_resolution_clock::time_point TimeEnd = high_resolution_clock::now();
+
+		duration<float> TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
+		Graph[SimIndex].time += TimeUsed.count();
+
 		++decodedBlocks;
 		
 		
@@ -435,6 +442,7 @@ void simulate(int SimIndex)
 	Graph[SimIndex].bits = 0;
 	Graph[SimIndex].errors = 0;
 	Graph[SimIndex].biterrors = 0;
+	Graph[SimIndex].time = 0;
 
 	++finishedThreads;
 
@@ -447,7 +455,7 @@ void simulate(int SimIndex)
 	{
 		/* This might save some time.
 		   Best case: Lowest SNR which reaches MaxIter iterations
-		              is simulated first.
+					  is simulated first.
 		   Worst case: Simulations run from highest to lowest SNRs
 					   with BLER=0.
 		   Running all SNRs squentially might leave some processor
@@ -479,7 +487,7 @@ void simulate(int SimIndex)
 	Graph[SimIndex].StopDecoder = false;
 	Graph[SimIndex].StopChecker = false;
 
-	sprintf(message, "[%3d] Simulating Eb/N0 = %f dB, N = %d, L = %d, %s CRC\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].N, Graph[SimIndex].L, Graph[SimIndex].useCRC?"with":"without");
+	sprintf(message, "[%3d] Simulating Eb/N0=%.2f dB, N=%d, K=%d, L=%d, %s CRC\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].useCRC?"with":"without");
 	std::cout << message;
 
 	//Start generator and decoder
@@ -492,7 +500,7 @@ void simulate(int SimIndex)
 		Graph[SimIndex].preloadCV.wait(plck);
 	}
 	//Now start the timer
-	high_resolution_clock::time_point TimeStart = high_resolution_clock::now();
+	//high_resolution_clock::time_point TimeStart = high_resolution_clock::now();
 	
 	//and the bit error checker
 	thread Checker(checkDecodedData, SimIndex);
@@ -501,28 +509,28 @@ void simulate(int SimIndex)
 	
 	//Wait for decoder and then stop the timer
 	Decoder.join();
-	high_resolution_clock::time_point TimeEnd = high_resolution_clock::now();
+	//high_resolution_clock::time_point TimeEnd = high_resolution_clock::now();
 	
 	//Also wait for the other two threads
 	Generator.join();
 	Checker.join();
 	
-	duration<float> TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
-	float time = TimeUsed.count();
+	//duration<float> TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
+	//float time = TimeUsed.count();
 
 	int nBits = Graph[SimIndex].K;
 	if(Graph[SimIndex].useCRC)nBits-=8;
 
 	Graph[SimIndex].BLER = (float)Graph[SimIndex].errors/Graph[SimIndex].runs;
 	Graph[SimIndex].BER = (float)Graph[SimIndex].biterrors/Graph[SimIndex].bits;
-	Graph[SimIndex].time = time;
+	//Graph[SimIndex].time = time;
 	Graph[SimIndex].blps = Graph[SimIndex].runs;
 	Graph[SimIndex].cbps = Graph[SimIndex].runs*Graph[SimIndex].N;
 	Graph[SimIndex].pbps = Graph[SimIndex].bits;
-	Graph[SimIndex].blps /= time;
-	Graph[SimIndex].cbps /= time;
-	Graph[SimIndex].pbps /= time;
-	Graph[SimIndex].effectiveRate = (Graph[SimIndex].runs-Graph[SimIndex].errors+0.0)*nBits/time;
+	Graph[SimIndex].blps /= Graph[SimIndex].time;
+	Graph[SimIndex].cbps /= Graph[SimIndex].time;
+	Graph[SimIndex].pbps /= Graph[SimIndex].time;
+	Graph[SimIndex].effectiveRate = (Graph[SimIndex].runs-Graph[SimIndex].errors+0.0)*nBits/Graph[SimIndex].time;
 
 	
 #ifdef ACCELERATED_MONTECARLO
@@ -545,7 +553,7 @@ int main(int argc, char** argv)
 	Graph = new DataPoint[EbN0_count*nParams*2];
 	std::vector<std::thread> Threads;
 	
-    std::ofstream File("Simulation.csv");
+	std::ofstream File("Simulation.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;
@@ -579,13 +587,13 @@ int main(int argc, char** argv)
 				Graph[idCounter].useCRC = useCRC;
 			*/
 			
-			/* design-SNR measurement
+			/* design-SNR measurement */
 			Graph[idCounter].N = N;
 			Graph[idCounter].K = K;
 			Graph[idCounter].L = L;
 			Graph[idCounter].designSNR = designParam[l];
 			Graph[idCounter].useCRC = useCRC;
- 			*/
+
 				
 			/* List length comparison
 			Graph[idCounter].N = N;
@@ -595,13 +603,13 @@ int main(int argc, char** argv)
 			Graph[idCounter].useCRC = useCRC;
 			*/
  			
- 			/* Rate comparison */
+			/* Rate comparison
 			Graph[idCounter].N = N;
 			Graph[idCounter].K = floor(N * ParameterR[l] / 8.0)*8 + (useCRC?8:0);
 			Graph[idCounter].L = L;
 			Graph[idCounter].designSNR = designSNR;
 			Graph[idCounter].useCRC = useCRC;
- 			
+			 */
  			
  			
 				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N /*ParameterN[l]*/;
@@ -630,15 +638,15 @@ int main(int argc, char** argv)
 		Thr.join();
 	}
 	
-//	File << "\"designSNR\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"designSNR\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 //	File << "\"L\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-	File << "\"R\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+//	File << "\"R\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
 	for(int i=0; i<EbN0_count*nParams; ++i)
 	{
-//		File << Graph[i].designSNR << ',' << Graph[i].EbN0 << ',';
+		File << Graph[i].designSNR << ',' << Graph[i].EbN0 << ',';
 //		File << Graph[i].L << ',' << Graph[i].EbN0 << ',';
-		File << ((float)Graph[i].K/Graph[i].N) << ',' << Graph[i].EbN0 << ',';
+//		File << ((float)Graph[i].K/Graph[i].N) << ',' << Graph[i].EbN0 << ',';
 		if(Graph[i].BLER>0.0)
 		{
 			File << Graph[i].BLER << ',';
@@ -656,7 +664,7 @@ int main(int argc, char** argv)
 			File << "\" \",";
 		}
 		File << Graph[i].runs << ',' << Graph[i].errors << ','
-		     << Graph[i].time << ',' << Graph[i].blps << ',';
+			 << Graph[i].time << ',' << Graph[i].blps << ',';
 		if(Graph[i].cbps>0)
 		{
 			File << Graph[i].cbps << ',';

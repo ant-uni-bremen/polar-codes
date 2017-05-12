@@ -29,7 +29,8 @@ enum nodeInfo
 	RepetitionNode,
 	SPCnode,
 	RepSPCnode,
-	RateR
+	RateR,
+	invalidNode
 };
 
 struct Candidate
@@ -122,6 +123,7 @@ struct PolarCode
 	void SPC_multiPath(int stage, int BitLocation);
 	
 	void P_RSPC(float *LLRin, float *BitsOut, int size);
+	void P_RSPC_4(float *LLRin, float *BitsOut);
 	void P_0SPC(float *LLRin, float *BitsOut, int size);
 	void P_0SPC_vectorized(float *LLRin, float *BitsOut, int size);
 
@@ -144,8 +146,6 @@ struct PolarCode
 	void Rate1_vectorized(float *LLRin, float *BitsOut, int size);
 	void Rate1_multiPath(int stage, int BitLocation);
 
-
-	unsigned int bitreversed_slow(unsigned int j);
 	void pcc();
 	void clear();
 	

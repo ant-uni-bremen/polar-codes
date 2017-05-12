@@ -27,7 +27,7 @@ inline float logdomain_diff(float x, float y)
 }
 
 template <typename T> int sgn(T val) {
-    return (T(0) < val) - (val < T(0));
+	return (T(0) < val) - (val < T(0));
 }
 
 void PolarCode::F_function(float *LLRin, float *LLRout, int size)
@@ -207,6 +207,10 @@ void PolarCode::P_01(float *LLRin, float *BitsOut, int size)
 
 void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 {
+	if(size == 4)
+	{
+		return P_RSPC_4(LLRin, BitsOut);
+	}
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
 	unsigned int parity=0;float *fPar = reinterpret_cast<float*>(&parity);
@@ -248,6 +252,47 @@ void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 		//Flip least reliable bit
 		iBit[index] ^= parity;
 		iBit[index+size] ^= parity;
+	}
+}
+void PolarCode::P_RSPC_4(float *LLRin, float *BitsOut)
+{
+	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
+
+	unsigned int parity=0;float *fPar = reinterpret_cast<float*>(&parity);
+	int index=0;
+
+	__m128 parityVec = _mm_set1_ps(0.0);
+
+	__m128 LLR_l = _mm_load_ps(LLRin);
+	__m128 LLR_r = _mm_load_ps(LLRin+4);
+	__m128 Bit_l = _mm_load_ps(BitsOut);
+
+	__m128 LLR1 = _mm_add_ps(_mm_xor_ps(LLR_l, Bit_l), LLR_r);//G-function
+	__m128 Bit_o = _mm_and_ps(LLR1, sgnMask);//Rate-1 decoder
+	_mm_store_ps(BitsOut+4, Bit_o);//Save bit decision
+	parityVec = _mm_xor_ps(Bit_o, parityVec);//Calculate parity
+
+	Bit_l = _mm_xor_ps(Bit_l, Bit_o);
+	_mm_store_ps(BitsOut, Bit_l);//Save upper bit
+
+	Bit_o = _mm_and_ps(LLR1, absMask);
+	_mm_store_ps(absLLR.data(), Bit_o);
+
+	*fPar = _mm_reduce_xor_ps(parityVec);
+
+	if(parity)
+	{
+		for(int i=1; i<4; ++i)
+		{
+			if(absLLR[i] < absLLR[index])
+			{
+				index = i;
+			}
+		}
+
+		//Flip least reliable bit
+		iBit[index] ^= parity;
+		iBit[index+4] ^= parity;
 	}
 }
 
@@ -334,7 +379,7 @@ void PolarCode::P_0SPC_vectorized(float *LLRin, float *BitsOut, int size)
 void PolarCode::CombineSimple(float *Bits, int size)
 {
 	unsigned int *inlptr = reinterpret_cast<unsigned int*>(Bits),
-	             *inrptr = reinterpret_cast<unsigned int*>(Bits+size);
+				 *inrptr = reinterpret_cast<unsigned int*>(Bits+size);
 	for(int i=0; i<size; i++)
 	{
 		inlptr[i] ^= inrptr[i];
@@ -393,10 +438,10 @@ void PolarCode::SPC_4(float *LLRin, float *BitsOut)
 	_mm_store_ps(BitsOut, Sgn);
 
 	__m128 Par =  _mm_xor_ps(Sgn, _mm_movehl_ps(Sgn, Sgn));
-    Par = _mm_xor_ps(Par, _mm_shuffle_ps(Par, Par, 0x55));
-    //float parity = _mm_cvtss_f32(Par);
-    unsigned int *iPar = reinterpret_cast<unsigned int*>(&Par);
-    if(*iPar)
+	Par = _mm_xor_ps(Par, _mm_shuffle_ps(Par, Par, 0x55));
+	//float parity = _mm_cvtss_f32(Par);
+	unsigned int *iPar = reinterpret_cast<unsigned int*>(&Par);
+	if(*iPar)
 	{
 		__m128 Abs = _mm_and_ps(LLRi, absMask);
 		int index = (Abs[1]<Abs[0]);
@@ -417,9 +462,9 @@ void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size)
 	float RepSum = 0.0, RepAcc;
 
 	float a, absA, minA = INFINITY,
-	      b, absB, minB = INFINITY;
+		  b, absB, minB = INFINITY;
 	unsigned int indA = 0, parA = 0,
-	             indB = 0, parB = 0;
+				 indB = 0, parB = 0;
 
 	unsigned int *ia = reinterpret_cast<unsigned int*>(&a);
 	unsigned int *ib = reinterpret_cast<unsigned int*>(&b);
@@ -522,8 +567,8 @@ void PolarCode::RepSPC_8(float *LLRin, float *BitsOut)
 	__m128 RepSumVec = _mm_or_ps(sign, _mm_min_ps(abs_l, abs_r));
 
 	__m128 x64 = _mm_add_ps(RepSumVec, _mm_movehl_ps(RepSumVec, RepSumVec));
-    __m128 x32 = _mm_add_ss(x64, _mm_shuffle_ps(x64, x64, 0x55));
-    x32 = _mm_and_ps(x32, sgnMask);//Decide Repetition code
+	__m128 x32 = _mm_add_ss(x64, _mm_shuffle_ps(x64, x64, 0x55));
+	x32 = _mm_and_ps(x32, sgnMask);//Decide Repetition code
 	//RepSumVec = _mm_broadcastss_ps(x32);
 	RepSumVec = _mm_set1_ps(_mm_cvtss_f32(x32));
 
@@ -535,8 +580,8 @@ void PolarCode::RepSPC_8(float *LLRin, float *BitsOut)
 	_mm_store_ps(BitsOut+4, SPCsgn);//Store SPC bits
 
 	x64 = _mm_xor_ps(SPCsgn, _mm_movehl_ps(SPCsgn, SPCsgn));
-    x32 = _mm_xor_ps(x64, _mm_shuffle_ps(x64, x64, 0x55));
-    Parity = _mm_cvtss_f32(x32);//Calculate parity
+	x32 = _mm_xor_ps(x64, _mm_shuffle_ps(x64, x64, 0x55));
+	Parity = _mm_cvtss_f32(x32);//Calculate parity
 
 	if(*iParity)
 	{
@@ -615,24 +660,26 @@ void PolarCode::Repetition_hybrid(float *LLRin, float *BitsOut, int size)
 
 PolarCode::PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool encodeOnly)
 {
+	n = ceil(log2(N));
+	N = 1<<n;
 	this->N = N;
 	this->K = K;
 	this->L = L;
 	this->useCRC = useCRC;
 	this->designSNR = designSNR;
-	n = ceil(log2(N));
 
 	FZLookup.resize(N);
-	simplifiedTree.resize(2*N-1);
+	simplifiedTree.assign(2*N-1, invalidNode);
 
+	/* TODO: This is very bad, change CRC8 to do nothing when called */
 	Crc = useCRC ? new CRC8() : nullptr;
 	
-    unsigned long long randomseed[4];
+	unsigned long long randomseed[4];
 	
-    _rdrand64_step(randomseed+0);
-    _rdrand64_step(randomseed+1);
-    _rdrand64_step(randomseed+2);
-    _rdrand64_step(randomseed+3);
+	_rdrand64_step(randomseed+0);
+	_rdrand64_step(randomseed+1);
+	_rdrand64_step(randomseed+2);
+	_rdrand64_step(randomseed+3);
 	
 	r.seed(_mm256_set_epi64x(randomseed[0], randomseed[1], randomseed[2], randomseed[3]));
 
@@ -718,22 +765,11 @@ void PolarCode::clear()
 	simplifiedTree.clear();
 }
 
-unsigned int PolarCode::bitreversed_slow(unsigned int j)
-{
-	//Do a complete 32-bit-reversal
-    j = (((j & 0xaaaaaaaa) >>  1) | ((j & 0x55555555) <<  1));
-    j = (((j & 0xcccccccc) >>  2) | ((j & 0x33333333) <<  2));
-    j = (((j & 0xf0f0f0f0) >>  4) | ((j & 0x0f0f0f0f) <<  4));
-    j = (((j & 0xff00ff00) >>  8) | ((j & 0x00ff00ff) <<  8));
-    j = (( j               >> 16) | ( j               << 16));
-    return j>>(32-n);//return the reversed n-bit value
-}
-
 void PolarCode::pcc()
 {
 	vector<float> z(N, 0.0);
 	float designSNRlin = pow(10.0, designSNR/10.0);
-	z[0] = exp(-((float)K/N)*designSNRlin);
+	z[0] = exp(-1.0 * designSNRlin);
 
 	float T; int B;
 
@@ -749,17 +785,17 @@ void PolarCode::pcc()
 	}
 
 	sorter.set(z);
-	sorter.stableSortDescending();
+	sorter.stableSort();
 
 	for(int i = 0; i<K; ++i)
 	{
-		FZLookup[sorter.permuted[N-i-1]] = true;//Bit is available for user data
-		simplifiedTree[N-1+sorter.permuted[N-i-1]] = nodeInfo::RateOne;
+		FZLookup[sorter.permuted[i]] = true;//Bit is available for user data
+		simplifiedTree[N-1+sorter.permuted[i]] = nodeInfo::RateOne;
 	}
 	for(int i = K; i<N; ++i)
 	{
-		FZLookup[sorter.permuted[N-i-1]] = false;//Freeze bit
-		simplifiedTree[N-1+sorter.permuted[N-i-1]] = nodeInfo::RateZero;
+		FZLookup[sorter.permuted[i]] = false;//Freeze bit
+		simplifiedTree[N-1+sorter.permuted[i]] = nodeInfo::RateZero;
 	}
 
 	for(int i=0; i<N; ++i)
@@ -784,6 +820,11 @@ void PolarCode::pcc()
 #ifndef ONLY_SCDECODING
 			nodeInfo Left  = simplifiedTree[ctr++];
 			nodeInfo Right = simplifiedTree[ctr++];
+			if(Left == invalidNode || Right == invalidNode)
+			{
+				cerr << "Invalid node found!"<<endl<<flush;
+				exit(EXIT_FAILURE);
+			}
 			if(Left == RateZero && Right == RateZero)
 			{
 				simplifiedTree[idx] = RateZero;
@@ -865,8 +906,43 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 	int rightNode = leftNode+1;
 	int subStageLength = 1<<(stage-1);
 
+
+	if(simplifiedTree[nodeID] == invalidNode)
+	{
+		cerr << "Encoding: Current node is invalid!" << endl << flush;
+		exit(EXIT_FAILURE);
+	}
+	if(simplifiedTree[leftNode] == invalidNode)
+	{
+		cerr << "Encoding: Left node is invalid!" << endl << flush;
+		exit(EXIT_FAILURE);
+	}
+	if(simplifiedTree[rightNode] == invalidNode)
+	{
+		cerr << "Encoding: Right node is invalid!" << endl << flush;
+		exit(EXIT_FAILURE);
+	}
+
 	unsigned int* iData = reinterpret_cast<unsigned int*>(encoded.data());
 	float *fData = encoded.data();
+
+	if(stage == 0)
+	{
+		if(simplifiedTree[nodeID] == RateZero)
+		{
+			//Insert frozen bit
+			iData[BitLocation] = 0;
+		}
+		else if(simplifiedTree[nodeID] == RateOne)
+		{
+			cerr << "Trying to insert rate one value" << endl << flush;
+		}
+		else
+		{
+			cerr << "Invalid single-bit node" << endl << flush;
+		}
+		return;
+	}
 
 	//Calculate right node
 	if(simplifiedTree[rightNode] != RateOne)
@@ -979,12 +1055,12 @@ void PolarCode::modulateAndDistort(float *signal, aligned_float_vector &data, in
 		siga = mul_ps(siga, facVec); sigb = mul_ps(sigb, facVec);//Scale
 
 		//Generate Gaussian noise
-        __m256 u1 = _mm256_sub_ps(one, r()); // [0, 1) -> (0, 1]
-        __m256 u2 = r();
+		__m256 u1 = _mm256_sub_ps(one, r()); // [0, 1) -> (0, 1]
+		__m256 u2 = r();
 		__m256 radius = _mm256_sqrt_ps(_mm256_mul_ps(minustwo, log256_ps(u1)));
 		__m256 theta = _mm256_mul_ps(twopi, u2);
-        __m256 sintheta, costheta;
-        sincos256_ps(theta, &sintheta, &costheta);
+		__m256 sintheta, costheta;
+		sincos256_ps(theta, &sintheta, &costheta);
 
 		//Add noise to signal
 #ifdef __FMA__
@@ -1040,7 +1116,6 @@ bool PolarCode::decode(unsigned char* decoded, float* initLLR)
 
 bool PolarCode::decodeOnePath(unsigned char* decoded)
 {
-
 #ifdef FLEXIBLE_DECODING
 	decodeOnePathRecursive(n,SimpleBits.data(),0);
 #else

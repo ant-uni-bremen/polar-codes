@@ -78,6 +78,14 @@ static inline float reduce_xor_ps(__m256 x) {
     return _mm_cvtss_f32(x32);
 }
 
+static inline float _mm_reduce_xor_ps(__m128 x) {
+    /* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */
+    const __m128 x64 = _mm_xor_ps(x, _mm_movehl_ps(x, x));
+    /* ( -, -, -, x0+x1+x2+x3+x4+x5+x6+x7 ) */
+    const __m128 x32 = _mm_xor_ps(x64, _mm_shuffle_ps(x64, x64, 0x55));
+    /* Conversion to float is a no-op on x86-64 */
+    return _mm_cvtss_f32(x32);
+}
 
 
 
