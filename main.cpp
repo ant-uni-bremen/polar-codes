@@ -22,7 +22,7 @@
 
 const int BufferInterval		=      1000;//Blocks
 const long long BitsToSimulate	= 200000000;//Bits
-const int ConcurrentThreads = 1;
+const int ConcurrentThreads = 2;
 
 const float EbN0_min =  0;
 const float EbN0_max =  7;
@@ -34,21 +34,21 @@ const int EbN0_count = 20;
  */
  
 
-/* Code length comparison
-const float designSNR = 4.0;
+/* Code length comparison*/
+const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
 int ParameterN[] = {128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768}, nParams = 9;
 int ParameterK[] = {64,  128, 256,  512, 1024, 2048, 4096,  8192, 16384};
 int L = 1;
 const bool useCRC = false;
-*/
-/* Design-SNR measurement */
+
+/* Design-SNR measurement
 float designParam[] = {-1.59, 0.0, 2.0, 4.0, 6.0};
 const int nParams = 5;
 const int N = 1<<8;
-const int K = floor(N *   1.0/2.0   / 8)*8 /*+8*/;
+const int K = floor(N *   1.0/2.0   / 8)*8; //+8;
 const int L = 1;
 const bool useCRC = false;
-
+*/
 /* List length comparison
  * This is the only simulation case, where you can disable the FLEXIBLE_DECODING switch
  * in Parameters.h. Be careful to generate the correct coders using the subproject in
@@ -488,7 +488,7 @@ void simulate(int SimIndex)
 	Graph[SimIndex].StopChecker = false;
 
 	sprintf(message, "[%3d] Simulating Eb/N0=%.2f dB, N=%d, K=%d, L=%d, %s CRC\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].useCRC?"with":"without");
-	std::cout << message;
+	std::cout << message << flush;
 
 	//Start generator and decoder
 	thread Generator(generateSignals, SimIndex);
@@ -542,7 +542,7 @@ void simulate(int SimIndex)
 
 	int finished = ++finishedThreads;
 	sprintf(message, "[%3d] %3d Threads finished, BLER = %e\n", SimIndex, finished, Graph[SimIndex].BLER);
-	std::cout << message;
+	std::cout << message << flush;
 
 	threadCV[SimIndex%ConcurrentThreads].notify_one();
 }
@@ -579,21 +579,21 @@ int main(int argc, char** argv)
 			{
 				Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			
-			/* Code length comparison
+			/* Code length comparison */
 				Graph[idCounter].N = ParameterN[l];
 				Graph[idCounter].K = ParameterK[l];
 				Graph[idCounter].L = (useCRC==1)?L:1;
 				Graph[idCounter].designSNR = designSNR;
 				Graph[idCounter].useCRC = useCRC;
-			*/
+
 			
-			/* design-SNR measurement */
+			/* design-SNR measurement
 			Graph[idCounter].N = N;
 			Graph[idCounter].K = K;
 			Graph[idCounter].L = L;
 			Graph[idCounter].designSNR = designParam[l];
 			Graph[idCounter].useCRC = useCRC;
-
+			 */
 				
 			/* List length comparison
 			Graph[idCounter].N = N;
@@ -612,8 +612,8 @@ int main(int argc, char** argv)
 			 */
  			
  			
-				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N /*ParameterN[l]*/;
-				Graph[idCounter].MaxBufferSize = Graph[idCounter].BlocksToSimulate>>1;
+				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  /*N*/ ParameterN[l];
+				Graph[idCounter].MaxBufferSize = Graph[idCounter].BlocksToSimulate>>2;
 
 				Threads.push_back(std::thread(simulate, idCounter++));
 			}
@@ -638,15 +638,19 @@ int main(int argc, char** argv)
 		Thr.join();
 	}
 	
-	File << "\"designSNR\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"N\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+//	File << "\"designSNR\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 //	File << "\"L\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 //	File << "\"R\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
 	for(int i=0; i<EbN0_count*nParams; ++i)
 	{
-		File << Graph[i].designSNR << ',' << Graph[i].EbN0 << ',';
-//		File << Graph[i].L << ',' << Graph[i].EbN0 << ',';
-//		File << ((float)Graph[i].K/Graph[i].N) << ',' << Graph[i].EbN0 << ',';
+		File << Graph[i].N;
+//		File << Graph[i].designSNR;
+//		File << Graph[i].L;
+//		File << ((float)Graph[i].K/Graph[i].N);
+
+		File << ',' << Graph[i].EbN0 << ',';
 		if(Graph[i].BLER>0.0)
 		{
 			File << Graph[i].BLER << ',';
