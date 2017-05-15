@@ -5,10 +5,6 @@
  * of the simulation.
  * 
  * ACCELERATED_MONTECARLO skips computations of nearly error-free SNRs
- * 
- * FLEXIBLE_DECODING does not use the specialized decoder implementation.
- * 					 Instead, the lookup tables are used to decide for the
- *					 next decoding operation.
  *
  * SYSTEMATIC_CODING utilizes systematic polar codes
  *
@@ -17,7 +13,6 @@
  */
 
 //#define ACCELERATED_MONTECARLO
-#define FLEXIBLE_DECODING
 #define SYSTEMATIC_CODING
 //#define ONLY_SCDECODING
 
@@ -32,6 +27,7 @@
 
 /*
 	AVX:    256 bit per register
+	SSE:    128 bit per register
 	float:   32 bit per value
 */
 

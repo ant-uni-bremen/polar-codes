@@ -15,10 +15,6 @@
 #endif
 #include "lcg.h"
 
-
-float logdomain_sum(float x, float y);
-float logdomain_diff(float x, float y);
-
 using namespace std;
 
 enum nodeInfo
@@ -29,8 +25,7 @@ enum nodeInfo
 	RepetitionNode,
 	SPCnode,
 	RepSPCnode,
-	RateR,
-	invalidNode
+	RateR
 };
 
 struct Candidate
@@ -47,9 +42,8 @@ const __m256 minustwo = _mm256_set1_ps(-2.0f);
 struct PolarCode
 {
 	float *AlignedVector;
-	vec SIGN_MASK, ABS_MASK, ZERO;
-	__m128 sgnMask;
-	__m128 absMask;
+	__m256 sgnMask256, absMask256, ZERO;
+	__m128 sgnMask128, absMask128;
 
 	int N, K, L, n;
 	bool useCRC;
@@ -104,15 +98,15 @@ struct PolarCode
 	
 	void F_function(float *LLRin, float *LLRout, int size);
 	void F_function_vectorized(float *LLRin, float *LLRout, int size);
-	void F_function_hybrid(float *LLRin, float *LLRout, int size);
-	
+	void F_function_vectorized_4(float *LLRin, float *LLRout);
+
 	void G_function(float *LLRin, float *LLRout, float *Bits, int size);
 	void G_function_vectorized(float *LLRin, float *LLRout, float *Bits, int size);
-	void G_function_hybrid(float *LLRin, float *LLRout, float *Bits, int size);
+	void G_function_vectorized_4(float *LLRin, float *LLRout, float *Bits);
 	
 	void G_function_0R(float *LLRin, float *LLRout, int size);
 	void G_function_0R_vectorized(float *LLRin, float *LLRout, int size);
-	void G_function_0R_hybrid(float *LLRin, float *LLRout, int size);
+	void G_function_0R_vectorized_4(float *LLRin, float *LLRout);
 
 	void CombineSimple(float *Bits, int size);
 	void CombineSimple_vectorized(float *Bits, int size);
@@ -130,7 +124,6 @@ struct PolarCode
 	void Repetition(float *LLRin, float *BitsOut, int size);
 	void Repetition_vectorized(float *LLRin, float *BitsOut, int size);
 	void Repetition_vectorized_4(float *LLRin, float *BitsOut);
-	void Repetition_hybrid(float *LLRin, float *BitsOut, int size);
 	void Repetition_multiPath(int stage, int BitLocation);
 	
 	void RepSPC(float *LLRin, float *BitsOut, int size);

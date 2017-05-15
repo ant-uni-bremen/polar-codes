@@ -9,22 +9,6 @@
 
 using namespace std;
 
-inline float logdomain_sum(float x, float y)
-{
-	if(x<y)
-	{
-		return y+log1p(exp(x-y));
-	}
-	else
-	{
-		return x+log1p(exp(y-x));
-	}
-}
-
-inline float logdomain_diff(float x, float y)
-{
-	return x+log1p(-exp(y-x));
-}
 
 template <typename T> int sgn(T val) {
 	return (T(0) < val) - (val < T(0));
@@ -32,6 +16,11 @@ template <typename T> int sgn(T val) {
 
 void PolarCode::F_function(float *LLRin, float *LLRout, int size)
 {
+	if(size >= FLOATSPERVECTOR)
+		return F_function_vectorized(LLRin, LLRout, size);
+	if(size == 4)
+		return F_function_vectorized_4(LLRin, LLRout);
+
 	unsigned int *iLLRin = reinterpret_cast<unsigned int*>(LLRin);
 	unsigned int *iLLRout = reinterpret_cast<unsigned int*>(LLRout);
 	unsigned int a,b;
@@ -57,24 +46,32 @@ void PolarCode::F_function_vectorized(float *LLRin, float *LLRout, int size)
 	{
 		vec LLR_l = load_ps(LLRin+i);
 		vec LLR_r = load_ps(LLRin+i+size);
-		vec sign  = and_ps(xor_ps(LLR_l, LLR_r), SIGN_MASK);
-		vec abs_l = andnot_ps(SIGN_MASK, LLR_l);
-		vec abs_r = andnot_ps(SIGN_MASK, LLR_r);
+		vec sign  = and_ps(xor_ps(LLR_l, LLR_r), sgnMask256);
+		vec abs_l = and_ps(LLR_l, absMask256);
+		vec abs_r = and_ps(LLR_r, absMask256);
 		vec LLR_o = or_ps(sign, min_ps(abs_l, abs_r));
 		store_ps(LLRout+i, LLR_o);
 	}
 }
 
-void PolarCode::F_function_hybrid(float *LLRin, float *LLRout, int size)
+void PolarCode::F_function_vectorized_4(float *LLRin, float *LLRout)
 {
-	if(size < FLOATSPERVECTOR)
-		F_function(LLRin, LLRout, size);
-	else
-		F_function_vectorized(LLRin, LLRout, size);
+	__m128 LLR_l = _mm_load_ps(LLRin);
+	__m128 LLR_r = _mm_load_ps(LLRin+4);
+	__m128 sign  = _mm_and_ps(_mm_xor_ps(LLR_l, LLR_r), sgnMask128);
+	__m128 abs_l = _mm_and_ps(LLR_l, absMask128);
+	__m128 abs_r = _mm_and_ps(LLR_r, absMask128);
+	__m128 LLR_o = _mm_or_ps(sign, _mm_min_ps(abs_l, abs_r));
+	_mm_store_ps(LLRout, LLR_o);
 }
 
 void PolarCode::G_function(float *LLRin, float *LLRout, float *Bits, int size)
 {
+	if(size >= FLOATSPERVECTOR)
+		return G_function_vectorized(LLRin, LLRout, Bits, size);
+	if(size == 4)
+		return G_function_vectorized_4(LLRin, LLRout, Bits);
+
 	unsigned int *FloatBit = reinterpret_cast<unsigned int*>(Bits);
 	float tmp;unsigned int *iTmp = reinterpret_cast<unsigned int*>(&tmp);
 	for(int i=0; i<size; ++i)
@@ -98,16 +95,23 @@ void PolarCode::G_function_vectorized(float *LLRin, float *LLRout, float *Bits, 
 	}
 }
 
-void PolarCode::G_function_hybrid(float *LLRin, float *LLRout, float *Bits, int size)
+void PolarCode::G_function_vectorized_4(float *LLRin, float *LLRout, float *Bits)
 {
-	if(size < FLOATSPERVECTOR)
-		G_function(LLRin, LLRout, Bits, size);
-	else
-		G_function_vectorized(LLRin, LLRout, Bits, size);
+	__m128 LLR_l  = _mm_load_ps(LLRin);
+	__m128 LLR_r  = _mm_load_ps(LLRin+4);
+	__m128 Bits_l = _mm_load_ps(Bits);
+	__m128 LLR_n  = _mm_xor_ps(Bits_l, LLR_l);
+	__m128 LLR_o = _mm_add_ps(LLR_r, LLR_n);
+	_mm_store_ps(LLRout, LLR_o);
 }
 
 void PolarCode::G_function_0R(float *LLRin, float *LLRout, int size)
 {
+	if(size >= FLOATSPERVECTOR)
+		return G_function_0R_vectorized(LLRin, LLRout, size);
+	if(size == 4)
+		return G_function_0R_vectorized_4(LLRin, LLRout);
+
 	for(int i=0; i<size; ++i)
 	{
 		LLRout[i] = LLRin[i] + LLRin[i+size];
@@ -125,12 +129,12 @@ void PolarCode::G_function_0R_vectorized(float *LLRin, float *LLRout, int size)
 	}
 }
 
-void PolarCode::G_function_0R_hybrid(float *LLRin, float *LLRout, int size)
+void PolarCode::G_function_0R_vectorized_4(float *LLRin, float *LLRout)
 {
-	if(size < FLOATSPERVECTOR)
-		G_function_0R(LLRin, LLRout, size);
-	else
-		G_function_0R_vectorized(LLRin, LLRout, size);
+	__m128 LLR_l  = _mm_load_ps(LLRin);
+	__m128 LLR_r  = _mm_load_ps(LLRin+4);
+	__m128 LLR_o = _mm_add_ps(LLR_l, LLR_r);
+	_mm_store_ps(LLRout, LLR_o);
 }
 
 void PolarCode::Rate0(float *BitsOut, int size)
@@ -154,7 +158,7 @@ void PolarCode::Rate1_vectorized(float *LLRin, float *BitsOut, int size)
 	for(int i=0; i<size; i+=FLOATSPERVECTOR)
 	{
 		vec LLR_i = load_ps(LLRin+i);
-		LLR_i = and_ps(LLR_i, SIGN_MASK);
+		LLR_i = and_ps(LLR_i, sgnMask256);
 		store_ps(BitsOut+i, LLR_i);
 	}
 }
@@ -184,7 +188,7 @@ void PolarCode::P_R1_vectorized(float *LLRin, float *BitsOut, int size)
 		vec Bits_l = load_ps(BitsOut+i);
 
 		vec LLR_o = add_ps(xor_ps(LLR_l, Bits_l), LLR_r);//G-function
-		LLR_o = and_ps(LLR_o, SIGN_MASK);//Rate 1 decoder
+		LLR_o = and_ps(LLR_o, sgnMask256);//Rate 1 decoder
 		store_ps(BitsOut+i+size, LLR_o);//Right bit
 		LLR_o = xor_ps(LLR_o, Bits_l);
 		store_ps(BitsOut+i, LLR_o);//Left bit
@@ -208,9 +212,8 @@ void PolarCode::P_01(float *LLRin, float *BitsOut, int size)
 void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 {
 	if(size == 4)
-	{
 		return P_RSPC_4(LLRin, BitsOut);
-	}
+
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
 	unsigned int parity=0;float *fPar = reinterpret_cast<float*>(&parity);
@@ -226,14 +229,14 @@ void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 		vec Bit_l = load_ps(BitsOut+i);
 
 		vec LLR1 = add_ps(xor_ps(LLR_l, Bit_l), LLR_r);//G-function
-		vec Bit_o = and_ps(LLR1, SIGN_MASK);//Rate-1 decoder
+		vec Bit_o = and_ps(LLR1, sgnMask256);//Rate-1 decoder
 		store_ps(BitsOut+i+size, Bit_o);//Save bit decision
 		parityVec = xor_ps(Bit_o, parityVec);//Calculate parity
 
 		Bit_l = xor_ps(Bit_l, Bit_o);
 		store_ps(BitsOut+i, Bit_l);//Save upper bit
 
-		Bit_o = and_ps(LLR1, ABS_MASK);
+		Bit_o = and_ps(LLR1, absMask256);
 		store_ps(absLLR.data()+i, Bit_o);
 	}
 
@@ -268,14 +271,14 @@ void PolarCode::P_RSPC_4(float *LLRin, float *BitsOut)
 	__m128 Bit_l = _mm_load_ps(BitsOut);
 
 	__m128 LLR1 = _mm_add_ps(_mm_xor_ps(LLR_l, Bit_l), LLR_r);//G-function
-	__m128 Bit_o = _mm_and_ps(LLR1, sgnMask);//Rate-1 decoder
+	__m128 Bit_o = _mm_and_ps(LLR1, sgnMask128);//Rate-1 decoder
 	_mm_store_ps(BitsOut+4, Bit_o);//Save bit decision
 	parityVec = _mm_xor_ps(Bit_o, parityVec);//Calculate parity
 
 	Bit_l = _mm_xor_ps(Bit_l, Bit_o);
 	_mm_store_ps(BitsOut, Bit_l);//Save upper bit
 
-	Bit_o = _mm_and_ps(LLR1, absMask);
+	Bit_o = _mm_and_ps(LLR1, absMask128);
 	_mm_store_ps(absLLR.data(), Bit_o);
 
 	*fPar = _mm_reduce_xor_ps(parityVec);
@@ -298,6 +301,9 @@ void PolarCode::P_RSPC_4(float *LLRin, float *BitsOut)
 
 void PolarCode::P_0SPC(float *LLRin, float *BitsOut, int size)
 {
+	if(size >= FLOATSPERVECTOR)
+		return P_0SPC_vectorized(LLRin, BitsOut, size);
+
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
 	unsigned int parity=0;
@@ -345,13 +351,13 @@ void PolarCode::P_0SPC_vectorized(float *LLRin, float *BitsOut, int size)
 		vec LLR_r = load_ps(LLRin+i+size);
 
 		vec LLR1 = add_ps(LLR_l, LLR_r);//G-function
-		vec Bit_o = and_ps(LLR1, SIGN_MASK);//Rate-1 decoder
+		vec Bit_o = and_ps(LLR1, sgnMask256);//Rate-1 decoder
 		store_ps(BitsOut+i+size, Bit_o);//Save bit decision
 		parityVec = xor_ps(Bit_o, parityVec);//Calculate parity
 
 		store_ps(BitsOut+i, Bit_o);//Save upper bit
 
-		Bit_o = and_ps(LLR1, ABS_MASK);
+		Bit_o = and_ps(LLR1, absMask256);
 		store_ps(absLLR.data()+i, Bit_o);
 	}
 
@@ -405,6 +411,9 @@ void PolarCode::Combine_0RSimple(float *Bits, int size)
 
 void PolarCode::SPC(float *LLRin, float *BitsOut, int size)
 {
+	if(size == 4)
+		return SPC_4(LLRin, BitsOut);
+
 	unsigned int *iLLR = reinterpret_cast<unsigned int*>(LLRin);
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
@@ -433,7 +442,7 @@ void PolarCode::SPC(float *LLRin, float *BitsOut, int size)
 void PolarCode::SPC_4(float *LLRin, float *BitsOut)
 {
 	__m128 LLRi = _mm_load_ps(LLRin);
-	__m128 Sgn = _mm_and_ps(LLRi, sgnMask);
+	__m128 Sgn = _mm_and_ps(LLRi, sgnMask128);
 
 	_mm_store_ps(BitsOut, Sgn);
 
@@ -443,7 +452,7 @@ void PolarCode::SPC_4(float *LLRin, float *BitsOut)
 	unsigned int *iPar = reinterpret_cast<unsigned int*>(&Par);
 	if(*iPar)
 	{
-		__m128 Abs = _mm_and_ps(LLRi, absMask);
+		__m128 Abs = _mm_and_ps(LLRi, absMask128);
 		int index = (Abs[1]<Abs[0]);
 		if(Abs[2]<Abs[index])index=2;
 		if(Abs[3]<Abs[index])index=3;
@@ -454,6 +463,9 @@ void PolarCode::SPC_4(float *LLRin, float *BitsOut)
 
 void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size)
 {
+	if(size == 8)
+		return RepSPC_8(LLRin, BitsOut);
+
 	unsigned int subSize = size>>1;
 
 	unsigned int *SPC0 = reinterpret_cast<unsigned int*>(BitsOut);
@@ -540,7 +552,7 @@ void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size)
 			for(unsigned int i=0; i<subSize; i+=FLOATSPERVECTOR)
 			{
 				vec Bits = load_ps(BitsOut+subSize+i);
-				Bits = xor_ps(Bits, SIGN_MASK);
+				Bits = xor_ps(Bits, sgnMask256);
 				store_ps(BitsOut+i, Bits);
 			}
 		}
@@ -561,20 +573,20 @@ void PolarCode::RepSPC_8(float *LLRin, float *BitsOut)
 
 	__m128 LLR_l = _mm_load_ps(LLRin);
 	__m128 LLR_r = _mm_load_ps(LLRin+4);
-	__m128 sign = _mm_and_ps(_mm_xor_ps(LLR_l,LLR_r), sgnMask);
-	__m128 abs_l = _mm_and_ps(LLR_l, absMask);
-	__m128 abs_r = _mm_and_ps(LLR_r, absMask);
+	__m128 sign = _mm_and_ps(_mm_xor_ps(LLR_l,LLR_r), sgnMask128);
+	__m128 abs_l = _mm_and_ps(LLR_l, absMask128);
+	__m128 abs_r = _mm_and_ps(LLR_r, absMask128);
 	__m128 RepSumVec = _mm_or_ps(sign, _mm_min_ps(abs_l, abs_r));
 
 	__m128 x64 = _mm_add_ps(RepSumVec, _mm_movehl_ps(RepSumVec, RepSumVec));
 	__m128 x32 = _mm_add_ss(x64, _mm_shuffle_ps(x64, x64, 0x55));
-	x32 = _mm_and_ps(x32, sgnMask);//Decide Repetition code
+	x32 = _mm_and_ps(x32, sgnMask128);//Decide Repetition code
 	//RepSumVec = _mm_broadcastss_ps(x32);
 	RepSumVec = _mm_set1_ps(_mm_cvtss_f32(x32));
 
 
 	__m128 SPCVec = _mm_add_ps(_mm_xor_ps(LLR_l, RepSumVec), LLR_r);//Load SPC-LLRs
-	__m128 SPCsgn = _mm_and_ps(SPCVec, sgnMask);//Hard decision
+	__m128 SPCsgn = _mm_and_ps(SPCVec, sgnMask128);//Hard decision
 	RepSumVec = _mm_xor_ps(RepSumVec, SPCsgn);//Combine
 	_mm_store_ps(BitsOut, RepSumVec);//Store Repetition bits
 	_mm_store_ps(BitsOut+4, SPCsgn);//Store SPC bits
@@ -587,7 +599,7 @@ void PolarCode::RepSPC_8(float *LLRin, float *BitsOut)
 	{
 		//Find least reliable bit
 		int index=0;
-		__m128 SPCabs = _mm_and_ps(SPCVec, absMask);
+		__m128 SPCabs = _mm_and_ps(SPCVec, absMask128);
 		for(int i=1;i<4;++i)
 		{
 			if(SPCabs[i] < SPCabs[index])
@@ -604,6 +616,11 @@ void PolarCode::RepSPC_8(float *LLRin, float *BitsOut)
 
 void PolarCode::Repetition(float *LLRin, float *BitsOut, int size)
 {
+	if(size>=FLOATSPERVECTOR)
+		return Repetition_vectorized(LLRin, BitsOut, size);
+	if(size==4)
+		return Repetition_vectorized_4(LLRin, BitsOut);
+
 	float sum = 0.0;
 	for(int i=0; i<size; ++i)
 	{
@@ -620,11 +637,10 @@ void PolarCode::Repetition_vectorized_4(float *LLRin, float *BitsOut)
 {
 	float Sum=0;
 
-	__m128 LLRsum = _mm_set1_ps(0.0);
-	LLRsum = _mm_load_ps(LLRin);
+	__m128 LLRsum = _mm_load_ps(LLRin);
 	Sum = _mm_reduce_add_ps(LLRsum);
 	__m128 BitLLR = _mm_set1_ps(Sum);
-	__m128 BitDecision = _mm_and_ps(BitLLR, sgnMask);
+	__m128 BitDecision = _mm_and_ps(BitLLR, sgnMask128);
 	_mm_store_ps(BitsOut, BitDecision);
 }
 
@@ -641,21 +657,12 @@ void PolarCode::Repetition_vectorized(float *LLRin, float *BitsOut, int size)
 	}
 	Sum = reduce_add_ps(LLRsum);
 	vec BitLLR = set1_ps(Sum);
-	vec BitDecision = and_ps(BitLLR, SIGN_MASK);
+	vec BitDecision = and_ps(BitLLR, sgnMask256);
 	for(int i=0; i<size; i+=FLOATSPERVECTOR)
 	{
 		store_ps(BitsOut+i, BitDecision);
 	}
 }
-
-void PolarCode::Repetition_hybrid(float *LLRin, float *BitsOut, int size)
-{
-	if(size < FLOATSPERVECTOR)
-		Repetition(LLRin, BitsOut, size);
-	else
-		Repetition_vectorized(LLRin, BitsOut, size);
-}
-
 
 
 PolarCode::PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool encodeOnly)
@@ -669,7 +676,7 @@ PolarCode::PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool enc
 	this->designSNR = designSNR;
 
 	FZLookup.resize(N);
-	simplifiedTree.assign(2*N-1, invalidNode);
+	simplifiedTree.resize(2*N-1);
 
 	/* TODO: This is very bad, change CRC8 to do nothing when called */
 	Crc = useCRC ? new CRC8() : nullptr;
@@ -686,17 +693,17 @@ PolarCode::PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool enc
 	if(!encodeOnly)
 	{
 		AlignedVector = (float*)_mm_malloc(FLOATSPERVECTOR * sizeof(float), sizeof(vec));
-		SIGN_MASK = set1_ps(-0.0);
+		sgnMask256 = set1_ps(-0.0);
 		ZERO = set1_ps(0.0);
 
 		{
 			float absmask; unsigned int *absptr=reinterpret_cast<unsigned int*>(&absmask);
 			*absptr = 0x7FFFFFFF;
-			ABS_MASK = set1_ps(absmask);
+			absMask256 = set1_ps(absmask);
 		}
 
-		sgnMask = _mm256_extractf128_ps(SIGN_MASK, 0);
-		absMask = _mm256_extractf128_ps(ABS_MASK, 0);
+		sgnMask128 = _mm256_extractf128_ps(sgnMask256, 0);
+		absMask128 = _mm256_extractf128_ps(absMask256, 0);
 
 		maxCandCount = L<<3;
 		Metric.resize(L);
@@ -820,11 +827,6 @@ void PolarCode::pcc()
 #ifndef ONLY_SCDECODING
 			nodeInfo Left  = simplifiedTree[ctr++];
 			nodeInfo Right = simplifiedTree[ctr++];
-			if(Left == invalidNode || Right == invalidNode)
-			{
-				cerr << "Invalid node found!"<<endl<<flush;
-				exit(EXIT_FAILURE);
-			}
 			if(Left == RateZero && Right == RateZero)
 			{
 				simplifiedTree[idx] = RateZero;
@@ -891,12 +893,7 @@ void PolarCode::encode(aligned_float_vector &encoded, unsigned char* data)
 #ifndef SYSTEMATIC_CODING
 	transform(encoded);
 #else
-
-#ifdef FLEXIBLE_DECODING
 	subEncodeSystematic(encoded, n, 0, 0);
-#else
-#include "SpecialSystematicEncoder.cpp"
-#endif
 #endif
 }
 
@@ -905,23 +902,6 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 	int leftNode  = (nodeID<<1)+1;
 	int rightNode = leftNode+1;
 	int subStageLength = 1<<(stage-1);
-
-
-	if(simplifiedTree[nodeID] == invalidNode)
-	{
-		cerr << "Encoding: Current node is invalid!" << endl << flush;
-		exit(EXIT_FAILURE);
-	}
-	if(simplifiedTree[leftNode] == invalidNode)
-	{
-		cerr << "Encoding: Left node is invalid!" << endl << flush;
-		exit(EXIT_FAILURE);
-	}
-	if(simplifiedTree[rightNode] == invalidNode)
-	{
-		cerr << "Encoding: Right node is invalid!" << endl << flush;
-		exit(EXIT_FAILURE);
-	}
 
 	unsigned int* iData = reinterpret_cast<unsigned int*>(encoded.data());
 	float *fData = encoded.data();
@@ -952,14 +932,7 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 	if(simplifiedTree[leftNode] != RateZero)
 	{
 		//XOR left and right to left, to get the left child node bits
-		if(subStageLength<FLOATSPERVECTOR)
-		{
-			for(int i=0; i<subStageLength; ++i)
-			{
-				iData[BitLocation+i] ^= iData[BitLocation+subStageLength+i];
-			}
-		}
-		else
+		if(subStageLength>=FLOATSPERVECTOR)
 		{
 			for(int i=0; i<subStageLength; i+=FLOATSPERVECTOR)
 			{
@@ -969,18 +942,27 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 				store_ps(fData+BitLocation+i, c);
 			}
 		}
+		else if(subStageLength==4)
+		{
+			__m128 a = _mm_load_ps(fData+BitLocation);
+			__m128 b = _mm_load_ps(fData+BitLocation+4);
+			__m128 c = _mm_xor_ps(a, b);
+			_mm_store_ps(fData+BitLocation, c);
+		}
+		else
+
+		{
+			for(int i=0; i<subStageLength; ++i)
+			{
+				iData[BitLocation+i] ^= iData[BitLocation+subStageLength+i];
+			}
+		}
+
 		//Calculate left node
 		if(simplifiedTree[leftNode] != RateOne)
 			subEncodeSystematic(encoded, stage-1, BitLocation, leftNode);
 		//XOR left and right to left part of parent node
-		if(subStageLength<FLOATSPERVECTOR)
-		{
-			for(int i=0; i<subStageLength; ++i)
-			{
-				iData[BitLocation+i] ^= iData[BitLocation+subStageLength+i];
-			}
-		}
-		else
+		if(subStageLength>=FLOATSPERVECTOR)
 		{
 			for(int i=0; i<subStageLength; i+=FLOATSPERVECTOR)
 			{
@@ -988,6 +970,20 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 				vec b = load_ps(fData+BitLocation+subStageLength+i);
 				vec c = xor_ps(a, b);
 				store_ps(fData+BitLocation+i, c);
+			}
+		}
+		else if(subStageLength==4)
+		{
+			__m128 a = _mm_load_ps(fData+BitLocation);
+			__m128 b = _mm_load_ps(fData+BitLocation+4);
+			__m128 c = _mm_xor_ps(a, b);
+			_mm_store_ps(fData+BitLocation, c);
+		}
+		else
+		{
+			for(int i=0; i<subStageLength; ++i)
+			{
+				iData[BitLocation+i] ^= iData[BitLocation+subStageLength+i];
 			}
 		}
 	}
@@ -1028,6 +1024,19 @@ void PolarCode::transform(aligned_float_vector &Bits)
 				}
 				base += inc;
 			}
+		}
+		else if(B==4)
+		{
+			base = 0;
+			for(int j=0; j<nB; ++j)
+			{
+				__m128 Bit_l = _mm_load_ps(BitPtr+base);
+				__m128 Bit_r = _mm_load_ps(BitPtr+base+4);
+				Bit_l = _mm_xor_ps(Bit_l, Bit_r);
+				_mm_store_ps(BitPtr+base, Bit_l);
+				base += inc;
+			}
+
 		}
 		else
 		{
@@ -1116,13 +1125,7 @@ bool PolarCode::decode(unsigned char* decoded, float* initLLR)
 
 bool PolarCode::decodeOnePath(unsigned char* decoded)
 {
-#ifdef FLEXIBLE_DECODING
 	decodeOnePathRecursive(n,SimpleBits.data(),0);
-#else
-	float *BitPtr = SimpleBits.data();
-#include "SpecialDecoder.cpp"
-#endif
-
 
 #ifndef SYSTEMATIC_CODING
 	transform(SimpleBits);
@@ -1158,7 +1161,7 @@ void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 
 	if(simplifiedTree[leftNode] != RateZero)
 	{
-		F_function_hybrid(LLRptr, LLR[0][stage-1].data(), subStageLength);
+		F_function(LLRptr, LLR[0][stage-1].data(), subStageLength);
 	}
 
 	switch(simplifiedTree[leftNode])
@@ -1171,27 +1174,13 @@ void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 		break;
 	case RepetitionNode:
 	case RateHalf:
-		Repetition_hybrid(LLR[0][stage-1].data(), nodeBits, subStageLength);
+		Repetition(LLR[0][stage-1].data(), nodeBits, subStageLength);
 		break;
 	case SPCnode:
-		if(subStageLength == 4)
-		{
-			SPC_4(LLR[0][stage-1].data(), nodeBits);
-		}
-		else
-		{
-			SPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
-		}
+		SPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
 		break;
 	case RepSPCnode:
-		if(subStageLength == 8)
-		{
-			RepSPC_8(LLR[0][stage-1].data(), nodeBits);
-		}
-		else
-		{
-			RepSPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
-		}
+		RepSPC(LLR[0][stage-1].data(), nodeBits, subStageLength);
 		break;
 	default:
 		decodeOnePathRecursive(stage-1, nodeBits, leftNode);
@@ -1219,14 +1208,7 @@ void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 	{
 		if(simplifiedTree[leftNode] == RateZero)
 		{
-			if(subStageLength<FLOATSPERVECTOR)
-			{
-				P_0SPC(LLRptr, nodeBits, subStageLength);
-			}
-			else
-			{
-				P_0SPC_vectorized(LLRptr, nodeBits, subStageLength);
-			}
+			P_0SPC(LLRptr, nodeBits, subStageLength);
 		}
 		else
 		{
@@ -1237,11 +1219,11 @@ void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 	{
 		if(simplifiedTree[leftNode] != RateZero)
 		{
-			G_function_hybrid(LLRptr, LLR[0][stage-1].data(), nodeBits, subStageLength);
+			G_function(LLRptr, LLR[0][stage-1].data(), nodeBits, subStageLength);
 		}
 		else
 		{
-			G_function_0R_hybrid(LLRptr, LLR[0][stage-1].data(), subStageLength);
+			G_function_0R(LLRptr, LLR[0][stage-1].data(), subStageLength);
 		}
 
 		switch(simplifiedTree[rightNode])
@@ -1254,27 +1236,13 @@ void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 			break;
 		case RepetitionNode:
 		case RateHalf:
-			Repetition_hybrid(LLR[0][stage-1].data(), rightBits, subStageLength);
+			Repetition(LLR[0][stage-1].data(), rightBits, subStageLength);
 			break;
 		case SPCnode:
-			if(subStageLength == 4)
-			{
-				SPC_4(LLR[0][stage-1].data(), rightBits);
-			}
-			else
-			{
-				SPC(LLR[0][stage-1].data(), rightBits, subStageLength);
-			}
+			SPC(LLR[0][stage-1].data(), rightBits, subStageLength);
 			break;
 		case RepSPCnode:
-			if(subStageLength == 8)
-			{
-				RepSPC_8(LLR[0][stage-1].data(), rightBits);
-			}
-			else
-			{
-				RepSPC(LLR[0][stage-1].data(), rightBits, subStageLength);
-			}
+			RepSPC(LLR[0][stage-1].data(), rightBits, subStageLength);
 			break;
 		default:
 			decodeOnePathRecursive(stage-1, rightBits, rightNode);
