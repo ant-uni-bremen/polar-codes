@@ -110,6 +110,7 @@ struct PolarCode
 
 	void CombineSimple(float *Bits, int size);
 	void CombineSimple_vectorized(float *Bits, int size);
+	void CombineSimple_vectorized_4(float *Bits);
 	void Combine_0RSimple(float *Bits, int size);
 
 	void SPC(float *LLRin, float *BitsOut, int size);
@@ -120,23 +121,26 @@ struct PolarCode
 	void P_RSPC_4(float *LLRin, float *BitsOut);
 	void P_0SPC(float *LLRin, float *BitsOut, int size);
 	void P_0SPC_vectorized(float *LLRin, float *BitsOut, int size);
+	void P_0SPC_vectorized_4(float *LLRin, float *BitsOut);
 
 	void Repetition(float *LLRin, float *BitsOut, int size);
 	void Repetition_vectorized(float *LLRin, float *BitsOut, int size);
 	void Repetition_vectorized_4(float *LLRin, float *BitsOut);
 	void Repetition_multiPath(int stage, int BitLocation);
 	
-	void RepSPC(float *LLRin, float *BitsOut, int size);
+//	void RepSPC(float *LLRin, float *BitsOut, int size);
 	void RepSPC_8(float *LLRin, float *BitsOut);
 	
 	void P_R1(float *LLRin, float *BitsOut, int size);
 	void P_R1_vectorized(float *LLRin, float *BitsOut, int size);
+	void P_R1_vectorized_4(float *LLRin, float *BitsOut);
 	void P_01(float *LLRin, float *BitsOut, int size);
 
 	void Rate0(float *BitsOut, int size);
 	void Rate0_multiPath(int stage, int BitLocation);
 	void Rate1(float *LLRin, float *BitsOut, int size);
 	void Rate1_vectorized(float *LLRin, float *BitsOut, int size);
+	void Rate1_vectorized_4(float *LLRin, float *BitsOut);
 	void Rate1_multiPath(int stage, int BitLocation);
 
 	void pcc();

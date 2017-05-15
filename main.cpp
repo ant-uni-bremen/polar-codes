@@ -21,8 +21,8 @@
 #include "Parameters.h"
 
 const int BufferInterval		=      1000;//Blocks
-const long long BitsToSimulate	= 200000000;//Bits
-const int ConcurrentThreads = 2;
+const long long BitsToSimulate	= 1e9;//Bits
+const int ConcurrentThreads = 1;
 
 const float EbN0_min =  0;
 const float EbN0_max =  7;
@@ -36,8 +36,8 @@ const int EbN0_count = 20;
 
 /* Code length comparison*/
 const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-int ParameterN[] = {128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768}, nParams = 9;
-int ParameterK[] = {64,  128, 256,  512, 1024, 2048, 4096,  8192, 16384};
+int ParameterN[] = {64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768}, nParams = 10;
+int ParameterK[] = {32, 64,  128, 256,  512, 1024, 2048, 4096,  8192, 16384};
 int L = 1;
 const bool useCRC = false;
 
@@ -610,7 +610,6 @@ int main(int argc, char** argv)
 			Graph[idCounter].designSNR = designSNR;
 			Graph[idCounter].useCRC = useCRC;
 			 */
- 			
  			
 				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  /*N*/ ParameterN[l];
 				Graph[idCounter].MaxBufferSize = Graph[idCounter].BlocksToSimulate>>2;
