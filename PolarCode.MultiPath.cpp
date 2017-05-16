@@ -515,7 +515,7 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 	//Calculate LLRs for all paths
 	for(int currentPath=0; currentPath<PathCount; ++currentPath)
 	{
-		F_function( (stage==n) ? initialLLR.data() : LLR[currentPath][stage].data()
+		F_function( (stage==n) ? initialLLR : LLR[currentPath][stage].data()
 				  , LLR[currentPath][stage-1].data(), subStageLength);
 	}
 
@@ -549,7 +549,7 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 	{
 		for(int currentPath=0; currentPath<PathCount; ++currentPath)
 		{
-			G_function( (stage==n) ? initialLLR.data() : LLR[currentPath][stage].data()
+			G_function( (stage==n) ? initialLLR : LLR[currentPath][stage].data()
 					  , LLR[currentPath][stage-1].data(), Bits[currentPath].data()+BitLocation, subStageLength);
 		}
 	}
@@ -557,7 +557,7 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 	{
 		for(int currentPath=0; currentPath<PathCount; ++currentPath)
 		{
-			G_function_0R( (stage==n) ? initialLLR.data() : LLR[currentPath][stage].data()
+			G_function_0R( (stage==n) ? initialLLR : LLR[currentPath][stage].data()
 						 , LLR[currentPath][stage-1].data(), subStageLength);
 		}
 	}

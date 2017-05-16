@@ -56,7 +56,7 @@ struct PolarCode
 		
 	typedef vector<float, aligned_allocator<float, sizeof(vec)> > aligned_float_vector;
 	
-	aligned_float_vector initialLLR;
+	float* initialLLR;
 	vector<vector<aligned_float_vector>> LLR;//[List][Stage][ValueIndex]
 	vector<aligned_float_vector> Bits;//[List]
 	

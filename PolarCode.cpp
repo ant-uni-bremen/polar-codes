@@ -794,7 +794,6 @@ PolarCode::PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool enc
 
 		absLLR.resize(N);
 
-		initialLLR.resize(N);
 		LLR.resize(L);
 		Bits.resize(L);
 		newLLR.resize(L);
@@ -841,7 +840,6 @@ void PolarCode::clear()
 	cand.clear();
 	SimpleBits.clear();
 	absLLR.clear();
-	initialLLR.clear();
 	LLR.clear();
 	Bits.clear();
 	newLLR.clear();
@@ -1171,7 +1169,7 @@ void PolarCode::modulateAndDistort(float *signal, aligned_float_vector &data, in
 
 bool PolarCode::decode(unsigned char* decoded, float* initLLR)
 {
-	memcpy(initialLLR.data(), initLLR, N<<2);
+	initialLLR = initLLR;
 
 	if(useCRC)
 	{
@@ -1236,7 +1234,7 @@ void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)
 	int rightNode = leftNode+1;
 	int subStageLength = 1<<(stage-1);
 	float *rightBits = nodeBits+subStageLength;
-	float *LLRptr = stage==n ? initialLLR.data() : LLR[0][stage].data();
+	float *LLRptr = stage==n ? initialLLR : LLR[0][stage].data();
 
 	if(simplifiedTree[leftNode] != RateZero)
 	{
