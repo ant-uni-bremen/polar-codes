@@ -108,7 +108,7 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 
 //	sorter.set(newMetrics, candCtr);
 //	sorter.stableSortDescending();
-	sorter.simplePartialSortDescending(newMetrics, candCtr, newPathCount);
+	sorter.simplePartialSortDescending(newMetrics.data(), candCtr, newPathCount);
 	
 	vector<int> lastOne(PathCount, -1);
 	for(int path=0; path<newPathCount; ++path)
@@ -283,7 +283,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 
 //	sorter.set(newMetrics, candCtr);
 //	sorter.stableSortDescending();
-	sorter.simplePartialSortDescending(newMetrics, candCtr, newPathCount);
+	sorter.simplePartialSortDescending(newMetrics.data(), candCtr, newPathCount);
 
 	vector<int> lastOne(PathCount, -1);
 	for(int path=0; path<newPathCount; ++path)
@@ -395,7 +395,7 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 
 //	sorter.set(newMetrics, candCtr);
 //	sorter.stableSortDescending();
-	sorter.simplePartialSortDescending(newMetrics, candCtr, newPathCount);
+	sorter.simplePartialSortDescending(newMetrics.data(), candCtr, newPathCount);
 
 	vector<int> lastOne(PathCount, -1);
 	for(int path=0; path<newPathCount; ++path)
