@@ -11,11 +11,29 @@ using namespace std;
 
 void PolarCode::quick_abs(float *LLRin, float *LLRout, int size)
 {
-	for(int i=0; i<size; i+=FLOATSPERVECTOR)
+	if(size >= FLOATSPERVECTOR)
 	{
-		vec LLRabs = load_ps(LLRin+i);
-		LLRabs = and_ps(LLRabs, absMask256);
-		store_ps(LLRout+i, LLRabs);
+		for(int i=0; i<size; i+=FLOATSPERVECTOR)
+		{
+			vec LLRabs = load_ps(LLRin+i);
+			LLRabs = and_ps(LLRabs, absMask256);
+			store_ps(LLRout+i, LLRabs);
+		}
+	}
+	else if(size == 4)
+	{
+		__m128 LLRabs = _mm_load_ps(LLRin);
+		LLRabs = _mm_and_ps(LLRabs, absMask128);
+		_mm_store_ps(LLRout, LLRabs);
+	}
+	else
+	{
+		unsigned int *iLLRin = reinterpret_cast<unsigned int*>(LLRin);
+		unsigned int *iLLRout = reinterpret_cast<unsigned int*>(LLRout);
+		for(int i=0; i<size; ++i)
+		{
+			iLLRout[i] = iLLRin[i]&0x7FFFFFFF;
+		}
 	}
 }
 
@@ -123,7 +141,7 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 		//Save everything
 		if(path != lastOne[selCand.srcPath])
 		{
-			for(int cstage=0; cstage < n; ++cstage)
+			for(int cstage=stage; cstage < n; ++cstage)
 			{
 				memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
 			}
@@ -136,15 +154,7 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 		}
 
 		//Compose the new path
-		Metric[path] = newMetrics[path];
-		if(size<FLOATSPERVECTOR)
-		{
-			Rate1(newLLR[path][stage].data(), newBits[path].data()+BitLocation, size);
-		}
-		else
-		{
-			Rate1_vectorized(newLLR[path][stage].data(), newBits[path].data()+BitLocation, size);
-		}
+		Rate1(newLLR[path][stage].data(), newBits[path].data()+BitLocation, size);
 		
 		//Flip the bits
 		unsigned int *BitPtr = reinterpret_cast<unsigned int*>(newBits[path].data()+BitLocation);
@@ -154,6 +164,7 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 		}	
 	}
 
+	std::swap(Metric, newMetrics);
 	std::swap(Bits, newBits);
 	std::swap(LLR, newLLR);
 	PathCount = newPathCount;
@@ -298,7 +309,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 		//Save everything
 		if(path != lastOne[selCand.srcPath])
 		{
-			for(int cstage=0; cstage < n; ++cstage)
+			for(int cstage=stage; cstage < n; ++cstage)
 			{
 				memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
 			}
@@ -311,15 +322,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 		}
 
 		//Compose the new path
-		Metric[path] = newMetrics[path];
-		if(size<FLOATSPERVECTOR)
-		{
-			Rate1(newLLR[path][stage].data(), newBits[path].data()+BitLocation, size);
-		}
-		else
-		{
-			Rate1_vectorized(newLLR[path][stage].data(), newBits[path].data()+BitLocation, size);
-		}
+		Rate1(newLLR[path][stage].data(), newBits[path].data()+BitLocation, size);
 
 		//Flip the bits
 		unsigned int *BitPtr = reinterpret_cast<unsigned int*>(newBits[path].data()+BitLocation);
@@ -329,6 +332,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 		}	
 	}
 
+	std::swap(Metric, newMetrics);
 	std::swap(Bits, newBits);
 	std::swap(LLR, newLLR);
 	PathCount = newPathCount;
@@ -410,7 +414,7 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 		//Save everything
 		if(path != lastOne[selCand.srcPath])
 		{
-			for(int cstage=0; cstage < n; ++cstage)
+			for(int cstage=stage; cstage < n; ++cstage)
 			{
 				memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
 			}
@@ -423,7 +427,6 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 		}
 
 		//Compose the new path
-		Metric[path] = newMetrics[path];
 		float value; unsigned int *iValue = reinterpret_cast<unsigned int*>(&value);
 		*iValue = selCand.decisionIndex<<31;
 		if(size < FLOATSPERVECTOR)
@@ -444,6 +447,7 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 		}
 	}
 
+	std::swap(Metric, newMetrics);
 	std::swap(Bits, newBits);
 	std::swap(LLR, newLLR);
 	PathCount = newPathCount;
@@ -491,7 +495,7 @@ bool PolarCode::decodeMultiPath(unsigned char* decoded)
 #endif
 	}
 
-	//Give out the most likely path, if no crc is not used or didn't pass the check
+	//Give out the most likely path, if no crc is used or passed the check
 	int bytes = K>>3;
 	int bit = 0;
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(Bits[0].data());
@@ -522,6 +526,7 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 				  , LLR[currentPath][stage-1].data(), subStageLength);
 	}
 
+
 	switch(simplifiedTree[leftNode])
 	{
 	case RateZero:
@@ -543,8 +548,6 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 	default:
 		decodeMultiPathRecursive(stage-1, BitLocation, leftNode);
 	}
-	
-
 	
 	/* Now, for all the paths, generate the bit decision-dependent
 	   subpaths and proceed as above */
