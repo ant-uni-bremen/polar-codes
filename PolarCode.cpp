@@ -4,7 +4,6 @@
 #include <utility>
 
 #include "PolarCode.h"
-#include "ArrayFuncs.h"
 #include "crc8.h"
 
 using namespace std;
@@ -139,7 +138,7 @@ void PolarCode::G_function_0R_vectorized_4(float *LLRin, float *LLRout)
 
 void PolarCode::Rate0(float *BitsOut, int size)
 {
-	memset(BitsOut, 0, size*sizeof(float));
+	memset(BitsOut, 0, size<<2);
 }
 
 void PolarCode::Rate1(float *LLRin, float *BitsOut, int size)
@@ -235,9 +234,8 @@ void PolarCode::P_01(float *LLRin, float *BitsOut, int size)
 		*iTmp &= 0x80000000;//Rate 1 decoder
 		BitsOut[i] = tmp;//Left bit
 		BitsOut[i+size] = tmp;//Right bit
-	}
+	}	
 }
-
 
 void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 {
@@ -384,10 +382,11 @@ void PolarCode::P_0SPC_vectorized(float *LLRin, float *BitsOut, int size)
 
 		vec LLR1 = add_ps(LLR_l, LLR_r);//G-function
 		vec Bit_o = and_ps(LLR1, sgnMask256);//Rate-1 decoder
-		store_ps(BitsOut+i+size, Bit_o);//Save bit decision
-		parityVec = xor_ps(Bit_o, parityVec);//Calculate parity
 
 		store_ps(BitsOut+i, Bit_o);//Save upper bit
+		store_ps(BitsOut+i+size, Bit_o);//Save lower bit
+
+		parityVec = xor_ps(Bit_o, parityVec);//Calculate parity
 
 		Bit_o = and_ps(LLR1, absMask256);
 		store_ps(absLLR.data()+i, Bit_o);
@@ -426,10 +425,10 @@ void PolarCode::P_0SPC_vectorized_4(float *LLRin, float *BitsOut)
 
 	__m128 LLR1 = _mm_add_ps(LLR_l, LLR_r);//G-function
 	__m128 Bit_o = _mm_and_ps(LLR1, sgnMask128);//Rate-1 decoder
-	_mm_store_ps(BitsOut+4, Bit_o);//Save bit decision
-	parityVec = _mm_xor_ps(Bit_o, parityVec);//Calculate parity
-
 	_mm_store_ps(BitsOut, Bit_o);//Save upper bit
+	_mm_store_ps(BitsOut+4, Bit_o);//Save lower bit
+
+	parityVec = _mm_xor_ps(Bit_o, parityVec);//Calculate parity
 
 	Bit_o = _mm_and_ps(LLR1, absMask128);
 	_mm_store_ps(absLLR.data(), Bit_o);
@@ -495,6 +494,9 @@ void PolarCode::SPC(float *LLRin, float *BitsOut, int size)
 	if(size == 4)
 		return SPC_4(LLRin, BitsOut);
 
+	else
+		cerr << "This should not be called!" << endl << flush;
+
 	unsigned int *iLLR = reinterpret_cast<unsigned int*>(LLRin);
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
@@ -541,111 +543,6 @@ void PolarCode::SPC_4(float *LLRin, float *BitsOut)
 		iBit[index] ^= 0x80000000;
 	}
 }
-
-/*void PolarCode::RepSPC(float *LLRin, float *BitsOut, int size)
-{
-	if(size == 8)
-		return RepSPC_8(LLRin, BitsOut);
-
-	unsigned int subSize = size>>1;
-
-	unsigned int *SPC0 = reinterpret_cast<unsigned int*>(BitsOut);
-	unsigned int *SPC1 = reinterpret_cast<unsigned int*>(BitsOut+subSize);
-	unsigned int *decidedSPC;
-	float RepSum = 0.0, RepAcc;
-
-	float a, absA, minA = INFINITY,
-		  b, absB, minB = INFINITY;
-	unsigned int indA = 0, parA = 0,
-				 indB = 0, parB = 0;
-
-	unsigned int *ia = reinterpret_cast<unsigned int*>(&a);
-	unsigned int *ib = reinterpret_cast<unsigned int*>(&b);
-	unsigned int *iabsA = reinterpret_cast<unsigned int*>(&absA);
-	unsigned int *iabsB = reinterpret_cast<unsigned int*>(&absB);
-	unsigned int *iRepSum = reinterpret_cast<unsigned int*>(&RepSum);
-	unsigned int *iRepAcc = reinterpret_cast<unsigned int*>(&RepAcc);
-
-	for(unsigned int i=0; i<subSize; ++i)
-	{
-		//Prepare the LLRs for i-th bit
-		a = LLRin[i];
-		b = LLRin[i+subSize];
-		*iabsA = *ia&0x7FFFFFFF;
-		*iabsB = *ib&0x7FFFFFFF;
-
-		//Accumulate the value for Repetition code
-		//RepSum += sgn(a) * sgn(b) * fmin(absA,absB);
-		RepAcc = fmin(absA, absB);
-		*iRepAcc ^= (*ia ^ *ib) & 0x80000000;
-		RepSum += RepAcc;
-
-		//Decide both possibilities for SPC code
-		a = LLRin[i+subSize] + LLRin[i];
-		b = LLRin[i+subSize] - LLRin[i];
-		SPC0[i] = *ia & 0x80000000;
-		SPC1[i] = *ib & 0x80000000;
-		//and update the parity check
-		parA ^= SPC0[i];
-		parB ^= SPC1[i];
-
-		*iabsA = *ia&0x7FFFFFFF;
-		*iabsB = *ib&0x7FFFFFFF;
-
-		//Find least reliable bit for SPC code
-		if(absA < minA)
-		{
-			minA = absA;
-			indA = i;
-		}
-		if(absB < minB)
-		{
-			minB = absB;
-			indB = i;
-		}
-	}
-
-	//Hard decision for repetition code
-	*iRepSum &= 0x80000000;
-
-	//Decide, which SPC-bits and parity bit to use
-	decidedSPC = *iRepSum ? SPC1 : SPC0;
-	unsigned int parity = *iRepSum ? parB : parA;
-	unsigned int index = *iRepSum ? indB : indA;
-
-
-	//Flip the the least reliable bit
-	decidedSPC[index] ^= parity;
-
-	//Save the decisions
-	if(*iRepSum)
-	{
-		//Copy the inverted bits up, if Repetition bit was 1
-		if(subSize < FLOATSPERVECTOR)
-		{
-			for(unsigned int i=0; i<subSize; ++i)
-			{
-				SPC0[i] = SPC1[i] ^ 0x80000000;
-			}
-		}
-		else
-		{
-			for(unsigned int i=0; i<subSize; i+=FLOATSPERVECTOR)
-			{
-				vec Bits = load_ps(BitsOut+subSize+i);
-				Bits = xor_ps(Bits, sgnMask256);
-				store_ps(BitsOut+i, Bits);
-			}
-		}
-	}
-	else
-	{
-		//Copy the bits down, if Repetition bit was 0
-		memcpy(SPC1, SPC0, subSize<<2);
-	}
-}*/
-
-
 
 void PolarCode::RepSPC_8(float *LLRin, float *BitsOut)
 {

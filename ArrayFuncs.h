@@ -17,7 +17,7 @@ private:
 	int partitionDescending(int lo, int hi);
 
 public:
-	std::vector<float> sorted;
+	float *data;
 	std::vector<int> permuted;
 	int size;
 	trackingSorter();
@@ -35,6 +35,7 @@ public:
 	void partialSortDescending(int n);
 	
 	void simplePartialSort(float *data, int size, int n);
+	void simplePartialSortDescending(float *data, int size, int n);
 };
 
 void Bits2Bytes(std::vector<float> &bits, unsigned char *bytes, int nBytes);

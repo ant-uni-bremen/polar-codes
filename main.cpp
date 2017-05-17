@@ -20,7 +20,7 @@
 
 #include "Parameters.h"
 
-const long long BitsToSimulate	= 4e8;//Bits
+const long long BitsToSimulate	= 1e9;//Bits
 const int ConcurrentThreads = 2;
 
 const float EbN0_min =  0;
@@ -43,32 +43,26 @@ const bool useCRC = false;
 /* Design-SNR measurement
 float designParam[] = {-1.59, 0.0, 2.0, 4.0, 6.0};
 const int nParams = 5;
-const int N = 1<<8;
-const int K = floor(N *   1.0/2.0   / 8)*8; //+8;
+const int N = 1<<11;
+const int K = floor(N *   0.9   / 8)*8; //+8;
 const int L = 1;
 const bool useCRC = false;
-*/
-/* List length comparison
- * This is the only simulation case, where you can disable the FLEXIBLE_DECODING switch
- * in Parameters.h. Be careful to generate the correct coders using the subproject in
- * the "Specialized Decoder"-directory and then explicitly rebuild PolarCode.cpp and
- * PolarCode.MultiPath.cpp to include the specialized decoders.
- * 
-const float designSNR = 4.0;
-const int N = 2048;
-const int K = floor(2048.0* 5.0/6.0 /8.0)*8+8;
-int ParameterL[] = {1, 2, 4, 8}; const int nParams = 4;
-const bool useCRC = true;
  */
+/* List length comparison */
+const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
+const int N = 128;
+const int K = floor(N * 1.0/2.0 /8.0)*8+8;
+int ParameterL[] = {1, 2, 4, 8, 16}; const int nParams = 5;
+const bool useCRC = true;
 
-/* Rate comparison */
-const float designSNR = 4.0;
+/* Rate comparison
+const float designSNR = 1.0;//10.0*log10(-1.0 * log(0.5));//=-1.591745dB
 const int nParams = 6;
 const int N = 2048;
 float ParameterR[] = {1.0/4.0, 1.0/2.0, 2.0/3.0, 3.0/4.0, 5.0/6.0, 0.9};
 const int L = 1;
 const bool useCRC = false;
-
+ */
  
 std::atomic<unsigned int> finishedThreads(0);
 std::mutex threadMutex[ConcurrentThreads];
@@ -348,21 +342,21 @@ int main(int argc, char** argv)
 			Graph[idCounter].useCRC = useCRC;
 			 */
 				
-			/* List length comparison
+			/* List length comparison */
 			Graph[idCounter].N = N;
 			Graph[idCounter].K = K;
 			Graph[idCounter].L = ParameterL[l];
 			Graph[idCounter].designSNR = designSNR;
 			Graph[idCounter].useCRC = useCRC;
-			*/
+
  			
-			/* Rate comparison */
+			/* Rate comparison
 			Graph[idCounter].N = N;
 			Graph[idCounter].K = floor(N * ParameterR[l] / 8.0)*8 + (useCRC?8:0);
 			Graph[idCounter].L = L;
 			Graph[idCounter].designSNR = designSNR;
 			Graph[idCounter].useCRC = useCRC;
-
+			*/
  			
 				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N /* ParameterN[l]*/;
 
@@ -391,15 +385,15 @@ int main(int argc, char** argv)
 	
 //	File << "\"N\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 //	File << "\"designSNR\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-//	File << "\"L\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-	File << "\"R\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"L\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+//	File << "\"R\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
 	for(int i=0; i<EbN0_count*nParams; ++i)
 	{
 //		File << Graph[i].N;
 //		File << Graph[i].designSNR;
-//		File << Graph[i].L;
-		File << ((float)Graph[i].K/Graph[i].N);
+		File << Graph[i].L;
+//		File << ((float)Graph[i].K/Graph[i].N);
 
 		File << ',' << Graph[i].EbN0 << ',';
 		if(Graph[i].BLER>0.0)
