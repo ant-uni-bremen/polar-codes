@@ -82,7 +82,7 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 		tmpCand.decisionIndex = 1;
 		tmpCand.nHints = 0;
 		tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
-		newMetrics[candCtr] = MLmetric - absLLR[sorter.permuted[0]];
+		newMetrics[candCtr] = MLmetric - absLLR[0];
 		cand[candCtr++] = tmpCand;
 
 		if(size >=2)
@@ -91,7 +91,7 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 			tmpCand.decisionIndex = 2;
 			tmpCand.nHints = 0;
 			tmpCand.hints[tmpCand.nHints++] = sorter.permuted[1];
-			newMetrics[candCtr] = MLmetric - absLLR[sorter.permuted[1]];
+			newMetrics[candCtr] = MLmetric - absLLR[1];
 			cand[candCtr++] = tmpCand;
 	
 			//Candidate four
@@ -99,7 +99,7 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 			tmpCand.nHints = 0;
 			tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
 			tmpCand.hints[tmpCand.nHints++] = sorter.permuted[1];
-			newMetrics[candCtr] = MLmetric - absLLR[sorter.permuted[0]] - absLLR[sorter.permuted[1]];
+			newMetrics[candCtr] = MLmetric - absLLR[0] - absLLR[1];
 			cand[candCtr++] = tmpCand;
 		}
 	}
@@ -123,7 +123,7 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 		//Save everything
 		if(path != lastOne[selCand.srcPath])
 		{
-			for(int cstage=stage; cstage < n; ++cstage)
+			for(int cstage=0; cstage < n; ++cstage)
 			{
 				memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
 			}
@@ -136,7 +136,7 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 		}
 
 		//Compose the new path
-		Metric[path] = newMetrics[sorter.permuted[path]];
+		Metric[path] = newMetrics[path];
 		if(size<FLOATSPERVECTOR)
 		{
 			Rate1(newLLR[path][stage].data(), newBits[path].data()+BitLocation, size);
@@ -207,7 +207,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 		tmpCand.decisionIndex = 0;
 		tmpCand.nHints = 0;
 		if(!parityOK) tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
-		MLmetric = Metric[path] - (1.0-q) * absLLR[sorter.permuted[0]];
+		MLmetric = Metric[path] - (1.0-q) * absLLR[0];
 		newMetrics[candCtr] = MLmetric;
 		cand[candCtr++] = tmpCand;
 
@@ -218,7 +218,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 			tmpCand.nHints = 0;
 			if(parityOK) tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
 			tmpCand.hints[tmpCand.nHints++] = sorter.permuted[1];
-			newMetrics[candCtr] = MLmetric - q*absLLR[sorter.permuted[0]] - absLLR[sorter.permuted[1]];
+			newMetrics[candCtr] = MLmetric - q*absLLR[0] - absLLR[1];
 			cand[candCtr++] = tmpCand;
 	
 			if(size >= 4 && L>2)
@@ -228,7 +228,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 				tmpCand.nHints = 0;
 				if(parityOK) tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[2];
-				newMetrics[candCtr] = MLmetric - q*absLLR[sorter.permuted[0]] - absLLR[sorter.permuted[2]];
+				newMetrics[candCtr] = MLmetric - q*absLLR[0] - absLLR[2];
 				cand[candCtr++] = tmpCand;
 		
 				//Candidate four
@@ -236,7 +236,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 				tmpCand.nHints = 0;
 				if(parityOK) tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[3];
-				newMetrics[candCtr] = MLmetric - q*absLLR[sorter.permuted[0]] - absLLR[sorter.permuted[3]];
+				newMetrics[candCtr] = MLmetric - q*absLLR[0] - absLLR[3];
 				cand[candCtr++] = tmpCand;
 		
 				//Candidate five
@@ -245,7 +245,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 				if(!parityOK) tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[1];
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[2];
-				newMetrics[candCtr] = MLmetric - absLLR[sorter.permuted[1]] - absLLR[sorter.permuted[2]];
+				newMetrics[candCtr] = MLmetric - absLLR[1] - absLLR[2];
 				cand[candCtr++] = tmpCand;
 		
 				//Candidate six
@@ -254,7 +254,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 				if(!parityOK) tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[1];
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[3];
-				newMetrics[candCtr] = MLmetric - absLLR[sorter.permuted[1]] - absLLR[sorter.permuted[3]];
+				newMetrics[candCtr] = MLmetric - absLLR[1] - absLLR[3];
 				cand[candCtr++] = tmpCand;
 		
 				//Candidate seven
@@ -263,7 +263,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 				if(!parityOK) tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[2];
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[3];
-				newMetrics[candCtr] = MLmetric - absLLR[sorter.permuted[2]] - absLLR[sorter.permuted[3]];
+				newMetrics[candCtr] = MLmetric - absLLR[2] - absLLR[3];
 				cand[candCtr++] = tmpCand;
 		
 				//Candidate eight
@@ -273,7 +273,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[1];
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[2];
 				tmpCand.hints[tmpCand.nHints++] = sorter.permuted[3];
-				newMetrics[candCtr] = MLmetric - q*absLLR[sorter.permuted[0]] - absLLR[sorter.permuted[1]] - absLLR[sorter.permuted[2]] - absLLR[sorter.permuted[3]];
+				newMetrics[candCtr] = MLmetric - q*absLLR[0] - absLLR[1] - absLLR[2] - absLLR[3];
 				cand[candCtr++] = tmpCand;
 			}
 		}
@@ -298,7 +298,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 		//Save everything
 		if(path != lastOne[selCand.srcPath])
 		{
-			for(int cstage=stage; cstage < n; ++cstage)
+			for(int cstage=0; cstage < n; ++cstage)
 			{
 				memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
 			}
@@ -311,7 +311,7 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 		}
 
 		//Compose the new path
-		Metric[path] = newMetrics[sorter.permuted[path]];
+		Metric[path] = newMetrics[path];
 		if(size<FLOATSPERVECTOR)
 		{
 			Rate1(newLLR[path][stage].data(), newBits[path].data()+BitLocation, size);
@@ -410,7 +410,7 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 		//Save everything
 		if(path != lastOne[selCand.srcPath])
 		{
-			for(int cstage=stage; cstage < n; ++cstage)
+			for(int cstage=0; cstage < n; ++cstage)
 			{
 				memcpy(newLLR[path][cstage].data(), LLR[selCand.srcPath][cstage].data(), 4<<cstage);
 			}
@@ -423,7 +423,7 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 		}
 
 		//Compose the new path
-		Metric[path] = newMetrics[sorter.permuted[path]];
+		Metric[path] = newMetrics[path];
 		float value; unsigned int *iValue = reinterpret_cast<unsigned int*>(&value);
 		*iValue = selCand.decisionIndex<<31;
 		if(size < FLOATSPERVECTOR)
