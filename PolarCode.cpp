@@ -1070,22 +1070,22 @@ bool PolarCode::decode(unsigned char* decoded, float* initLLR)
 
 	if(useCRC)
 	{
-/*		if(decodeOnePath(decoded))
+		if(decodeOnePath(decoded))
 		{
 			return true;
 		}
 		else if(L > 1)
 		{
-*/			return decodeMultiPath(decoded);
-/*		}
+			return decodeMultiPath(decoded);
+		}
 		else
 		{
-*/			/* For a list size of one, there is no need to try again.
+			/* For a list size of one, there is no need to try again.
 			   Every path pruning would decide for the ML path.
 			*/
-/*			return false;
+			return false;
 		}
-*/	} else {
+	} else {
 		if(L == 1)
 		{
 			return decodeOnePath(decoded);

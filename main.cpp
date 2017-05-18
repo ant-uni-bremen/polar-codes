@@ -21,7 +21,7 @@
 #include "Parameters.h"
 
 const long long BitsToSimulate	= 1e8;//Bits
-const int ConcurrentThreads = 2;
+const int ConcurrentThreads = 3;
 
 const float EbN0_min =  0;
 const float EbN0_max =  7;
@@ -50,9 +50,9 @@ const bool useCRC = false;
  */
 /* List length comparison */
 const float designSNR = 0.0; // 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-const int N = 512;
+const int N = 128;
 const int K = floor(N * 1.0/2.0 /8.0)*8+8;
-int ParameterL[] = {1, 2, 4, 8, 16}; const int nParams = 5;
+int ParameterL[] = {1, 2, 4, 8, 16, 32}; const int nParams = 6;
 const bool useCRC = true;
 
 /* Rate comparison
@@ -81,7 +81,6 @@ struct DataPoint
 	int BlocksToSimulate;
 	
 	//Simulator information
-	std::atomic<bool> StopDecoder, StopChecker;
 	std::mutex preloadMutex;
 	std::condition_variable preloadCV;
 
@@ -145,9 +144,6 @@ void simulate(int SimIndex)
 		return;
 	}
 #endif
-
-	Graph[SimIndex].StopDecoder = false;
-	Graph[SimIndex].StopChecker = false;
 
 	sprintf(message, "[%3d] Simulating Eb/N0=%.2f dB, N=%d, K=%d, L=%d, %s CRC\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].useCRC?"with":"without");
 	std::cout << message << flush;
