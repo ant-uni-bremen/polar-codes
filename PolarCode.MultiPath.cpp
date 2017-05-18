@@ -88,15 +88,16 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 		quick_abs(LLR[path][stage].data(), absLLR.data(), size);
 		sorter.simplePartialSort(absLLR.data(), size, std::min(2,size));
 		
+		MLmetric = Metric[path];
+
 		tmpCand.srcPath = path;
-		//Candidate one
+		//Candidate one, no bits flipped
 		tmpCand.decisionIndex = 0;
 		tmpCand.nHints = 0;
-		MLmetric = Metric[path];
 		newMetrics[candCtr] = MLmetric;
 		cand[candCtr++] = tmpCand;
 
-		//Candidate two
+		//Candidate two, least reliable bit flipped
 		tmpCand.decisionIndex = 1;
 		tmpCand.nHints = 0;
 		tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
@@ -105,14 +106,14 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 
 		if(size >=2)
 		{
-			//Candidate three
+			//Candidate three, second least reliable bit flipped
 			tmpCand.decisionIndex = 2;
 			tmpCand.nHints = 0;
 			tmpCand.hints[tmpCand.nHints++] = sorter.permuted[1];
 			newMetrics[candCtr] = MLmetric - absLLR[1];
 			cand[candCtr++] = tmpCand;
 	
-			//Candidate four
+			//Candidate four, two bits flipped
 			tmpCand.decisionIndex = 3;
 			tmpCand.nHints = 0;
 			tmpCand.hints[tmpCand.nHints++] = sorter.permuted[0];
@@ -124,8 +125,6 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 
 	int newPathCount = std::min(L, candCtr);
 
-//	sorter.set(newMetrics, candCtr);
-//	sorter.stableSortDescending();
 	sorter.simplePartialSortDescending(newMetrics.data(), candCtr, newPathCount);
 	
 	vector<int> lastOne(PathCount, -1);
@@ -133,7 +132,7 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 	{
 		lastOne[cand[sorter.permuted[path]].srcPath] = path;
 	}
-	
+
 	for(int path=0; path<newPathCount; ++path)
 	{
 		Candidate selCand = cand[sorter.permuted[path]];//selected Candidate
@@ -292,8 +291,6 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 	
 	int newPathCount = std::min(L, candCtr);	
 
-//	sorter.set(newMetrics, candCtr);
-//	sorter.stableSortDescending();
 	sorter.simplePartialSortDescending(newMetrics.data(), candCtr, newPathCount);
 
 	vector<int> lastOne(PathCount, -1);
@@ -397,8 +394,6 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 
 	int newPathCount = std::min(L, candCtr);	
 
-//	sorter.set(newMetrics, candCtr);
-//	sorter.stableSortDescending();
 	sorter.simplePartialSortDescending(newMetrics.data(), candCtr, newPathCount);
 
 	vector<int> lastOne(PathCount, -1);
@@ -526,7 +521,6 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 				  , LLR[currentPath][stage-1].data(), subStageLength);
 	}
 
-
 	switch(simplifiedTree[leftNode])
 	{
 	case RateZero:
@@ -548,7 +542,7 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 	default:
 		decodeMultiPathRecursive(stage-1, BitLocation, leftNode);
 	}
-	
+
 	/* Now, for all the paths, generate the bit decision-dependent
 	   subpaths and proceed as above */
 	if(simplifiedTree[leftNode] != RateZero)

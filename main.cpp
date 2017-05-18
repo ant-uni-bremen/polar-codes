@@ -20,8 +20,8 @@
 
 #include "Parameters.h"
 
-const long long BitsToSimulate	= 1e7;//Bits
-const int ConcurrentThreads = 4;
+const long long BitsToSimulate	= 1e8;//Bits
+const int ConcurrentThreads = 2;
 
 const float EbN0_min =  0;
 const float EbN0_max =  7;
@@ -113,7 +113,7 @@ void simulate(int SimIndex)
 	
 
 #ifdef ACCELERATED_MONTECARLO
-	if(EbN0 >= stopSNR[L])
+	if(Graph[SimIndex].EbN0 >= stopSNR[Graph[SimIndex].L])
 	{
 		/* This might save some time.
 		   Best case: Lowest SNR which reaches MaxIter iterations
@@ -127,7 +127,7 @@ void simulate(int SimIndex)
 		   1 has finished, there will be a core left unused, while
 		   size 8 simulations waits a long time.
 		*/
-		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, EbN0, L);
+		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].L);
 		std::cout << message;
 		Graph[SimIndex].BLER = 0;
 		Graph[SimIndex].time = 0;
@@ -135,9 +135,13 @@ void simulate(int SimIndex)
 		Graph[SimIndex].cbps = 0;
 		Graph[SimIndex].pbps = 0;
 		Graph[SimIndex].effectiveRate = 0;
-		++finishedThreads;
-		++nextThread;
-		
+
+		int finished = ++finishedThreads;
+		sprintf(message, "[%3d] %3d Threads finished\n", SimIndex, finished);
+		std::cout << message << flush;
+
+		threadCV[SimIndex%ConcurrentThreads].notify_one();
+
 		return;
 	}
 #endif
@@ -200,7 +204,6 @@ void simulate(int SimIndex)
 	unsigned int rawdata;
 
 	//Bit error calculation hints
-	if(Graph[SimIndex].useCRC)nBits-=8;
 	int nBytes = nBits>>3;
 
 
@@ -281,7 +284,7 @@ void simulate(int SimIndex)
 
 	
 #ifdef ACCELERATED_MONTECARLO
-	if(Graph[SimIndex].runs == BlocksToSimulate && EbN0 < stopSNR[L])
+	if(Graph[SimIndex].errors == 0 && EbN0 < stopSNR[L])
 	{
 		stopSNR[L] = EbN0;
 	}
@@ -320,7 +323,7 @@ int main(int argc, char** argv)
 			}
 		*/
 #ifdef ACCELERATED_MONTECARLO
-			stopSNR[Parameter[l]] = INFINITY;
+			stopSNR[ParameterL[l]] = INFINITY;
 #endif
 			for(int i=0; i<EbN0_count; ++i)
 			{
@@ -383,10 +386,10 @@ int main(int argc, char** argv)
 		Thr.join();
 	}
 	
-//	File << "\"N\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-//	File << "\"designSNR\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-	File << "\"L\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-//	File << "\"R\", \"Eb/N0\", \"BLER\", \"BER\", \"Runs\", \"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+//	File << "\"N\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+//	File << "\"designSNR\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+//	File << "\"R\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
 	for(int i=0; i<EbN0_count*nParams; ++i)
 	{
@@ -402,7 +405,7 @@ int main(int argc, char** argv)
 		}
 		else
 		{
-			File << "\" \",";
+			File << "nan,";
 		}
 		if(Graph[i].BER>0.0)
 		{
@@ -410,7 +413,7 @@ int main(int argc, char** argv)
 		}
 		else
 		{
-			File << "\" \",";
+			File << "nan,";
 		}
 		File << Graph[i].runs << ',' << Graph[i].errors << ','
 			 << Graph[i].time << ',' << Graph[i].blps << ',';
@@ -420,21 +423,28 @@ int main(int argc, char** argv)
 		}
 		else
 		{
-			File << "\" \",";
+			File << "nan,";
 		}
-		File << Graph[i].pbps << ',';
+		if(Graph[i].pbps>0)
+		{
+			File << Graph[i].pbps << ',';
+		}
+		else
+		{
+			File << "nan,";
+		}
 		if(Graph[i].effectiveRate != 0)
 		{
 			File << Graph[i].effectiveRate;
 		}
 		else
 		{
-			File << "\" \"";
+			File << "nan";
 		}
 		File << std::endl;
 	}
 	
 	File.close();
-	
+
 	return 0;
 }

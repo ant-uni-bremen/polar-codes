@@ -134,10 +134,17 @@ void trackingSorter::partialSort(int n)
 
 void trackingSorter::simplePartialSort(float *data, int size, int n)
 {
-	permuted.resize(n);
+	permuted.resize(size);
+	for(int i=0; i<size; ++i)
+	{
+		permuted[i] = i;
+	}
+
 	this->size = n;
-	
-	for(int i=0; i<n; ++i)
+
+	int lim = std::min(size-1, n);
+
+	for(int i=0; i<lim; ++i)
 	{
 		int index = i;
 		for(int j=i+1; j<size; ++j)
@@ -148,16 +155,23 @@ void trackingSorter::simplePartialSort(float *data, int size, int n)
 			}
 		}
 		std::swap(data[i], data[index]);
-		permuted[i] = index;
+		std::swap(permuted[i], permuted[index]);
 	}
 }
 
 void trackingSorter::simplePartialSortDescending(float *data, int size, int n)
 {
-	permuted.resize(n);
+	permuted.resize(size);
+	for(int i=0; i<size; ++i)
+	{
+		permuted[i] = i;
+	}
+
 	this->size = n;
 
-	for(int i=0; i<n; ++i)
+	int lim = std::min(size-1, n);
+
+	for(int i=0; i<lim; ++i)
 	{
 		int index = i;
 		for(int j=i+1; j<size; ++j)
@@ -168,7 +182,7 @@ void trackingSorter::simplePartialSortDescending(float *data, int size, int n)
 			}
 		}
 		std::swap(data[i], data[index]);
-		permuted[i] = index;
+		std::swap(permuted[i], permuted[index]);
 	}
 }
 
