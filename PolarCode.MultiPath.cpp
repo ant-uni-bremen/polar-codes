@@ -458,28 +458,50 @@ bool PolarCode::decodeMultiPath(unsigned char* decoded)
 	if(useCRC)
 	{
 		//Select the most likely path which passes the CRC test
+#ifndef SYSTEMATIC_CODING
 		for(int path=0; path<PathCount; ++path)
 		{
-#ifndef SYSTEMATIC_CODING
 			transform(Bits[path]);
+		}
 #endif
 
-			int bytes = K>>3;
-			int bit = 0;
-			unsigned int *iBit = reinterpret_cast<unsigned int*>(Bits[path].data());
-			for(int byte = 0; byte<bytes; ++byte)
+		int bytes = K>>3;
+		int bit = 0;
+		unsigned int **iBit = new unsigned int*[L];
+		for(int path=0; path<PathCount; ++path)
+		{
+			iBit[path] = reinterpret_cast<unsigned int*>(Bits[path].data());
+		}
+		unsigned char *thisByte = new unsigned char[PathCount];
+		int bitIndex;
+		for(int byte = 0; byte<bytes; ++byte)
+		{
+			memset(thisByte, 0, PathCount);
+			for(int b=0;b<8;++b)
 			{
-				unsigned char thisByte = 0;
-				for(int b=0;b<8;++b)
+				bitIndex = AcceleratedLookup[bit++];
+				for(int path=0; path<PathCount; ++path)
 				{
-					thisByte |= (iBit[AcceleratedLookup[bit++]]>>(24+b));
+					thisByte[path] |= (iBit[path][bitIndex]>>(24+b));
 				}
-				decoded[byte] = thisByte;
 			}
-			if(Crc->check(decoded, bytes-1, decoded[bytes-1]))
+			for(int path=0; path<PathCount; ++path)
 			{
-				return true;
+				decodedData[path][byte] = thisByte[path];
 			}
+		}
+		delete [] thisByte;
+		delete [] iBit;
+		int bestIndex = Crc->multiCheck(decodedData, PathCount, bytes);
+		if(bestIndex == -1)
+		{
+			memcpy(decoded, decodedData[0], bytes);
+			return false;
+		}
+		else
+		{
+			memcpy(decoded, decodedData[bestIndex], bytes);
+			return true;
 		}
 	}
 	else

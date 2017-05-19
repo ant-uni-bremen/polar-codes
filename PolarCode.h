@@ -62,6 +62,7 @@ struct PolarCode
 	
 	vector<vector<aligned_float_vector>> newLLR;//[List][Stage][ValueIndex]
 	vector<aligned_float_vector> newBits;//[List]
+	unsigned char **decodedData;
 
 	aligned_float_vector absLLR;
 	trackingSorter sorter;

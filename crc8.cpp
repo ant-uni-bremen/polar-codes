@@ -118,3 +118,31 @@ bool CRC8::check(float* data, int nBits)
 
 	return result;
 }
+
+int CRC8::multiCheck(unsigned char **data, int nArrays, int nBytes)
+{
+	unsigned char *checksums = new unsigned char[nArrays]();
+	int nCheckBytes = nBytes-1;
+
+	for(int byte = 0; byte < nCheckBytes; ++byte)
+	{
+		for(int array = 0; array < nArrays; ++array)
+		{
+			checksums[array] = table[checksums[array] ^ data[array][byte]];
+		}
+	}
+
+	int firstMatch = -1;
+	for(int array = 0; array < nArrays; ++array)
+	{
+		if(checksums[array] == data[array][nBytes-1])
+		{
+			firstMatch = array;
+			break;
+		}
+	}
+
+
+	delete [] checksums;
+	return firstMatch;
+}

@@ -21,6 +21,7 @@ public:
 	void addChecksum(float* data, int nBits);
 	bool check(std::vector<float> &data);
 	bool check(float* data, int nBits);
+	int multiCheck(unsigned char **data, int nArrays, int nBytes);
 };
 
 #endif

@@ -695,6 +695,7 @@ PolarCode::PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool enc
 		Bits.resize(L);
 		newLLR.resize(L);
 		newBits.resize(L);
+		decodedData = new unsigned char*[L];
 
 		for(int path=0; path<L; ++path)
 		{
@@ -702,6 +703,7 @@ PolarCode::PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool enc
 			newLLR[path].resize(n);
 			Bits[path].resize(N);
 			newBits[path].resize(N);
+			decodedData[path] = new unsigned char[K>>3];
 			for(int stage=0; stage<n; ++stage)
 			{
 				LLR[path][stage].resize(std::max(FLOATSPERVECTOR, 1<<stage));
@@ -723,6 +725,12 @@ PolarCode::~PolarCode()
 	if(AlignedVector != nullptr)
 	{
 		_mm_free(AlignedVector);
+
+		for(int path = 0; path < L; ++path)
+		{
+			delete [] decodedData[path];
+		}
+		delete [] decodedData;
 	}
 	if(Crc != nullptr)
 	{
