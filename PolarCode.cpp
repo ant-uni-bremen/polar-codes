@@ -673,7 +673,7 @@ PolarCode::PolarCode(int N_, int K_, int L_, bool useCRC, float designSNR, bool 
 		SimpleBits.resize(N);
 		simpleLlr.resize(n);
 
-		pool = new DataPool();
+		pool = new DataPool(n);
 
 
 		absLLR.resize(N);
@@ -691,8 +691,8 @@ PolarCode::PolarCode(int N_, int K_, int L_, bool useCRC, float designSNR, bool 
 
 		for(int path=0; path<L; ++path)
 		{
-			LlrTree[path].resize(n, NULL);
-			newLlrTree[path].assign(n, NULL);
+			LlrTree[path].resize(n);
+			newLlrTree[path].resize(n);
 			Bits[path].resize(N);
 			newBits[path].resize(N);
 			decodedData[path] = new unsigned char[K>>3];
@@ -942,10 +942,6 @@ void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, in
 	else
 	{
 		//copy right to left
-/*		for(int i=0; i<subStageLength; ++i)
-		{
-			iData[BitLocation+i] = iData[BitLocation+subStageLength+i];
-		}*/
 		memcpy(iData+BitLocation, iData+BitLocation+subStageLength, subStageLength<<2);
 	}
 }

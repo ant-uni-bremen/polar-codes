@@ -53,9 +53,11 @@ struct PolarCode
 	vector<nodeInfo> simplifiedTree;
 
 	float* initialLLR;
+	vector<float> Metric;
 	vector<vector<Block*>> LlrTree;//[List][Stage][ValueIndex]
 	vector<aligned_float_vector> Bits;//[List]
 	
+	vector<float> newMetrics;
 	vector<vector<Block*>> newLlrTree;//[List][Stage][ValueIndex]
 	vector<aligned_float_vector> newBits;//[List]
 	unsigned char **decodedData;
@@ -65,9 +67,6 @@ struct PolarCode
 	
 	vector<aligned_float_vector> simpleLlr;
 	aligned_float_vector SimpleBits;
-	vector<float> Metric;
-	
-	vector<float> newMetrics;
 	vector<Candidate> cand;
 	
 	int PathCount;

@@ -171,7 +171,6 @@ void PolarCode::Rate1_multiPath(int stage, int BitLocation)
 		for(int cstage=stage; cstage < n; ++cstage)
 		{
 			pool->release(LlrTree[path][cstage]);
-			LlrTree[path][cstage] = NULL;
 		}
 	}
 
@@ -349,7 +348,6 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 		for(int cstage=stage; cstage < n; ++cstage)
 		{
 			pool->release(LlrTree[path][cstage]);
-			LlrTree[path][cstage] = NULL;
 		}
 	}
 
@@ -476,7 +474,6 @@ void PolarCode::Repetition_multiPath(int stage, int BitLocation)
 		for(int cstage=stage; cstage < n; ++cstage)
 		{
 			pool->release(LlrTree[path][cstage]);
-			LlrTree[path][cstage] = NULL;
 		}
 	}
 
@@ -577,7 +574,7 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 	//Calculate LLRs for all paths
 	for(int currentPath=0; currentPath<PathCount; ++currentPath)
 	{
-		LlrTree[currentPath][stage-1] = pool->allocate(subStageLength);
+		LlrTree[currentPath][stage-1] = pool->allocate(stage-1);
 		F_function(stage==n ? initialLLR : LlrTree[currentPath][stage]->data
 				  , LlrTree[currentPath][stage-1]->data, subStageLength);
 	}
@@ -669,7 +666,6 @@ void PolarCode::decodeMultiPathRecursive(int stage, int BitLocation, int nodeID)
 	for(int currentPath=0; currentPath<PathCount; ++currentPath)
 	{
 		pool->release(LlrTree[currentPath][stage-1]);
-		LlrTree[currentPath][stage-1] = NULL;
 	}
 }
 

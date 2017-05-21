@@ -4,35 +4,38 @@
 #include "DataPool.h"
 #include "Parameters.h"
 
-DataPool::DataPool()
+DataPool::DataPool(int stages)
 {
-
+	freeBlocks.resize(stages);
 }
 
 DataPool::~DataPool()
 {
-	for(auto block : freeBlocks)
+	for(auto &stack : freeBlocks)
 	{
-		_mm_free(block.second->data);
+		while(!stack.empty())
+		{
+			_mm_free(stack.top()->data);
+			stack.pop();
+		}
 	}
 }
 
-Block* DataPool::allocate(unsigned size)
+Block* DataPool::allocate(unsigned stage)
 {
 	Block *block;
-	auto it = freeBlocks.find(size);
-	if(it == freeBlocks.end())
+	if(freeBlocks[stage].empty())
 	{
 		block = new Block();
-		block->data = (float*)_mm_malloc(size<<2, sizeof(vec));
+		block->data = (float*)_mm_malloc(1<<(stage+2), sizeof(vec));
 		block->useCount = 1;
-		block->size = size;
+		block->stage = stage;
 	}
 	else
 	{
-		block = it->second;
+		block = freeBlocks[stage].top();
 		block->useCount = 1;
-		freeBlocks.erase(it);
+		freeBlocks[stage].pop();
 	}
 	return block;
 }
@@ -45,17 +48,16 @@ Block* DataPool::lazyDuplicate(Block *block)
 
 Block* DataPool::duplicate(Block* other)
 {
-	Block *block = allocate(other->size);
-	memcpy(block->data, other->data, other->size<<2);
+	Block *block = allocate(other->stage);
+	memcpy(block->data, other->data, 1<<(other->stage+2));
 	other->useCount--;
 	return block;
 }
 
 void DataPool::release(Block* block)
 {
-	block->useCount--;
-	if(block->useCount == 0)
+	if(--block->useCount == 0)
 	{
-		freeBlocks.insert(std::pair<unsigned, Block*>(block->size, block));
+		freeBlocks[block->stage].push(block);
 	}
 }

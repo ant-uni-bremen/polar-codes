@@ -1,24 +1,24 @@
 #ifndef MULTIPATHTREE_H
 #define MULTIPATHTREE_H
 
-#include <set>
-#include <unordered_map>
+#include <vector>
+#include <stack>
 
 struct Block
 {
-	unsigned useCount, size;
+	unsigned useCount, stage;
 	float *data;
 };
 
 class DataPool
 {
-	std::unordered_multimap<unsigned, Block*> freeBlocks;
+	std::vector<std::stack<Block*>> freeBlocks;
 
 public:
-	DataPool();
+	DataPool(int stages);
 	~DataPool();
 
-	Block* allocate(unsigned size);
+	Block* allocate(unsigned stage);
 	Block* lazyDuplicate(Block *block);
 	Block* duplicate(Block* other);
 	void release(Block* block);

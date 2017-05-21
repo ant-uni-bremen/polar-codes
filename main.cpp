@@ -20,8 +20,8 @@
 
 #include "Parameters.h"
 
-const long long BitsToSimulate	= 1e7;//Bits
-const int ConcurrentThreads = 2;
+const long long BitsToSimulate	= 1e8;//Bits
+const int ConcurrentThreads = 3;
 
 const float EbN0_min =  0;
 const float EbN0_max =  7;
@@ -52,7 +52,7 @@ const bool useCRC = false;
 const float designSNR = 0.0; // 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
 const int N = 128;
 const int K = floor(N * 1.0/2.0 /8.0)*8+8;
-int ParameterL[] = {1, 2, 4, 8, 16, 32, 64}; const int nParams = 7;
+int ParameterL[] = {1, 2, 4, 8, 16}; const int nParams = 5;
 const bool useCRC = true;
 
 /* Rate comparison
