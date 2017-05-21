@@ -20,8 +20,8 @@
 
 #include "Parameters.h"
 
-const long long BitsToSimulate	= 1e8;//Bits
-const int ConcurrentThreads = 4;
+const long long BitsToSimulate	= 1e7;//Bits
+const int ConcurrentThreads = 2;
 
 const float EbN0_min =  0;
 const float EbN0_max =  7;
@@ -105,6 +105,7 @@ void simulate(int SimIndex)
 	Graph[SimIndex].biterrors = 0;
 	Graph[SimIndex].time = 0;
 
+
 	++finishedThreads;
 
 	unique_lock<mutex> thrlck(threadMutex[SimIndex%ConcurrentThreads]);
@@ -138,7 +139,6 @@ void simulate(int SimIndex)
 		int finished = ++finishedThreads;
 		sprintf(message, "[%3d] %3d Threads finished\n", SimIndex, finished);
 		std::cout << message << flush;
-
 		threadCV[SimIndex%ConcurrentThreads].notify_one();
 
 		return;
@@ -169,22 +169,14 @@ void simulate(int SimIndex)
 	if(Graph[SimIndex].useCRC)nBits-=8;
 
 	aligned_float_vector encodedData(N);
-	aligned_float_vector sig(N);
 	float factor = sqrt(pow(10.0, EbN0/10.0)  * 2.0 * R);
 
 	PolarCode PC(N, Graph[SimIndex].K, L, Graph[SimIndex].useCRC, designSNR);
 
 	//Allocate memory
-	try{
-		data = new unsigned char[Graph[SimIndex].K>>3];
-		decodedData = new unsigned char[Graph[SimIndex].K>>3];
-	}
-	catch(bad_alloc &ba)
-	{
-		cerr << "Problem at allocating memory: " << ba.what() << endl;
-		exit(EXIT_FAILURE);
-	}
-	memset(decodedData, 0, Graph[SimIndex].K>>3);
+	data = new unsigned char[Graph[SimIndex].K>>3];
+	decodedData = new unsigned char[Graph[SimIndex].K>>3]();
+
 	LLR = (float*)_mm_malloc(N<<2, sizeof(vec));
 
 	if(LLR == nullptr)
@@ -266,7 +258,6 @@ void simulate(int SimIndex)
 	_mm_free(LLR);
 
 
-
 	Graph[SimIndex].BLER = (float)Graph[SimIndex].errors/Graph[SimIndex].runs;
 	Graph[SimIndex].BER = (float)Graph[SimIndex].biterrors/Graph[SimIndex].bits;
 	//Graph[SimIndex].time = time;
@@ -285,6 +276,7 @@ void simulate(int SimIndex)
 		stopSNR[L] = EbN0;
 	}
 #endif
+
 
 	int finished = ++finishedThreads;
 	sprintf(message, "[%3d] %3d Threads finished, BLER = %e\n", SimIndex, finished, Graph[SimIndex].BLER);
@@ -358,7 +350,6 @@ int main(int argc, char** argv)
 			*/
  			
 				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N /* ParameterN[l]*/;
-
 				Threads.push_back(std::thread(simulate, idCounter++));
 			}
 		}
@@ -381,7 +372,7 @@ int main(int argc, char** argv)
 	{
 		Thr.join();
 	}
-	
+
 //	File << "\"N\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 //	File << "\"designSNR\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 	File << "\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;

@@ -7,6 +7,7 @@
 #include "ArrayFuncs.h"
 #include "AlignedAllocator.h"
 #include "crc8.h"
+#include "DataPool.h"
 
 #ifdef __AVX2__
 #define USE_AVX2
@@ -41,32 +42,28 @@ const __m256 minustwo = _mm256_set1_ps(-2.0f);
 
 struct PolarCode
 {
-	float *AlignedVector;
-	__m256 sgnMask256, absMask256, ZERO;
-	__m128 sgnMask128, absMask128;
-
 	int N, K, L, n;
 	bool useCRC;
+	bool hasDecoder;
 	
 	vector<int> FZLookup;
 	vector<int> AcceleratedLookup, AcceleratedFrozenLookup;
 	float designSNR;
 	
 	vector<nodeInfo> simplifiedTree;
-		
-	typedef vector<float, aligned_allocator<float, sizeof(vec)> > aligned_float_vector;
-	
+
 	float* initialLLR;
-	vector<vector<aligned_float_vector>> LLR;//[List][Stage][ValueIndex]
+	vector<vector<Block*>> LlrTree;//[List][Stage][ValueIndex]
 	vector<aligned_float_vector> Bits;//[List]
 	
-	vector<vector<aligned_float_vector>> newLLR;//[List][Stage][ValueIndex]
+	vector<vector<Block*>> newLlrTree;//[List][Stage][ValueIndex]
 	vector<aligned_float_vector> newBits;//[List]
 	unsigned char **decodedData;
 
 	aligned_float_vector absLLR;
-	trackingSorter sorter;
+	trackingSorter *sorter;
 	
+	vector<aligned_float_vector> simpleLlr;
 	aligned_float_vector SimpleBits;
 	vector<float> Metric;
 	
@@ -77,7 +74,8 @@ struct PolarCode
 	int maxCandCount;
 	CRC8 *Crc;
 	
-	LCG<__m256> r;
+	LCG<__m256> *r;
+	DataPool *pool;
 
 	PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool encodeOnly=false);
 	~PolarCode();
@@ -145,7 +143,6 @@ struct PolarCode
 	void Rate1_multiPath(int stage, int BitLocation);
 
 	void pcc();
-	void clear();
 	
 };
 

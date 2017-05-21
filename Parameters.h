@@ -12,7 +12,7 @@
  *
  */
 
-#define ACCELERATED_MONTECARLO
+//#define ACCELERATED_MONTECARLO
 #define SYSTEMATIC_CODING
 //#define ONLY_SCDECODING
 
@@ -51,6 +51,9 @@
 
 #define max_ps _mm256_max_ps
 #define min_ps _mm256_min_ps
+
+#define sgnMask256 set1_ps(-0.0)
+#define sgnMask128 _mm_set1_ps(-0.0)
 
 static inline float reduce_add_ps(__m256 x) {
     /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
