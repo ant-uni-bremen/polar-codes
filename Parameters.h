@@ -98,6 +98,16 @@ static inline float _mm_reduce_add_ps(__m128 x) {
     return _mm_cvtss_f32(x32);
 }
 
+inline unsigned _mm_minidx_ps(__m128 x)
+{
+	const __m128 halfMinVec = _mm_min_ps(x, _mm_permute_ps(x, 0b01001110));
+	const __m128 minVec = _mm_min_ps(halfMinVec, _mm_permute_ps(halfMinVec, 0b10110001));
+	const __m128 mask = _mm_cmpeq_ps(x, minVec);
+	return __tzcnt_u32(_mm_movemask_ps(mask));
+
+}
+
+
 
 
 #endif

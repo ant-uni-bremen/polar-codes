@@ -32,7 +32,6 @@ enum nodeInfo
 struct Candidate
 {
 	int srcPath;//="currentPath"
-	int decisionIndex;//=decision path index of respective constituent decoder
 	int hints[4], nHints;
 };
 

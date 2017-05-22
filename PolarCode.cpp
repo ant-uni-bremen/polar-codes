@@ -13,6 +13,7 @@ template <typename T> int sgn(T val) {
 	return (T(0) < val) - (val < T(0));
 }
 
+
 void PolarCode::F_function(float *LLRin, float *LLRout, int size)
 {
 	if(size >= FLOATSPERVECTOR)
@@ -245,7 +246,6 @@ void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
 	unsigned int parity=0;float *fPar = reinterpret_cast<float*>(&parity);
-	int index=0;
 
 	vec parityVec = set1_ps(0.0);
 
@@ -272,6 +272,7 @@ void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 
 	if(parity)
 	{
+		unsigned index = 0;
 		for(int i=1; i<size; ++i)
 		{
 			if(absLLR[i] < absLLR[index])
@@ -290,7 +291,6 @@ void PolarCode::P_RSPC_4(float *LLRin, float *BitsOut)
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
 	unsigned int parity=0;float *fPar = reinterpret_cast<float*>(&parity);
-	int index=0;
 
 	__m128 parityVec = _mm_set1_ps(0.0);
 
@@ -307,20 +307,13 @@ void PolarCode::P_RSPC_4(float *LLRin, float *BitsOut)
 	_mm_store_ps(BitsOut, Bit_l);//Save upper bit
 
 	Bit_o = _mm_andnot_ps(sgnMask128, LLR1);
-	_mm_store_ps(absLLR.data(), Bit_o);
+//	_mm_store_ps(absLLR.data(), Bit_o);
 
 	*fPar = _mm_reduce_xor_ps(parityVec);
 
 	if(parity)
 	{
-		for(int i=1; i<4; ++i)
-		{
-			if(absLLR[i] < absLLR[index])
-			{
-				index = i;
-			}
-		}
-
+		unsigned index = _mm_minidx_ps(Bit_o);
 		//Flip least reliable bit
 		iBit[index] ^= parity;
 		iBit[index+4] ^= parity;
@@ -415,7 +408,6 @@ void PolarCode::P_0SPC_vectorized_4(float *LLRin, float *BitsOut)
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
 	unsigned int parity=0;float *fPar = reinterpret_cast<float*>(&parity);
-	int index=0;
 
 	__m128 parityVec = _mm_set1_ps(0.0);
 
@@ -431,15 +423,13 @@ void PolarCode::P_0SPC_vectorized_4(float *LLRin, float *BitsOut)
 	parityVec = _mm_xor_ps(Bit_o, parityVec);//Calculate parity
 
 	Bit_o = _mm_andnot_ps(sgnMask128, LLR1);
-	_mm_store_ps(absLLR.data(), Bit_o);
+//	_mm_store_ps(absLLR.data(), Bit_o);
 
 	*fPar = _mm_reduce_xor_ps(parityVec);
 
 	if(parity)
 	{
-		if(absLLR[1] < absLLR[index]) index = 1;
-		if(absLLR[2] < absLLR[index]) index = 2;
-		if(absLLR[3] < absLLR[index]) index = 3;
+		unsigned index = _mm_minidx_ps(Bit_o);
 
 		//Flip least reliable bit
 		iBit[index] = parity;//No XOR needed here, as left bit was frozen to 0
@@ -536,9 +526,7 @@ void PolarCode::SPC_4(float *LLRin, float *BitsOut)
 	if(*iPar)
 	{
 		__m128 Abs = _mm_andnot_ps(sgnMask128, LLRi);
-		int index = (Abs[1]<Abs[0]);
-		if(Abs[2]<Abs[index])index=2;
-		if(Abs[3]<Abs[index])index=3;
+		unsigned index = _mm_minidx_ps(Abs);
 		unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 		iBit[index] ^= 0x80000000;
 	}
@@ -576,15 +564,8 @@ void PolarCode::RepSPC_8(float *LLRin, float *BitsOut)
 	if(*iParity)
 	{
 		//Find least reliable bit
-		int index=0;
 		__m128 SPCabs = _mm_andnot_ps(sgnMask128, SPCVec);
-		for(int i=1;i<4;++i)
-		{
-			if(SPCabs[i] < SPCabs[index])
-			{
-				index=i;
-			}
-		}
+		unsigned index = _mm_minidx_ps(SPCabs);
 		iBits[index]   ^= 0x80000000;
 		iBits[index+4] ^= 0x80000000;
 	}

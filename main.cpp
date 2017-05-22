@@ -50,10 +50,10 @@ const bool useCRC = false;
  */
 /* List length comparison */
 const float designSNR = 0.0; // 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-const int N = 128;
-const int K = floor(N * 1.0/2.0 /8.0)*8+8;
-int ParameterL[] = {1, 2, 4, 8, 16}; const int nParams = 5;
+const int N = 4096;
 const bool useCRC = true;
+const int K = floor(N * 1.0/2.0 /8.0)*8+(useCRC?8:0);
+int ParameterL[] = {1, 2, 4, 8, 16}; const int nParams = 5;
 
 /* Rate comparison
 const float designSNR = 1.0;//10.0*log10(-1.0 * log(0.5));//=-1.591745dB
