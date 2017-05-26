@@ -43,12 +43,12 @@ struct PolarCode
 {
 	int N, K, L, n;
 	bool useCRC;
+	float designSNR;
 	bool hasDecoder;
 	
 	vector<int> FZLookup;
 	vector<int> AcceleratedLookup, AcceleratedFrozenLookup;
-	float designSNR;
-	
+
 	vector<nodeInfo> simplifiedTree;
 
 	float* initialLLR;
@@ -72,7 +72,6 @@ struct PolarCode
 	int maxCandCount;
 	CRC8 *Crc;
 	
-	LCG<__m256> *r;
 	DataPool *pool;
 
 	PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool encodeOnly=false);
@@ -80,9 +79,7 @@ struct PolarCode
 
 	void encode(aligned_float_vector &encoded, unsigned char* data);
 	void subEncodeSystematic(aligned_float_vector &encoded, int stage, int BitLocation, int nodeID);
-	
-	void modulateAndDistort(float *signal, aligned_float_vector &data, int size, float factor);
-	
+		
 	bool decode(unsigned char* decoded, float* LLR);
 	bool decodeOnePath(unsigned char* decoded);
 	bool decodeMultiPath(unsigned char* decoded);

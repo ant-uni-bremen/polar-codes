@@ -19,6 +19,19 @@ private:
 };
 
 template <>
+class LCG<uint64_t> {
+public:
+	LCG() : x(1) {}
+
+	uint64_t operator()() {
+		return x = x * 2862933555777941757 + 3037000493;
+	}
+
+private:
+	uint64_t x;
+};
+
+template <>
 class LCG<float> {
 public:
     LCG() : x(1) {}
@@ -55,40 +68,6 @@ public:
 private:
     uint64_t x;
 };
-
-////////////////////////////////////////////////////////////////////////////////
-// SSE2
-
-#ifdef USE_SSE2
-#include "sse_mathfun.h"
-
-_PS_CONST_TYPE(lcg_a, uint32_t, 1664525);
-_PS_CONST_TYPE(lcg_b, uint32_t, 1013904223);
-_PS_CONST_TYPE(lcg_mask, uint32_t, 0x3F800000);
-
-template <>
-class LCG<__m128> {
-public:
-    LCG() : x(_mm_setr_epi32(1, 2, 3, 4)) {}
-
-    __m128 operator()() {
-        x = _mm_add_epi32(mullo_epi32(x, *(__m128i*)_ps_lcg_a), *(__m128i*)_ps_lcg_b);
-        __m128i u = _mm_or_si128(_mm_srli_epi32(x, 9), *(__m128i*)_ps_lcg_mask);
-        __m128 f = _mm_sub_ps(_mm_castsi128_ps(u), *(__m128*)_ps_1);
-        return f;
-    }
-
-private:
-    // _mm_mullo_epi32() is in SSE4.1
-    static __m128i mullo_epi32(__m128i a, __m128i b) {
-        const __m128i tmp1 = _mm_mul_epu32(a, b); /* mul 2,0*/
-        const __m128i tmp2 = _mm_mul_epu32(_mm_srli_si128(a, 4), _mm_srli_si128(b, 4)); /* mul 3,1 */
-        return _mm_unpacklo_epi32(_mm_shuffle_epi32(tmp1, _MM_SHUFFLE (0,0,2,0)), _mm_shuffle_epi32(tmp2, _MM_SHUFFLE (0,0,2,0))); /* shuffle results to [63..0] and pack */
-    }
-    __m128i x;
-};
-
-#endif // USE_SSE2
 
 ////////////////////////////////////////////////////////////////////////////////
 // AVX

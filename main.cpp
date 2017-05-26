@@ -12,6 +12,7 @@
 #include <map>
 #include <mutex>
 #include <random>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -21,7 +22,7 @@
 #include "Parameters.h"
 
 const long long BitsToSimulate	= 1e8;//Bits
-const int ConcurrentThreads = 3;
+const int ConcurrentThreads = 2;
 
 const float EbN0_min =  0;
 const float EbN0_max =  7;
@@ -33,13 +34,13 @@ const int EbN0_count = 20;
  */
  
 
-/* Code length comparison
+/* Code length comparison */
 const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-int ParameterN[] = {64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768}, nParams = 10;
-int ParameterK[] = {32, 64,  128, 256,  512, 1024, 2048, 4096,  8192, 16384};
+int ParameterN[] = {16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768}, nParams = 12;
+int ParameterK[] = { 8, 16, 32, 64,  128, 256,  512, 1024, 2048, 4096,  8192, 16384};
 int L = 1;
 const bool useCRC = false;
-*/
+
 /* Design-SNR measurement
 float designParam[] = {-1.59, 0.0, 2.0, 4.0, 6.0};
 const int nParams = 5;
@@ -48,12 +49,13 @@ const int K = floor(N *   0.9   / 8)*8; //+8;
 const int L = 1;
 const bool useCRC = false;
  */
-/* List length comparison */
+/* List length comparison
 const float designSNR = 0.0; // 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-const int N = 4096;
-const bool useCRC = true;
+const int N = 16;
+const bool useCRC = false;
 const int K = floor(N * 1.0/2.0 /8.0)*8+(useCRC?8:0);
 int ParameterL[] = {1, 2, 4, 8, 16}; const int nParams = 5;
+*/
 
 /* Rate comparison
 const float designSNR = 1.0;//10.0*log10(-1.0 * log(0.5));//=-1.591745dB
@@ -92,13 +94,41 @@ struct DataPoint
 	float effectiveRate;
 } *Graph;
 
+struct {
+#ifdef __RDRAND__
+	void get(uint32_t *ptr)
+	{
+		_rdrand32_step(ptr);
+	}
+	void get64(uint64_t *ptr)
+	{
+		_rdrand64_step(ptr);
+	}
+#else
+	LCG<uint64_t> generator;
+	std::mutex mtx;
+	void get(uint32_t *ptr)
+	{
+		mtx.lock();
+		*ptr = static_cast<uint32_t>(generator());
+		mtx.unlock();
+	}
+	void get64(uint64_t *ptr)
+	{
+		mtx.lock();
+		*ptr = generator();
+		mtx.unlock();
+	}
+#endif
+} myRandomDevice;
+
 
 void simulate(int SimIndex)
 {
 	using namespace std;
 	using namespace std::chrono;
 
-	char message[128];
+	std::string message;
 	Graph[SimIndex].runs = 0;
 	Graph[SimIndex].bits = 0;
 	Graph[SimIndex].errors = 0;
@@ -110,7 +140,7 @@ void simulate(int SimIndex)
 
 	unique_lock<mutex> thrlck(threadMutex[SimIndex%ConcurrentThreads]);
 	threadCV[SimIndex%ConcurrentThreads].wait(thrlck);
-	
+
 
 #ifdef ACCELERATED_MONTECARLO
 	if(Graph[SimIndex].EbN0 >= stopSNR[Graph[SimIndex].L])
@@ -145,9 +175,21 @@ void simulate(int SimIndex)
 	}
 #endif
 
-	sprintf(message, "[%3d] Simulating Eb/N0=%.2f dB, N=%d, K=%d, L=%d, %s CRC\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].N, Graph[SimIndex].K, Graph[SimIndex].L, Graph[SimIndex].useCRC?"with":"without");
+	message.clear();
+	message += "[";
+	message += std::to_string(SimIndex);
+	message += "] Simulating Eb/N0=";
+	message += std::to_string(Graph[SimIndex].EbN0);
+	message += " dB, N=";
+	message += std::to_string(Graph[SimIndex].N);
+	message += ", K=";
+	message += std::to_string(Graph[SimIndex].K);
+	message += ", L=";
+	message += std::to_string(Graph[SimIndex].L);
+	message += ", ";
+	message += (Graph[SimIndex].useCRC?"with":"without");
+	message += " CRC\n";
 	std::cout << message << flush;
-
 
 
 
@@ -170,6 +212,7 @@ void simulate(int SimIndex)
 
 	aligned_float_vector encodedData(N);
 	float factor = sqrt(pow(10.0, EbN0/10.0)  * 2.0 * R);
+	vec facVec = set1_ps(factor);
 
 	PolarCode PC(N, Graph[SimIndex].K, L, Graph[SimIndex].useCRC, designSNR);
 
@@ -194,17 +237,29 @@ void simulate(int SimIndex)
 	//Bit error calculation hints
 	int nBytes = nBits>>3;
 
+	//Thread-local random device
+	LCG<__m256> *r;
+	uint64_t randomseed[4];
+
+	myRandomDevice.get64(randomseed+0);
+	myRandomDevice.get64(randomseed+1);
+	myRandomDevice.get64(randomseed+2);
+	myRandomDevice.get64(randomseed+3);
+
+	r = (LCG<__m256>*)_mm_malloc(sizeof(LCG<__m256>), 32);
+	r->seed(_mm256_set_epi64x(randomseed[0], randomseed[1], randomseed[2], randomseed[3]));
+
 
 	for(int b=0; b<BlocksToSimulate; ++b)
 	{
 		//Generate random payload
 		for(unsigned int i=0; i<nInts; ++i)
 		{
-			_rdrand32_step(DataPtr+i);
+			myRandomDevice.get(DataPtr+i);
 		}
 		{
 			unsigned int offset = nInts<<2;
-			_rdrand32_step(&rawdata);
+			myRandomDevice.get(&rawdata);
 			for(unsigned int j=0;j<nRem;++j)
 			{
 				data[offset|j] = static_cast<char>(rawdata&0xFF);
@@ -216,7 +271,45 @@ void simulate(int SimIndex)
 		PC.encode(encodedData, data);
 
 		//Modulate using BPSK, add noise and demodulate
-		PC.modulateAndDistort(LLR, encodedData, N, factor);
+		if(N < 16)
+		{
+			cerr << "Minimum block length is 16." << endl << flush;
+			exit(EXIT_FAILURE);
+		}
+
+		for(int i=0; i<N; i+=16)
+		{
+			vec siga = load_ps(encodedData.data()+i);
+			vec sigb = load_ps(encodedData.data()+i+8);
+			siga = or_ps(siga, one); sigb = or_ps(sigb, one);//Modulate
+			siga = mul_ps(siga, facVec); sigb = mul_ps(sigb, facVec);//Scale
+
+			//Generate Gaussian noise
+			__m256 u1 = _mm256_sub_ps(one, (*r)()); // [0, 1) -> (0, 1]
+			__m256 u2 = (*r)();
+			__m256 radius = _mm256_sqrt_ps(_mm256_mul_ps(minustwo, log256_ps(u1)));
+			__m256 theta = _mm256_mul_ps(twopi, u2);
+			__m256 sintheta, costheta;
+			sincos256_ps(theta, &sintheta, &costheta);
+
+			//Add noise to signal
+#ifdef __FMA__
+			siga = _mm256_fmadd_ps(radius, costheta, siga);
+			sigb = _mm256_fmadd_ps(radius, sintheta, sigb);
+#else
+			siga = add_ps(mul_ps(radius, costheta), siga);
+			sigb = add_ps(mul_ps(radius, sintheta), sigb);
+#endif
+
+			//Demodulate
+			siga = mul_ps(siga, facVec);
+			sigb = mul_ps(sigb, facVec);
+
+			//Save
+			store_ps(LLR+i, siga);
+			store_ps(LLR+i+8, sigb);
+		}
+
 
 
 		//Decode and measure the required time
@@ -256,6 +349,7 @@ void simulate(int SimIndex)
 	delete [] data;
 	delete [] decodedData;
 	_mm_free(LLR);
+	_mm_free(r);
 
 
 	Graph[SimIndex].BLER = (float)Graph[SimIndex].errors/Graph[SimIndex].runs;
@@ -279,7 +373,14 @@ void simulate(int SimIndex)
 
 
 	int finished = ++finishedThreads;
-	sprintf(message, "[%3d] %3d Threads finished, BLER = %e\n", SimIndex, finished, Graph[SimIndex].BLER);
+	message.clear();
+	message += "[";
+	message += std::to_string(SimIndex);
+	message += "] ";
+	message += std::to_string(finished);
+	message += " Threads finished, BLER = ";
+	message += std::to_string(Graph[SimIndex].BLER);
+	message += "\n";
 	std::cout << message << flush;
 
 	threadCV[SimIndex%ConcurrentThreads].notify_one();
@@ -291,7 +392,7 @@ int main(int argc, char** argv)
 	Graph = new DataPoint[EbN0_count*nParams*2];
 	std::vector<std::thread> Threads;
 	
-	std::ofstream File("Simulation.csv");
+	std::ofstream File("Simulation_BlockLength.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;
@@ -317,13 +418,13 @@ int main(int argc, char** argv)
 			{
 				Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			
-			/* Code length comparison
+			/* Code length comparison*/
 				Graph[idCounter].N = ParameterN[l];
 				Graph[idCounter].K = ParameterK[l];
 				Graph[idCounter].L = (useCRC==1)?L:1;
 				Graph[idCounter].designSNR = designSNR;
 				Graph[idCounter].useCRC = useCRC;
-			 */
+
 			
 			/* design-SNR measurement
 			Graph[idCounter].N = N;
@@ -333,13 +434,13 @@ int main(int argc, char** argv)
 			Graph[idCounter].useCRC = useCRC;
 			 */
 				
-			/* List length comparison */
+			/* List length comparison
 			Graph[idCounter].N = N;
 			Graph[idCounter].K = K;
 			Graph[idCounter].L = ParameterL[l];
 			Graph[idCounter].designSNR = designSNR;
 			Graph[idCounter].useCRC = useCRC;
-
+			 */
  			
 			/* Rate comparison
 			Graph[idCounter].N = N;
@@ -349,7 +450,7 @@ int main(int argc, char** argv)
 			Graph[idCounter].useCRC = useCRC;
 			*/
  			
-				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N /* ParameterN[l]*/;
+				Graph[idCounter].BlocksToSimulate = BitsToSimulate/ /* N */ ParameterN[l];
 				Threads.push_back(std::thread(simulate, idCounter++));
 			}
 		}
@@ -373,16 +474,16 @@ int main(int argc, char** argv)
 		Thr.join();
 	}
 
-//	File << "\"N\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"N\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 //	File << "\"designSNR\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-	File << "\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+//	File << "\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 //	File << "\"R\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
 	for(int i=0; i<EbN0_count*nParams; ++i)
 	{
-//		File << Graph[i].N;
+		File << Graph[i].N;
 //		File << Graph[i].designSNR;
-		File << Graph[i].L;
+//		File << Graph[i].L;
 //		File << ((float)Graph[i].K/Graph[i].N);
 
 		File << ',' << Graph[i].EbN0 << ',';
