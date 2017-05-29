@@ -6,14 +6,11 @@
  * 
  * ACCELERATED_MONTECARLO skips computations of nearly error-free SNRs
  *
- * SYSTEMATIC_CODING utilizes systematic polar codes
- *
  * ONLY_SCDECODING   disables Fast-SSC decoding
  *
  */
 
 //#define ACCELERATED_MONTECARLO
-#define SYSTEMATIC_CODING
 //#define ONLY_SCDECODING
 
 /*

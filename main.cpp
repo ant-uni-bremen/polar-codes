@@ -24,9 +24,9 @@
 const long long BitsToSimulate	= 1e8;//Bits
 const int ConcurrentThreads = 2;
 
-const float EbN0_min =  0;
-const float EbN0_max =  7;
-const int EbN0_count = 20;
+const float EbN0_min =  -2.0;
+const float EbN0_max =   7.0;
+const int EbN0_count =  30;
 
 /* In the following, you can manually select between four different parameters
  * to be varied. After (un)commenting, do not forget to (un)comment the
@@ -34,28 +34,31 @@ const int EbN0_count = 20;
  */
  
 
-/* Code length comparison */
-const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-int ParameterN[] = {16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768}, nParams = 12;
-int ParameterK[] = { 8, 16, 32, 64,  128, 256,  512, 1024, 2048, 4096,  8192, 16384};
-int L = 1;
-const bool useCRC = false;
-
+/* Code length comparison
+const float designSNR = 0.0;//10.0*log10(-1.0 * log(0.5));//=-1.591745dB
+int ParameterN[] = {32, 64, 128, 256, 512}, nParams = 5;
+int ParameterK[] = {16, 32, 64,  128, 256};
+int L = 4;
+const bool useCRC = true;
+const bool systematic = true;
+ */
 /* Design-SNR measurement
-float designParam[] = {-1.59, 0.0, 2.0, 4.0, 6.0};
+float designParam[] = {-1.591745, 0.0, 2.0, 4.0, 6.0};
 const int nParams = 5;
-const int N = 1<<11;
-const int K = floor(N *   0.9   / 8)*8; //+8;
+const int N = 1<<7;
+const int K = floor(N *   0.5   / 8)*8; //+8;
 const int L = 1;
 const bool useCRC = false;
+const bool systematic = true;
  */
-/* List length comparison
+/* List length comparison*/
 const float designSNR = 0.0; // 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-const int N = 16;
-const bool useCRC = false;
+const int N = 128;
+const bool useCRC = true;
+const bool systematic = true;
 const int K = floor(N * 1.0/2.0 /8.0)*8+(useCRC?8:0);
-int ParameterL[] = {1, 2, 4, 8, 16}; const int nParams = 5;
-*/
+int ParameterL[] = {1, 2, 4, 8, 16, 32}; const int nParams = 5;
+
 
 /* Rate comparison
 const float designSNR = 1.0;//10.0*log10(-1.0 * log(0.5));//=-1.591745dB
@@ -64,9 +67,11 @@ const int N = 2048;
 float ParameterR[] = {1.0/4.0, 1.0/2.0, 2.0/3.0, 3.0/4.0, 5.0/6.0, 0.9};
 const int L = 1;
 const bool useCRC = false;
+const bool systematic = true;
  */
  
 std::atomic<unsigned int> finishedThreads(0);
+unsigned int totalThreads;
 std::mutex threadMutex[ConcurrentThreads];
 std::condition_variable threadCV[ConcurrentThreads];
 
@@ -77,7 +82,7 @@ std::map<int, std::atomic<float>> stopSNR;
 struct DataPoint
 {
 	//Codec-Parameters
-	float designSNR, EbN0; int N,K,L; bool useCRC;
+	float designSNR, EbN0; int N,K,L; bool useCRC, systematic;
 
 	//Simulation-Parameters
 	int BlocksToSimulate;
@@ -176,6 +181,7 @@ void simulate(int SimIndex)
 #endif
 
 	message.clear();
+	message += "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
 	message += "[";
 	message += std::to_string(SimIndex);
 	message += "] Simulating Eb/N0=";
@@ -189,6 +195,10 @@ void simulate(int SimIndex)
 	message += ", ";
 	message += (Graph[SimIndex].useCRC?"with":"without");
 	message += " CRC\n";
+
+	message += "Progress: ";
+	message += std::to_string(static_cast<int>(finishedThreads*100.0/totalThreads));
+	message += "%";
 	std::cout << message << flush;
 
 
@@ -201,20 +211,19 @@ void simulate(int SimIndex)
 
 	int L = Graph[SimIndex].L;
 	int N = Graph[SimIndex].N;
-	float designSNR = Graph[SimIndex].designSNR;//dB
 	float EbN0 = Graph[SimIndex].EbN0;//dB
 	float R = (float)Graph[SimIndex].K / Graph[SimIndex].N;
 
 	int BlocksToSimulate = Graph[SimIndex].BlocksToSimulate;
 
 	int nBits = Graph[SimIndex].K;
-	if(Graph[SimIndex].useCRC)nBits-=8;
+//	if(Graph[SimIndex].useCRC)nBits-=8;
 
 	aligned_float_vector encodedData(N);
 	float factor = sqrt(pow(10.0, EbN0/10.0)  * 2.0 * R);
 	vec facVec = set1_ps(factor);
 
-	PolarCode PC(N, Graph[SimIndex].K, L, Graph[SimIndex].useCRC, designSNR);
+	PolarCode PC(N, Graph[SimIndex].K, L, Graph[SimIndex].useCRC, Graph[SimIndex].designSNR, Graph[SimIndex].systematic);
 
 	//Allocate memory
 	data = new unsigned char[Graph[SimIndex].K>>3];
@@ -374,6 +383,7 @@ void simulate(int SimIndex)
 
 	int finished = ++finishedThreads;
 	message.clear();
+	message += "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
 	message += "[";
 	message += std::to_string(SimIndex);
 	message += "] ";
@@ -381,6 +391,9 @@ void simulate(int SimIndex)
 	message += " Threads finished, BLER = ";
 	message += std::to_string(Graph[SimIndex].BLER);
 	message += "\n";
+	message += "Progress: ";
+	message += std::to_string(static_cast<int>(finishedThreads*100.0/totalThreads));
+	message += "%";
 	std::cout << message << flush;
 
 	threadCV[SimIndex%ConcurrentThreads].notify_one();
@@ -392,7 +405,7 @@ int main(int argc, char** argv)
 	Graph = new DataPoint[EbN0_count*nParams*2];
 	std::vector<std::thread> Threads;
 	
-	std::ofstream File("Simulation_BlockLength.csv");
+	std::ofstream File("Simulation_listLength.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;
@@ -405,12 +418,7 @@ int main(int argc, char** argv)
 	
 		for(int l=0; l<nParams; ++l)
 		{
-		/* Code length comparison
-			if(useCRC)
-			{
-				ParameterK[l] += 8;
-			}
-		*/
+
 #ifdef ACCELERATED_MONTECARLO
 			stopSNR[ParameterL[l]] = INFINITY;
 #endif
@@ -418,43 +426,49 @@ int main(int argc, char** argv)
 			{
 				Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			
-			/* Code length comparison*/
+				/* Code length comparison
 				Graph[idCounter].N = ParameterN[l];
 				Graph[idCounter].K = ParameterK[l];
 				Graph[idCounter].L = (useCRC==1)?L:1;
 				Graph[idCounter].designSNR = designSNR;
 				Graph[idCounter].useCRC = useCRC;
-
+				Graph[idCounter].systematic = systematic;
+				*/
 			
-			/* design-SNR measurement
-			Graph[idCounter].N = N;
-			Graph[idCounter].K = K;
-			Graph[idCounter].L = L;
-			Graph[idCounter].designSNR = designParam[l];
-			Graph[idCounter].useCRC = useCRC;
-			 */
-				
-			/* List length comparison
-			Graph[idCounter].N = N;
-			Graph[idCounter].K = K;
-			Graph[idCounter].L = ParameterL[l];
-			Graph[idCounter].designSNR = designSNR;
-			Graph[idCounter].useCRC = useCRC;
-			 */
- 			
-			/* Rate comparison
-			Graph[idCounter].N = N;
-			Graph[idCounter].K = floor(N * ParameterR[l] / 8.0)*8 + (useCRC?8:0);
-			Graph[idCounter].L = L;
-			Graph[idCounter].designSNR = designSNR;
-			Graph[idCounter].useCRC = useCRC;
-			*/
- 			
-				Graph[idCounter].BlocksToSimulate = BitsToSimulate/ /* N */ ParameterN[l];
+				/* design-SNR measurement
+				Graph[idCounter].N = N;
+				Graph[idCounter].K = K;
+				Graph[idCounter].L = L;
+				Graph[idCounter].designSNR = designParam[l];
+				Graph[idCounter].useCRC = useCRC;
+				Graph[idCounter].systematic = systematic;
+				 */
+
+				/* List length comparison */
+				Graph[idCounter].N = N;
+				Graph[idCounter].K = K;
+				Graph[idCounter].L = ParameterL[l];
+				Graph[idCounter].designSNR = designSNR;
+				Graph[idCounter].useCRC = useCRC;
+				Graph[idCounter].systematic = systematic;
+
+
+				/* Rate comparison
+				Graph[idCounter].N = N;
+				Graph[idCounter].K = floor(N * ParameterR[l] / 8.0)*8 + (useCRC?8:0);
+				Graph[idCounter].L = L;
+				Graph[idCounter].designSNR = designSNR;
+				Graph[idCounter].useCRC = useCRC;
+				Graph[idCounter].systematic = systematic;
+				*/
+
+				Graph[idCounter].BlocksToSimulate = BitsToSimulate/ N /* ParameterN[l] */;
 				Threads.push_back(std::thread(simulate, idCounter++));
 			}
 		}
 	//} CRC
+
+	totalThreads = Threads.size();
 
 	//Wait some time to let all threads lock up
 	while(finishedThreads != Threads.size())
@@ -474,16 +488,16 @@ int main(int argc, char** argv)
 		Thr.join();
 	}
 
-	File << "\"N\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+//	File << "\"N\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 //	File << "\"designSNR\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-//	File << "\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File << "\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 //	File << "\"R\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
 	for(int i=0; i<EbN0_count*nParams; ++i)
 	{
-		File << Graph[i].N;
+//		File << Graph[i].N;
 //		File << Graph[i].designSNR;
-//		File << Graph[i].L;
+		File << Graph[i].L;
 //		File << ((float)Graph[i].K/Graph[i].N);
 
 		File << ',' << Graph[i].EbN0 << ',';

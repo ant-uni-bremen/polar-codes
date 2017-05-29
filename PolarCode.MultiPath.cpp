@@ -506,12 +506,13 @@ bool PolarCode::decodeMultiPath(unsigned char* decoded)
 	if(useCRC)
 	{
 		//Select the most likely path which passes the CRC test
-#ifndef SYSTEMATIC_CODING
-		for(int path=0; path<PathCount; ++path)
+		if(!systematic)
 		{
-			transform(Bits[path]);
+			for(int path=0; path<PathCount; ++path)
+			{
+				transform(Bits[path]);
+			}
 		}
-#endif
 
 		int bytes = K>>3;
 		int bit = 0;
@@ -552,12 +553,10 @@ bool PolarCode::decodeMultiPath(unsigned char* decoded)
 			return true;
 		}
 	}
-	else
+	else if(!systematic)
 	{
 		//Select the most likely path
-#ifndef SYSTEMATIC_CODING
 		transform(Bits[0]);
-#endif
 	}
 
 	//Give out the most likely path, if no crc is used or passed the check

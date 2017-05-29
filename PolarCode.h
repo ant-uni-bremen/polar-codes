@@ -42,7 +42,7 @@ const __m256 minustwo = _mm256_set1_ps(-2.0f);
 struct PolarCode
 {
 	int N, K, L, n;
-	bool useCRC;
+	bool useCRC, systematic;
 	float designSNR;
 	bool hasDecoder;
 	
@@ -74,7 +74,7 @@ struct PolarCode
 	
 	DataPool *pool;
 
-	PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool encodeOnly=false);
+	PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool systematic, bool encodeOnly=false);
 	~PolarCode();
 
 	void encode(aligned_float_vector &encoded, unsigned char* data);

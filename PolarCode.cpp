@@ -622,8 +622,8 @@ void PolarCode::Repetition_vectorized(float *LLRin, float *BitsOut, int size)
 }
 
 
-PolarCode::PolarCode(int N_, int K_, int L_, bool useCRC_, float designSNR_, bool encodeOnly_):
-	N(N_), K(K_), L(L_), useCRC(useCRC_), designSNR(designSNR_), hasDecoder(!encodeOnly_)
+PolarCode::PolarCode(int N_, int K_, int L_, bool useCRC_, float designSNR_, bool systematic_, bool encodeOnly_):
+	N(N_), K(K_), L(L_), useCRC(useCRC_), systematic(systematic_), designSNR(designSNR_), hasDecoder(!encodeOnly_)
 {
 	n = ceil(log2(N));
 	N = 1<<n;
@@ -813,11 +813,14 @@ void PolarCode::encode(aligned_float_vector &encoded, unsigned char* data)
 
 	//Encode
 
-#ifndef SYSTEMATIC_CODING
-	transform(encoded);
-#else
-	subEncodeSystematic(encoded, n, 0, 0);
-#endif
+	if(systematic)
+	{
+		subEncodeSystematic(encoded, n, 0, 0);
+	}
+	else
+	{
+		transform(encoded);
+	}
 }
 
 void PolarCode::subEncodeSystematic(aligned_float_vector &encoded, int stage, int BitLocation, int nodeID)
@@ -1009,9 +1012,10 @@ bool PolarCode::decodeOnePath(unsigned char* decoded)
 {
 	decodeOnePathRecursive(n,SimpleBits.data(),0);
 
-#ifndef SYSTEMATIC_CODING
-	transform(SimpleBits);
-#endif
+	if(!systematic)
+	{
+		transform(SimpleBits);
+	}
 
 
 	int bytes = K>>3;
