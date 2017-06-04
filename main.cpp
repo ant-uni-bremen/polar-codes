@@ -21,11 +21,11 @@
 
 #include "Parameters.h"
 
-const long long BitsToSimulate	= 1e8;//Bits
+const long long BitsToSimulate	= 1e9;//Bits
 const int ConcurrentThreads = 2;
 
-const float EbN0_min =  -2.0;
-const float EbN0_max =   7.0;
+const float EbN0_min =  -1.0;
+const float EbN0_max =   8.0;
 const int EbN0_count =  30;
 
 /* In the following, you can manually select between four different parameters
@@ -35,16 +35,16 @@ const int EbN0_count =  30;
  
 
 /* Code length comparison
-const float designSNR = 0.0;//10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-int ParameterN[] = {32, 64, 128, 256, 512}, nParams = 5;
-int ParameterK[] = {16, 32, 64,  128, 256};
-int L = 4;
-const bool useCRC = true;
+const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
+int ParameterN[] = {32, 64, 128, 256, 512, 4096}, nParams = 6;
+int ParameterK[] = {16, 32, 64,  128, 256, 2048};
+int L = 1;
+const bool useCRC = false;
 const bool systematic = true;
  */
 /* Design-SNR measurement
-float designParam[] = {-1.591745, 0.0, 2.0, 4.0, 6.0};
-const int nParams = 5;
+float designParam[] = {-1.591745, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0};
+const int nParams = 7;
 const int N = 1<<7;
 const int K = floor(N *   0.5   / 8)*8; //+8;
 const int L = 1;
@@ -52,18 +52,18 @@ const bool useCRC = false;
 const bool systematic = true;
  */
 /* List length comparison*/
-const float designSNR = 0.0; // 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-const int N = 128;
+const int N = 1<<7;
 const bool useCRC = true;
 const bool systematic = true;
 const int K = floor(N * 1.0/2.0 /8.0)*8+(useCRC?8:0);
+const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
 int ParameterL[] = {1, 2, 4, 8, 16, 32}; const int nParams = 5;
 
 
 /* Rate comparison
-const float designSNR = 1.0;//10.0*log10(-1.0 * log(0.5));//=-1.591745dB
+const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
 const int nParams = 6;
-const int N = 2048;
+const int N = 1<<12;
 float ParameterR[] = {1.0/4.0, 1.0/2.0, 2.0/3.0, 3.0/4.0, 5.0/6.0, 0.9};
 const int L = 1;
 const bool useCRC = false;
@@ -220,7 +220,7 @@ void simulate(int SimIndex)
 //	if(Graph[SimIndex].useCRC)nBits-=8;
 
 	aligned_float_vector encodedData(N);
-	float factor = sqrt(pow(10.0, EbN0/10.0)  * 2.0 * R);
+	float factor = sqrt(pow(10.0, EbN0/10.0) * 2.0 * R);
 	vec facVec = set1_ps(factor);
 
 	PolarCode PC(N, Graph[SimIndex].K, L, Graph[SimIndex].useCRC, Graph[SimIndex].designSNR, Graph[SimIndex].systematic);
@@ -405,7 +405,7 @@ int main(int argc, char** argv)
 	Graph = new DataPoint[EbN0_count*nParams*2];
 	std::vector<std::thread> Threads;
 	
-	std::ofstream File("Simulation_listLength.csv");
+	std::ofstream File("Simulation_final_listLength.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;
@@ -429,11 +429,11 @@ int main(int argc, char** argv)
 				/* Code length comparison
 				Graph[idCounter].N = ParameterN[l];
 				Graph[idCounter].K = ParameterK[l];
-				Graph[idCounter].L = (useCRC==1)?L:1;
+				Graph[idCounter].L = L;
 				Graph[idCounter].designSNR = designSNR;
 				Graph[idCounter].useCRC = useCRC;
 				Graph[idCounter].systematic = systematic;
-				*/
+*/
 			
 				/* design-SNR measurement
 				Graph[idCounter].N = N;
@@ -442,9 +442,9 @@ int main(int argc, char** argv)
 				Graph[idCounter].designSNR = designParam[l];
 				Graph[idCounter].useCRC = useCRC;
 				Graph[idCounter].systematic = systematic;
-				 */
+ */
 
-				/* List length comparison */
+				/* List length comparison*/
 				Graph[idCounter].N = N;
 				Graph[idCounter].K = K;
 				Graph[idCounter].L = ParameterL[l];
@@ -460,9 +460,9 @@ int main(int argc, char** argv)
 				Graph[idCounter].designSNR = designSNR;
 				Graph[idCounter].useCRC = useCRC;
 				Graph[idCounter].systematic = systematic;
-				*/
+*/
 
-				Graph[idCounter].BlocksToSimulate = BitsToSimulate/ N /* ParameterN[l] */;
+				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N  /*ParameterN[l]*/;
 				Threads.push_back(std::thread(simulate, idCounter++));
 			}
 		}
@@ -487,6 +487,8 @@ int main(int argc, char** argv)
 	{
 		Thr.join();
 	}
+
+	std::cout << endl;
 
 //	File << "\"N\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 //	File << "\"designSNR\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;

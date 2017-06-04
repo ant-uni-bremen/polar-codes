@@ -698,7 +698,7 @@ void PolarCode::pcc()
 {
 	vector<float> z(N, 0.0);
 	float designSNRlin = pow(10.0, designSNR/10.0);
-	z[0] = exp(-1.0 * designSNRlin);
+	z[0] = exp(-1.0 * designSNRlin* 2.0 *K/N);
 
 	float T; int B;
 
