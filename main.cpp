@@ -24,13 +24,13 @@
 const long long BitsToSimulate	= 4e8;//Bits
 const int ConcurrentThreads = 3;
 
-const float EbN0_min =  -1.6;
+const float EbN0_min =  -1.5;
 const float EbN0_max =   7.0;
 const int EbN0_count =  20;
 
 /* Code length comparison */
 namespace codeLength {
-	const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
+	const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
 	const int ParameterN[] = {32, 64, 128, 256, 512, 4096}, nParams = 6;
 	const int ParameterK[] = {16, 32, 64,  128, 256, 2048};
 	const int L = 1;
@@ -40,44 +40,40 @@ namespace codeLength {
 
 /* Design-SNR measurement */
 namespace designSNR {
-	float designParam[] = {-1.591745, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0};
-	int nParams = 7;
-	int N = 1<<7;
-	int K = floor(N *   0.5   / 8)*8; //+8;
-	int L = 1;
-	bool useCRC = false;
-	bool systematic = true;
+	const float designParam[] = {-1.591745, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0};
+	const int nParams = 7;
+	const int N = 1<<7;
+	const int K = floor(N *   0.5   / 8)*8; //+8;
+	const int L = 1;
+	const bool useCRC = false;
+	const bool systematic = true;
 }
 
 /* List length comparison*/
 namespace listLength {
-	int N = 1<<7;
-	bool useCRC = true;
-	bool systematic = true;
-	int K = floor(N * 1.0/2.0 /8.0)*8+(useCRC?8:0);
-	float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-	int ParameterL[] = {1, 2, 4, 8, 16, 32}; const int nParams = 5;
+	const int N = 1<<7;
+	const bool useCRC = true;
+	const bool systematic = true;
+	const int K = floor(N * 1.0/2.0 /8.0)*8+(useCRC?8:0);
+	const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
+	const int ParameterL[] = {1, 2, 4, 8, 16, 32}; const int nParams = 5;
 }
 
 /* Rate comparison */
 namespace rate {
-	float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-	int nParams = 6;
-	int N = 1<<12;
-	float ParameterR[] = {1.0/4.0, 1.0/2.0, 2.0/3.0, 3.0/4.0, 5.0/6.0, 0.9};
-	int L = 1;
-	bool useCRC = false;
-	bool systematic = true;
+	const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
+	const int nParams = 6;
+	const int N = 1<<7;
+	const float ParameterR[] = {1.0/4.0, 1.0/2.0, 2.0/3.0, 3.0/4.0, 5.0/6.0, 0.9};
+	const int L = 1;
+	const bool useCRC = false;
+	const bool systematic = true;
 }
  
 std::atomic<unsigned int> finishedThreads(0);
 unsigned int totalThreads;
 std::mutex threadMutex[ConcurrentThreads];
 std::condition_variable threadCV[ConcurrentThreads];
-
-#ifdef ACCELERATED_MONTECARLO
-std::map<int, std::atomic<float>> stopSNR;
-#endif
 
 struct DataPoint
 {
@@ -150,39 +146,6 @@ void simulate(DataPoint* Graph, int SimIndex)
 	unique_lock<mutex> thrlck(threadMutex[SimIndex%ConcurrentThreads]);
 	threadCV[SimIndex%ConcurrentThreads].wait(thrlck);
 
-
-#ifdef ACCELERATED_MONTECARLO
-	if(Graph[SimIndex].EbN0 >= stopSNR[Graph[SimIndex].L])
-	{
-		/* This might save some time.
-		   Best case: Lowest SNR which reaches MaxIter iterations
-					  is simulated first.
-		   Worst case: Simulations run from highest to lowest SNRs
-					   with BLER=0.
-		   Running all SNRs squentially might leave some processor
-		   cores unused near the end of simulation.
-		   Especially for long lists, it is better to run multiple
-		   SNRs per same list size in parallel. Otherwise, if size
-		   1 has finished, there will be a core left unused, while
-		   size 8 simulations waits a long time.
-		*/
-		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].L);
-		std::cout << message;
-		Graph[SimIndex].BLER = 0;
-		Graph[SimIndex].time = 0;
-		Graph[SimIndex].blps = 0;
-		Graph[SimIndex].cbps = 0;
-		Graph[SimIndex].pbps = 0;
-		Graph[SimIndex].effectiveRate = 0;
-
-		int finished = ++finishedThreads;
-		sprintf(message, "[%3d] %3d Threads finished\n", SimIndex, finished);
-		std::cout << message << flush;
-		threadCV[SimIndex%ConcurrentThreads].notify_one();
-
-		return;
-	}
-#endif
 
 	message.clear();
 	message += "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
@@ -376,14 +339,6 @@ void simulate(DataPoint* Graph, int SimIndex)
 	Graph[SimIndex].pbps /= Graph[SimIndex].time;
 	Graph[SimIndex].effectiveRate = (Graph[SimIndex].runs-Graph[SimIndex].errors+0.0)*nBits/Graph[SimIndex].time;
 
-	
-#ifdef ACCELERATED_MONTECARLO
-	if(Graph[SimIndex].errors == 0 && EbN0 < stopSNR[L])
-	{
-		stopSNR[L] = EbN0;
-	}
-#endif
-
 
 	int finished = ++finishedThreads;
 	message.clear();
@@ -426,7 +381,7 @@ int main(int argc, char** argv)
 	{
 		for(int i=0; i<EbN0_count; ++i)
 		{
-			Graph[0][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*p;
+			Graph[0][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			Graph[0][idCounter].N = codeLength::ParameterN[p];
 			Graph[0][idCounter].K = codeLength::ParameterK[p];
 			Graph[0][idCounter].L = codeLength::L;
@@ -444,7 +399,7 @@ int main(int argc, char** argv)
 	{
 		for(int i=0; i<EbN0_count; ++i)
 		{
-			Graph[1][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*p;
+			Graph[1][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			Graph[1][idCounter].N = listLength::N;
 			Graph[1][idCounter].K = listLength::K;
 			Graph[1][idCounter].L = listLength::ParameterL[p];
@@ -462,7 +417,7 @@ int main(int argc, char** argv)
 	{
 		for(int i=0; i<EbN0_count; ++i)
 		{
-			Graph[2][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*p;
+			Graph[2][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			Graph[2][idCounter].N = designSNR::N;
 			Graph[2][idCounter].K = designSNR::K;
 			Graph[2][idCounter].L = designSNR::L;
@@ -480,7 +435,7 @@ int main(int argc, char** argv)
 	{
 		for(int i=0; i<EbN0_count; ++i)
 		{
-			Graph[3][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*p;
+			Graph[3][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			Graph[3][idCounter].N = rate::N;
 			Graph[3][idCounter].K = floor(rate::N * rate::ParameterR[p] / 8.0)*8 + (rate::useCRC?8:0);
 			Graph[3][idCounter].L = rate::L;
