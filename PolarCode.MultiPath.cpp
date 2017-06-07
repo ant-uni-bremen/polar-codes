@@ -201,19 +201,25 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 		if(size<4)
 		{
 			iLLR = reinterpret_cast<unsigned int*>(LlrTree[path][stage]->data);
+			unsigned int *iAbs = reinterpret_cast<unsigned int*>(absLLR.data());
 			unsigned int parity;
 			parity = 0;
 			for(int i=0; i<size; ++i)
 			{
 				parity ^= iLLR[i];
+				iAbs[i] = iLLR[i]&0x7FFFFFFF;
 			}
 			parityOK = !(parity & 0x80000000);//check parity
 		}
 		else if(size == 4)
 		{
-			float parity = _mm_reduce_xor_ps(_mm_and_ps(sgnMask128, _mm_load_ps(LlrTree[path][stage]->data)));
+			__m128 LLRv = _mm_load_ps(LlrTree[path][stage]->data);
+			float parity = _mm_reduce_xor_ps(_mm_and_ps(sgnMask128, LLRv));
 			unsigned *iPar=reinterpret_cast<unsigned*>(&parity);
 			parityOK = !(*iPar);
+
+			LLRv = _mm_andnot_ps(sgnMask128, LLRv);
+			_mm_store_ps(absLLR.data(), LLRv);
 		}
 		else
 		{
@@ -223,6 +229,8 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 			{
 				vec LLRv = load_ps(LlrTree[path][stage]->data+i);
 				parity = xor_ps(parity, LLRv);
+				LLRv = andnot_ps(sgnMask256, LLRv);
+				store_ps(absLLR.data()+i, LLRv);
 			}
 			float par = reduce_xor_ps(parity);unsigned int *iPar=reinterpret_cast<unsigned int*>(&par);
 			parityOK = !(*iPar & 0x80000000);
@@ -230,7 +238,6 @@ void PolarCode::SPC_multiPath(int stage, int BitLocation)
 		q = static_cast<float>(parityOK);
 
 		//Find the 4 least reliable LLRs
-		quick_abs(LlrTree[path][stage]->data, absLLR.data(), size);
 		sorter->simplePartialSort(absLLR.data(), size, std::min(4,size));
 		
 		

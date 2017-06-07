@@ -21,11 +21,11 @@
 
 #include "Parameters.h"
 
-const long long BitsToSimulate	= 1e8;//Bits
-const int ConcurrentThreads = 1;
+const long long BitsToSimulate	= 1e9;//Bits
+const int ConcurrentThreads = 3;
 
 const float EbN0_min =  -1.0;
-const float EbN0_max =   8.0;
+const float EbN0_max =   7.0;
 const int EbN0_count =  30;
 
 /* In the following, you can manually select between four different parameters
@@ -53,7 +53,7 @@ const bool systematic = true;
  */
 /* List length comparison*/
 const int N = 1<<7;
-const bool useCRC = false;
+const bool useCRC = true;
 const bool systematic = true;
 const int K = floor(N * 1.0/2.0 /8.0)*8+(useCRC?8:0);
 const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
@@ -409,7 +409,7 @@ int main(int argc, char** argv)
 	Graph = new DataPoint[EbN0_count*nParams*2];
 	std::vector<std::thread> Threads;
 	
-	std::ofstream File("Simulation_final_listLength_withoutCRC.csv");
+	std::ofstream File("Simulation_final_listLength.csv");
 	if(!File.is_open())
 	{
 		std::cout << "Error opening the file!" << std::endl;
