@@ -21,6 +21,7 @@ public:
 	Block* allocate(unsigned stage);
 	Block* lazyDuplicate(Block *block);
 	Block* duplicate(Block* other);
+	void prepareForWrite(Block*& block);
 	void release(Block* block);
 };
 

@@ -6,7 +6,7 @@
 
 DataPool::DataPool(int stages)
 {
-	freeBlocks.resize(stages);
+	freeBlocks.resize(stages+1);
 }
 
 DataPool::~DataPool()
@@ -27,7 +27,7 @@ Block* DataPool::allocate(unsigned stage)
 	if(freeBlocks[stage].empty())
 	{
 		block = new Block();
-		block->data = (float*)_mm_malloc(1<<(stage+2), sizeof(vec));
+		block->data = (float*)_mm_malloc(4<<stage, sizeof(vec));
 		block->useCount = 1;
 		block->stage = stage;
 	}
@@ -49,9 +49,17 @@ Block* DataPool::lazyDuplicate(Block *block)
 Block* DataPool::duplicate(Block* other)
 {
 	Block *block = allocate(other->stage);
-	memcpy(block->data, other->data, 1<<(other->stage+2));
+	memcpy(block->data, other->data, 4<<(other->stage));
 	other->useCount--;
 	return block;
+}
+
+void DataPool::prepareForWrite(Block*& block)
+{
+	if(block->useCount > 1)
+	{
+		block = duplicate(block);
+	}
 }
 
 void DataPool::release(Block* block)
