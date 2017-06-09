@@ -21,63 +21,59 @@
 
 #include "Parameters.h"
 
-const long long BitsToSimulate	= 1e8;//Bits
-const int ConcurrentThreads = 1;
+const long long BitsToSimulate	= 4e8;//Bits
+const int ConcurrentThreads = 3;
 
-const float EbN0_min =  -1.0;
-const float EbN0_max =   8.0;
-const int EbN0_count =  30;
+const float EbN0_min =  -1.5;
+const float EbN0_max =   7.0;
+const int EbN0_count =  20;
 
-/* In the following, you can manually select between four different parameters
- * to be varied. After (un)commenting, do not forget to (un)comment the
- * respective parametrization near the end of this file and adapt the csv-output!
- */
- 
+/* Code length comparison */
+namespace codeLength {
+	const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
+	const int ParameterN[] = {32, 64, 128, 256, 512, 4096}, nParams = 6;
+	const int ParameterK[] = {16, 32, 64,  128, 256, 2048};
+	const int L = 1;
+	const bool useCRC = false;
+	const bool systematic = true;
+}
 
-/* Code length comparison
-const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-int ParameterN[] = {32, 64, 128, 256, 512, 4096}, nParams = 6;
-int ParameterK[] = {16, 32, 64,  128, 256, 2048};
-int L = 1;
-const bool useCRC = false;
-const bool systematic = true;
- */
-/* Design-SNR measurement
-float designParam[] = {-1.591745, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0};
-const int nParams = 7;
-const int N = 1<<7;
-const int K = floor(N *   0.5   / 8)*8; //+8;
-const int L = 1;
-const bool useCRC = false;
-const bool systematic = true;
- */
+/* Design-SNR measurement */
+namespace designSNR {
+	const float designParam[] = {-1.591745, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0};
+	const int nParams = 7;
+	const int N = 1<<7;
+	const int K = floor(N *   0.5   / 8)*8; //+8;
+	const int L = 1;
+	const bool useCRC = false;
+	const bool systematic = true;
+}
+
 /* List length comparison*/
-const int N = 1<<7;
-const bool useCRC = false;
-const bool systematic = true;
-const int K = floor(N * 1.0/2.0 /8.0)*8+(useCRC?8:0);
-const float designSNR = 10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-int ParameterL[] = {1, 2, 4, 8, 16, 32}; const int nParams = 5;
+namespace listLength {
+	const int N = 1<<7;
+	const bool useCRC = true;
+	const bool systematic = true;
+	const int K = floor(N * 1.0/2.0 /8.0)*8+(useCRC?8:0);
+	const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
+	const int ParameterL[] = {1, 2, 4, 8, 16, 32}; const int nParams = 5;
+}
 
-
-/* Rate comparison
-const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-const int nParams = 6;
-const int N = 1<<12;
-float ParameterR[] = {1.0/4.0, 1.0/2.0, 2.0/3.0, 3.0/4.0, 5.0/6.0, 0.9};
-const int L = 1;
-const bool useCRC = false;
-const bool systematic = true;
- */
+/* Rate comparison */
+namespace rate {
+	const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
+	const int nParams = 6;
+	const int N = 1<<7;
+	const float ParameterR[] = {1.0/4.0, 1.0/2.0, 2.0/3.0, 3.0/4.0, 5.0/6.0, 0.9};
+	const int L = 1;
+	const bool useCRC = false;
+	const bool systematic = true;
+}
  
 std::atomic<unsigned int> finishedThreads(0);
 unsigned int totalThreads;
 std::mutex threadMutex[ConcurrentThreads];
 std::condition_variable threadCV[ConcurrentThreads];
-
-#ifdef ACCELERATED_MONTECARLO
-std::map<int, std::atomic<float>> stopSNR;
-#endif
 
 struct DataPoint
 {
@@ -97,7 +93,7 @@ struct DataPoint
 	float time;//in seconds
 	float blps,cbps,pbps;//blocks/coded bits/payload bits per second
 	float effectiveRate;
-} *Graph;
+} *Graph[4];
 
 struct {
 #ifdef __RDRAND__
@@ -132,7 +128,7 @@ const __m256 twopi = _mm256_set1_ps(2.0f * 3.14159265358979323846f);
 const __m256 one = _mm256_set1_ps(1.0f);
 const __m256 minustwo = _mm256_set1_ps(-2.0f);
 
-void simulate(int SimIndex)
+void simulate(DataPoint* Graph, int SimIndex)
 {
 	using namespace std;
 	using namespace std::chrono;
@@ -150,39 +146,6 @@ void simulate(int SimIndex)
 	unique_lock<mutex> thrlck(threadMutex[SimIndex%ConcurrentThreads]);
 	threadCV[SimIndex%ConcurrentThreads].wait(thrlck);
 
-
-#ifdef ACCELERATED_MONTECARLO
-	if(Graph[SimIndex].EbN0 >= stopSNR[Graph[SimIndex].L])
-	{
-		/* This might save some time.
-		   Best case: Lowest SNR which reaches MaxIter iterations
-					  is simulated first.
-		   Worst case: Simulations run from highest to lowest SNRs
-					   with BLER=0.
-		   Running all SNRs squentially might leave some processor
-		   cores unused near the end of simulation.
-		   Especially for long lists, it is better to run multiple
-		   SNRs per same list size in parallel. Otherwise, if size
-		   1 has finished, there will be a core left unused, while
-		   size 8 simulations waits a long time.
-		*/
-		sprintf(message, "[%3d] Skipping Eb/N0 = %f dB, L = %d\n", SimIndex, Graph[SimIndex].EbN0, Graph[SimIndex].L);
-		std::cout << message;
-		Graph[SimIndex].BLER = 0;
-		Graph[SimIndex].time = 0;
-		Graph[SimIndex].blps = 0;
-		Graph[SimIndex].cbps = 0;
-		Graph[SimIndex].pbps = 0;
-		Graph[SimIndex].effectiveRate = 0;
-
-		int finished = ++finishedThreads;
-		sprintf(message, "[%3d] %3d Threads finished\n", SimIndex, finished);
-		std::cout << message << flush;
-		threadCV[SimIndex%ConcurrentThreads].notify_one();
-
-		return;
-	}
-#endif
 
 	message.clear();
 	message += "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
@@ -376,14 +339,6 @@ void simulate(int SimIndex)
 	Graph[SimIndex].pbps /= Graph[SimIndex].time;
 	Graph[SimIndex].effectiveRate = (Graph[SimIndex].runs-Graph[SimIndex].errors+0.0)*nBits/Graph[SimIndex].time;
 
-	
-#ifdef ACCELERATED_MONTECARLO
-	if(Graph[SimIndex].errors == 0 && EbN0 < stopSNR[L])
-	{
-		stopSNR[L] = EbN0;
-	}
-#endif
-
 
 	int finished = ++finishedThreads;
 	message.clear();
@@ -406,73 +361,95 @@ void simulate(int SimIndex)
 
 int main(int argc, char** argv)
 {
-	Graph = new DataPoint[EbN0_count*nParams*2];
+	int idCounter;
+	Graph[0] = new DataPoint[EbN0_count*codeLength::nParams];
+	Graph[1] = new DataPoint[EbN0_count*listLength::nParams];
+	Graph[2] = new DataPoint[EbN0_count*designSNR::nParams];
+	Graph[3] = new DataPoint[EbN0_count*rate::nParams];
+
 	std::vector<std::thread> Threads;
 	
-	std::ofstream File("Simulation_final_listLength_withoutCRC.csv");
-	if(!File.is_open())
+	std::ofstream File[4];
+	File[0].open("Simulation_codeLength.csv");
+	File[1].open("Simulation_listLength.csv");
+	File[2].open("Simulation_designSNR.csv");
+	File[3].open("Simulation_rate.csv");
+
+	/* Code length comparison */
+	idCounter = 0;
+	for(int p=0; p<codeLength::nParams; ++p)
 	{
-		std::cout << "Error opening the file!" << std::endl;
-		return 0;
+		for(int i=0; i<EbN0_count; ++i)
+		{
+			Graph[0][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
+			Graph[0][idCounter].N = codeLength::ParameterN[p];
+			Graph[0][idCounter].K = codeLength::ParameterK[p];
+			Graph[0][idCounter].L = codeLength::L;
+			Graph[0][idCounter].designSNR = codeLength::designSNR;
+			Graph[0][idCounter].useCRC = codeLength::useCRC;
+			Graph[0][idCounter].systematic = codeLength::systematic;
+			Graph[0][idCounter].BlocksToSimulate = BitsToSimulate / codeLength::ParameterN[p];
+			Threads.push_back(std::thread(simulate, Graph[0], idCounter++));
+		}
 	}
 
-	int idCounter = 0;
-/*	for(int useCRC=0; useCRC<2; ++useCRC)
-	{*/
-	
-		for(int l=0; l<nParams; ++l)
+	/* List length comparison*/
+	idCounter = 0;
+	for(int p=0; p<listLength::nParams; ++p)
+	{
+		for(int i=0; i<EbN0_count; ++i)
 		{
-
-#ifdef ACCELERATED_MONTECARLO
-			stopSNR[ParameterL[l]] = INFINITY;
-#endif
-			for(int i=0; i<EbN0_count; ++i)
-			{
-				Graph[idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
-			
-				/* Code length comparison
-				Graph[idCounter].N = ParameterN[l];
-				Graph[idCounter].K = ParameterK[l];
-				Graph[idCounter].L = L;
-				Graph[idCounter].designSNR = designSNR;
-				Graph[idCounter].useCRC = useCRC;
-				Graph[idCounter].systematic = systematic;
-*/
-			
-				/* design-SNR measurement
-				Graph[idCounter].N = N;
-				Graph[idCounter].K = K;
-				Graph[idCounter].L = L;
-				Graph[idCounter].designSNR = designParam[l];
-				Graph[idCounter].useCRC = useCRC;
-				Graph[idCounter].systematic = systematic;
- */
-
-				/* List length comparison*/
-				Graph[idCounter].N = N;
-				Graph[idCounter].K = K;
-				Graph[idCounter].L = ParameterL[l];
-				Graph[idCounter].designSNR = designSNR;
-				Graph[idCounter].useCRC = useCRC;
-				Graph[idCounter].systematic = systematic;
-
-
-				/* Rate comparison
-				Graph[idCounter].N = N;
-				Graph[idCounter].K = floor(N * ParameterR[l] / 8.0)*8 + (useCRC?8:0);
-				Graph[idCounter].L = L;
-				Graph[idCounter].designSNR = designSNR;
-				Graph[idCounter].useCRC = useCRC;
-				Graph[idCounter].systematic = systematic;
-*/
-
-				Graph[idCounter].BlocksToSimulate = BitsToSimulate/  N  /*ParameterN[l]*/;
-				Threads.push_back(std::thread(simulate, idCounter++));
-			}
+			Graph[1][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
+			Graph[1][idCounter].N = listLength::N;
+			Graph[1][idCounter].K = listLength::K;
+			Graph[1][idCounter].L = listLength::ParameterL[p];
+			Graph[1][idCounter].designSNR = listLength::designSNR;
+			Graph[1][idCounter].useCRC = listLength::useCRC;
+			Graph[1][idCounter].systematic = listLength::systematic;
+			Graph[1][idCounter].BlocksToSimulate = BitsToSimulate / listLength::N;
+			Threads.push_back(std::thread(simulate, Graph[1], idCounter++));
 		}
-	//} CRC
+	}
+
+	/* design-SNR measurement */
+	idCounter = 0;
+	for(int p=0; p<designSNR::nParams; ++p)
+	{
+		for(int i=0; i<EbN0_count; ++i)
+		{
+			Graph[2][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
+			Graph[2][idCounter].N = designSNR::N;
+			Graph[2][idCounter].K = designSNR::K;
+			Graph[2][idCounter].L = designSNR::L;
+			Graph[2][idCounter].designSNR = designSNR::designParam[p];
+			Graph[2][idCounter].useCRC = designSNR::useCRC;
+			Graph[2][idCounter].systematic = designSNR::systematic;
+			Graph[2][idCounter].BlocksToSimulate = BitsToSimulate / designSNR::N;
+			Threads.push_back(std::thread(simulate, Graph[2], idCounter++));
+		}
+	}
+
+	/* Rate comparison */
+	idCounter = 0;
+	for(int p=0; p<rate::nParams; ++p)
+	{
+		for(int i=0; i<EbN0_count; ++i)
+		{
+			Graph[3][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
+			Graph[3][idCounter].N = rate::N;
+			Graph[3][idCounter].K = floor(rate::N * rate::ParameterR[p] / 8.0)*8 + (rate::useCRC?8:0);
+			Graph[3][idCounter].L = rate::L;
+			Graph[3][idCounter].designSNR = rate::designSNR;
+			Graph[3][idCounter].useCRC = rate::useCRC;
+			Graph[3][idCounter].systematic = rate::systematic;
+			Graph[3][idCounter].BlocksToSimulate = BitsToSimulate / rate::N;
+			Threads.push_back(std::thread(simulate, Graph[3], idCounter++));
+		}
+	}
 
 	totalThreads = Threads.size();
+
+	std::cout << "Thread count: " << totalThreads << endl;
 
 	//Wait some time to let all threads lock up
 	while(finishedThreads != Threads.size())
@@ -494,65 +471,68 @@ int main(int argc, char** argv)
 
 	std::cout << endl;
 
-//	File << "\"N\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-//	File << "\"designSNR\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-	File << "\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
-//	File << "\"R\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File[0] << "\"N\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File[1] << "\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File[2] << "\"designSNR\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
+	File[3] << "\"R\",\"Eb/N0\",\"BLER\",\"BER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\"" << std::endl;
 
-	for(int i=0; i<EbN0_count*nParams; ++i)
+	for(int i=0; i<EbN0_count*codeLength::nParams; ++i)
 	{
-//		File << Graph[i].N;
-//		File << Graph[i].designSNR;
-		File << Graph[i].L;
-//		File << ((float)Graph[i].K/Graph[i].N);
+		File[0] << Graph[0][i].N;
 
-		File << ',' << Graph[i].EbN0 << ',';
-		if(Graph[i].BLER>0.0)
-		{
-			File << Graph[i].BLER << ',';
-		}
-		else
-		{
-			File << "nan,";
-		}
-		if(Graph[i].BER>0.0)
-		{
-			File << Graph[i].BER << ',';
-		}
-		else
-		{
-			File << "nan,";
-		}
-		File << Graph[i].runs << ',' << Graph[i].errors << ','
-			 << Graph[i].time << ',' << Graph[i].blps << ',';
-		if(Graph[i].cbps>0)
-		{
-			File << Graph[i].cbps << ',';
-		}
-		else
-		{
-			File << "nan,";
-		}
-		if(Graph[i].pbps>0)
-		{
-			File << Graph[i].pbps << ',';
-		}
-		else
-		{
-			File << "nan,";
-		}
-		if(Graph[i].effectiveRate != 0)
-		{
-			File << Graph[i].effectiveRate;
-		}
-		else
-		{
-			File << "nan";
-		}
-		File << std::endl;
+		File[0] << ',' << Graph[0][i].EbN0 << ',';
+		if(Graph[0][i].BLER > 0.0)         File[0] << Graph[0][i].BLER << ',';   else File[0] << "nan,";
+		if(Graph[0][i].BER  > 0.0)         File[0] << Graph[0][i].BER  << ',';   else File[0] << "nan,";
+		File[0] << Graph[0][i].runs << ',' << Graph[0][i].errors << ',' << Graph[0][i].time << ',' << Graph[0][i].blps << ',';
+		if(Graph[0][i].cbps > 0)           File[0] << Graph[0][i].cbps << ',';   else File[0] << "nan,";
+		if(Graph[0][i].pbps > 0)           File[0] << Graph[0][i].pbps << ',';   else File[0] << "nan,";
+		if(Graph[0][i].effectiveRate != 0) File[0] << Graph[0][i].effectiveRate; else File[0] << "nan";
+		File[0] << std::endl;
 	}
-	
-	File.close();
+	for(int i=0; i<EbN0_count*listLength::nParams; ++i)
+	{
+		File[1] << Graph[1][i].L;
+
+		File[1] << ',' << Graph[1][i].EbN0 << ',';
+		if(Graph[1][i].BLER > 0.0)         File[1] << Graph[1][i].BLER << ',';   else File[1] << "nan,";
+		if(Graph[1][i].BER  > 0.0)         File[1] << Graph[1][i].BER  << ',';   else File[1] << "nan,";
+		File[1] << Graph[1][i].runs << ',' << Graph[1][i].errors << ',' << Graph[1][i].time << ',' << Graph[1][i].blps << ',';
+		if(Graph[1][i].cbps > 0)           File[1] << Graph[1][i].cbps << ',';   else File[1] << "nan,";
+		if(Graph[1][i].pbps > 0)           File[1] << Graph[1][i].pbps << ',';   else File[1] << "nan,";
+		if(Graph[1][i].effectiveRate != 0) File[1] << Graph[1][i].effectiveRate; else File[1] << "nan";
+		File[1] << std::endl;
+	}
+	for(int i=0; i<EbN0_count*designSNR::nParams; ++i)
+	{
+		File[2] << Graph[2][i].designSNR;
+
+		File[2] << ',' << Graph[2][i].EbN0 << ',';
+		if(Graph[2][i].BLER > 0.0)         File[2] << Graph[2][i].BLER << ',';   else File[2] << "nan,";
+		if(Graph[2][i].BER  > 0.0)         File[2] << Graph[2][i].BER  << ',';   else File[2] << "nan,";
+		File[2] << Graph[2][i].runs << ',' << Graph[2][i].errors << ',' << Graph[2][i].time << ',' << Graph[2][i].blps << ',';
+		if(Graph[2][i].cbps > 0)           File[2] << Graph[2][i].cbps << ',';   else File[2] << "nan,";
+		if(Graph[2][i].pbps > 0)           File[2] << Graph[2][i].pbps << ',';   else File[2] << "nan,";
+		if(Graph[2][i].effectiveRate != 0) File[2] << Graph[2][i].effectiveRate; else File[2] << "nan";
+		File[2] << std::endl;
+	}
+	for(int i=0; i<EbN0_count*rate::nParams; ++i)
+	{
+		File[3] << ((float)Graph[3][i].K/Graph[3][i].N);
+
+		File[3] << ',' << Graph[3][i].EbN0 << ',';
+		if(Graph[3][i].BLER > 0.0)         File[3] << Graph[3][i].BLER << ',';   else File[3] << "nan,";
+		if(Graph[3][i].BER  > 0.0)         File[3] << Graph[3][i].BER  << ',';   else File[3] << "nan,";
+		File[3] << Graph[3][i].runs << ',' << Graph[3][i].errors << ',' << Graph[3][i].time << ',' << Graph[3][i].blps << ',';
+		if(Graph[3][i].cbps > 0)           File[3] << Graph[3][i].cbps << ',';   else File[3] << "nan,";
+		if(Graph[3][i].pbps > 0)           File[3] << Graph[3][i].pbps << ',';   else File[3] << "nan,";
+		if(Graph[3][i].effectiveRate != 0) File[3] << Graph[3][i].effectiveRate; else File[3] << "nan";
+		File[3] << std::endl;
+	}
+
+	File[0].close();
+	File[1].close();
+	File[2].close();
+	File[3].close();
 
 	return 0;
 }
