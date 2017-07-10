@@ -4,7 +4,9 @@
 #include <utility>
 
 #include "PolarCode.h"
+#include "crc0.h"
 #include "crc8.h"
+#include "crc32.h"
 
 using namespace std;
 
@@ -243,11 +245,9 @@ void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 	if(size == 4)
 		return P_RSPC_4(LLRin, BitsOut);
 
-	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
-
-	unsigned int parity=0;float *fPar = reinterpret_cast<float*>(&parity);
-
-	vec parityVec = set1_ps(0.0);
+	vec ParVec = _mm256_setzero_ps();
+	float MinAbs = INFINITY;
+	int MinIdx = 0;
 
 	for(int i=0; i<size; i+=FLOATSPERVECTOR)
 	{
@@ -257,33 +257,30 @@ void PolarCode::P_RSPC(float *LLRin, float *BitsOut, int size)
 		vec Bit_l = load_ps(BitsOut+i);
 
 		vec LLR1 = add_ps(xor_ps(LLR_l, Bit_l), LLR_r);//G-function
-		vec Bit_o = and_ps(LLR1, sgnMask256);//Rate-1 decoder
-		store_ps(BitsOut+i+size, Bit_o);//Save bit decision
-		parityVec = xor_ps(Bit_o, parityVec);//Calculate parity
 
-		Bit_l = xor_ps(Bit_l, Bit_o);
-		store_ps(BitsOut+i, Bit_l);//Save upper bit
+		vec Bit_o = and_ps(sgnMask256, LLR1);//Rate-1 decoder
+		vec Abs = andnot_ps(sgnMask256, LLR1); //Absolute value
+		ParVec = xor_ps(Bit_o, ParVec);//Calculate parity
 
-		Bit_o = andnot_ps(sgnMask256, LLR1);
-		store_ps(absLLR.data()+i, Bit_o);
+		store_ps(BitsOut+i, xor_ps(Bit_o, Bit_l));//Save upper bit
+		store_ps(BitsOut+i+size, Bit_o);//Save lower bit
+
+		unsigned int MinPos = _mm256_minidx_ps(Abs);
+		if(Abs[MinPos] < MinAbs)
+		{
+			MinIdx = i+MinPos;
+			MinAbs = Abs[MinPos];
+		}
 	}
 
-	*fPar = reduce_xor_ps(parityVec);
-
-	if(parity)
+	float par = reduce_xor_ps(ParVec);
+	unsigned int *iPar = reinterpret_cast<unsigned int*>(&par);
+	if(*iPar)
 	{
-		unsigned index = 0;
-		for(int i=1; i<size; ++i)
-		{
-			if(absLLR[i] < absLLR[index])
-			{
-				index = i;
-			}
-		}
+		unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
-		//Flip least reliable bit
-		iBit[index] ^= parity;
-		iBit[index+size] ^= parity;
+		iBit[MinIdx]      ^= 0x80000000;//Flip the bits
+		iBit[MinIdx+size] ^= 0x80000000;
 	}
 }
 void PolarCode::P_RSPC_4(float *LLRin, float *BitsOut)
@@ -360,46 +357,41 @@ void PolarCode::P_0SPC(float *LLRin, float *BitsOut, int size)
 
 void PolarCode::P_0SPC_vectorized(float *LLRin, float *BitsOut, int size)
 {
-	unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
-
-	unsigned int parity=0;float *fPar = reinterpret_cast<float*>(&parity);
-	int index=0;
-
-	vec parityVec = set1_ps(0.0);
+	vec ParVec = _mm256_setzero_ps();
+	float MinAbs = INFINITY;
+	int MinIdx = 0;
 
 	for(int i=0; i<size; i+=FLOATSPERVECTOR)
 	{
 		//Load data
 		vec LLR_l = load_ps(LLRin+i);
 		vec LLR_r = load_ps(LLRin+i+size);
-
 		vec LLR1 = add_ps(LLR_l, LLR_r);//G-function
-		vec Bit_o = and_ps(LLR1, sgnMask256);//Rate-1 decoder
+
+		vec Bit_o = and_ps(sgnMask256, LLR1);//Rate-1 decoder
+		vec Abs = andnot_ps(sgnMask256, LLR1); //Absolute value
+		ParVec = xor_ps(Bit_o, ParVec);//Calculate parity
 
 		store_ps(BitsOut+i, Bit_o);//Save upper bit
 		store_ps(BitsOut+i+size, Bit_o);//Save lower bit
 
-		parityVec = xor_ps(Bit_o, parityVec);//Calculate parity
 
-		Bit_o = andnot_ps(sgnMask256, LLR1);
-		store_ps(absLLR.data()+i, Bit_o);
+		unsigned int MinPos = _mm256_minidx_ps(Abs);
+		if(Abs[MinPos] < MinAbs)
+		{
+			MinIdx = i+MinPos;
+			MinAbs = Abs[MinPos];
+		}
 	}
 
-	*fPar = reduce_xor_ps(parityVec);
-
-	if(parity)
+	float par = reduce_xor_ps(ParVec);
+	unsigned int *iPar = reinterpret_cast<unsigned int*>(&par);
+	if(*iPar)
 	{
-		for(int i=1; i<size; ++i)
-		{
-			if(absLLR[i] < absLLR[index])
-			{
-				index = i;
-			}
-		}
+		unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
-		//Flip least reliable bit
-		iBit[index] = parity;
-		iBit[index+size] ^= parity;
+		iBit[MinIdx]      ^= 0x80000000;//Flip the bits
+		iBit[MinIdx+size] ^= 0x80000000;
 	}
 }
 
@@ -516,11 +508,8 @@ void PolarCode::SPC(float *LLRin, float *BitsOut, int size)
 void PolarCode::SPC_vectorized(float *LLRin, float *BitsOut, int size)
 {
 	vec ParVec = _mm256_setzero_ps();
-	vec MinAbs = load_ps(LLRin);
-	__m256i CurIdx = _mm256_set_epi32(0, 1, 2, 3, 4, 5, 6, 7);
-	__m256i MinIdx = CurIdx;
-	__m256i One = _mm256_set1_epi32(1);
-
+	float MinAbs = INFINITY;
+	int MinIdx = 0;
 
 	for(int i=0; i<size; i+=FLOATSPERVECTOR)
 	{
@@ -532,11 +521,12 @@ void PolarCode::SPC_vectorized(float *LLRin, float *BitsOut, int size)
 
 		store_ps(BitsOut+i, Sgn); //Save hard decision
 
-		MinAbs = min_ps(MinAbs, Abs);//Get new minimal absolute values
-		__m256i mask = _mm256_castps_si256(_mm256_cmp_ps(MinAbs, Abs, _CMP_EQ_OQ));//Check if new minima found
-		MinIdx = _mm256_blendv_epi8(MinIdx, CurIdx, mask);//Set new minima's indices
-
-		CurIdx = _mm256_add_epi32(CurIdx, One);//Increment indices for next iteration
+		unsigned int MinPos = _mm256_minidx_ps(Abs);
+		if(Abs[MinPos] < MinAbs)
+		{
+			MinIdx = i+MinPos;
+			MinAbs = Abs[MinPos];
+		}
 	}
 
 	float par = reduce_xor_ps(ParVec);
@@ -545,9 +535,7 @@ void PolarCode::SPC_vectorized(float *LLRin, float *BitsOut, int size)
 	{
 		unsigned int *iBit = reinterpret_cast<unsigned int*>(BitsOut);
 
-		unsigned int vecMin = _mm256_minidx_ps(MinAbs);//Get local index of final minimum
-		unsigned int index = MinIdx[vecMin];//Get global index
-		iBit[index] ^= 0x80000000;//Flip the bit
+		iBit[MinIdx] ^= 0x80000000;//Flip the bit
 	}
 }
 
@@ -661,8 +649,8 @@ void PolarCode::Repetition_vectorized(float *LLRin, float *BitsOut, int size)
 }
 
 
-PolarCode::PolarCode(int N_, int K_, int L_, bool useCRC_, float designSNR_, bool systematic_, bool encodeOnly_):
-	N(N_), K(K_), L(L_), useCRC(useCRC_), systematic(systematic_), designSNR(designSNR_), hasDecoder(!encodeOnly_)
+PolarCode::PolarCode(int N_, int K_, int L_, int crcLength_, float designSNR_, bool systematic_, bool encodeOnly_):
+	N(N_), K(K_), L(L_), useCRC(crcLength_ > 0), systematic(systematic_), crcLength(crcLength_), designSNR(designSNR_), hasDecoder(!encodeOnly_)
 {
 	n = ceil(log2(N));
 	N = 1<<n;
@@ -671,9 +659,16 @@ PolarCode::PolarCode(int N_, int K_, int L_, bool useCRC_, float designSNR_, boo
 	simplifiedTree.resize(2*N-1);
 	sorter = new trackingSorter();
 
-	/* TODO: This is very bad, change CRC8 to do nothing when called */
-	Crc = useCRC ? new CRC8() : nullptr;
-
+	switch(crcLength) {
+	case 8:
+		Crc = new CRC8();
+		break;
+	case 32:
+		Crc = new CRC32();
+		break;
+	default:
+		Crc = new CRC0();
+	}
 
 	if(hasDecoder)
 	{
@@ -730,10 +725,8 @@ PolarCode::~PolarCode()
 		}
 		delete [] decodedData;
 	}
-	if(Crc != nullptr)
-	{
-		delete Crc;
-	}
+
+	delete Crc;
 }
 
 void PolarCode::pcc()
@@ -756,17 +749,17 @@ void PolarCode::pcc()
 	}
 
 	sorter->set(z);
-	sorter->stableSort();
+	sorter->stableSortDescending();
 
-	for(int i = 0; i<K; ++i)
-	{
-		FZLookup[sorter->permuted[i]] = true;//Bit is available for user data
-		simplifiedTree[N-1+sorter->permuted[i]] = nodeInfo::RateOne;
-	}
-	for(int i = K; i<N; ++i)
+	for(int i = 0; i<N-K; ++i)
 	{
 		FZLookup[sorter->permuted[i]] = false;//Freeze bit
 		simplifiedTree[N-1+sorter->permuted[i]] = nodeInfo::RateZero;
+	}
+	for(int i = N-K; i<N; ++i)
+	{
+		FZLookup[sorter->permuted[i]] = true;//Bit is available for user data
+		simplifiedTree[N-1+sorter->permuted[i]] = nodeInfo::RateOne;
 	}
 
 	for(int i=0; i<N; ++i)
@@ -832,11 +825,7 @@ void PolarCode::encode(aligned_float_vector &encoded, unsigned char* data)
 	encoded.assign(N, 0.0);
 
 	//Calculate CRC
-	if(useCRC)
-	{
-		int lastByte = (K>>3)-1;
-		Crc->generate(data, lastByte, data+lastByte);
-	}
+	Crc->generate(data, (K>>3));
 
 	//Insert the bits into Rate-1 channels as float bits (sign bit: 0 => 0.0, 1 => -0.0)
 	int bit=0; int bytes=K>>3;
@@ -1072,10 +1061,7 @@ bool PolarCode::decodeOnePath(unsigned char* decoded)
 		decoded[byte] = thisByte;
 	}
 
-	if(useCRC)
-		return Crc->check(decoded, bytes-1, decoded[bytes-1]);
-	else
-		return true;
+	return Crc->check(decoded, bytes);
 }
 
 void PolarCode::decodeOnePathRecursive(int stage, float *nodeBits, int nodeID)

@@ -69,16 +69,16 @@ void MainWindow::updateTree()
 
 	trackingSorter sorter;
 	sorter.set(Z);
-	sorter.stableSort();
+	sorter.stableSortDescending();
 
-	for(int i=0; i<K; ++i)
-	{
-		simplifiedTree[N-1+sorter.permuted[i]] = RateOne;
-	}
-
-	for(int i=K; i<N; ++i)
+	for(int i=0; i<N-K; ++i)
 	{
 		simplifiedTree[N-1+sorter.permuted[i]] = RateZero;
+	}
+
+	for(int i=N-K; i<N; ++i)
+	{
+		simplifiedTree[N-1+sorter.permuted[i]] = RateOne;
 	}
 
 	for(int lev=n-1; lev>=0; --lev)

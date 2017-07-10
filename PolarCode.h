@@ -6,7 +6,7 @@
 #include "Parameters.h"
 #include "ArrayFuncs.h"
 #include "AlignedAllocator.h"
-#include "crc8.h"
+#include "crc.h"
 #include "DataPool.h"
 
 #ifdef __AVX2__
@@ -39,6 +39,7 @@ struct PolarCode
 {
 	int N, K, L, n;
 	bool useCRC, systematic;
+	int crcLength;
 	float designSNR;
 	bool hasDecoder;
 	
@@ -66,13 +67,13 @@ struct PolarCode
 	
 	int PathCount;
 	int maxCandCount;
-	CRC8 *Crc;
+	CrcGenerator *Crc;
 	unsigned int **crcBit;
 	unsigned char *crcByte;
 	
 	DataPool *pool;
 
-	PolarCode(int N, int K, int L, bool useCRC, float designSNR, bool systematic, bool encodeOnly=false);
+	PolarCode(int N, int K, int L, int crcLength, float designSNR, bool systematic, bool encodeOnly=false);
 	~PolarCode();
 
 	void encode(aligned_float_vector &encoded, unsigned char* data);

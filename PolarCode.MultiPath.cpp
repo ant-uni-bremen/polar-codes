@@ -5,7 +5,7 @@
 
 #include "PolarCode.h"
 #include "ArrayFuncs.h"
-#include "crc8.h"
+#include "crc.h"
 
 using namespace std;
 

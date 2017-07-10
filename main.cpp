@@ -31,10 +31,10 @@ const int EbN0_count =  20;
 /* Code length comparison */
 namespace codeLength {
 	const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-	const int ParameterN[] = {32, 64, 128, 256, 512, 4096}, nParams = 6;
-	const int ParameterK[] = {16, 32, 64,  128, 256, 2048};
-	const int L = 1;
-	const bool useCRC = false;
+	const int ParameterN[] = {1024, 2048, 4096, 8192}, nParams = 4;
+	const int ParameterK[] = { 512, 1024, 2048, 4096};
+	const int L = 4;
+	const int crcLength = 32;
 	const bool systematic = true;
 }
 
@@ -42,31 +42,33 @@ namespace codeLength {
 namespace designSNR {
 	const float designParam[] = {-1.591745, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0};
 	const int nParams = 7;
-	const int N = 1<<7;
+	const int N = 4096;
 	const int K = floor(N *   0.5   / 8)*8; //+8;
 	const int L = 1;
-	const bool useCRC = false;
+	const int crcLength = 0;
 	const bool systematic = true;
 }
 
 /* List length comparison*/
 namespace listLength {
-	const int N = 1<<7;
-	const bool useCRC = true;
+	const int N = 4096;
+	const int crcLength = 32;
+	const int crcFactor = crcLength>0 ? crcLength : 8;
 	const bool systematic = true;
-	const int K = floor(N * 1.0/2.0 /8.0)*8+(useCRC?8:0);
+	const int K = floor(N * 1.0/2.0 /crcFactor)*crcFactor+crcLength;
 	const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
-	const int ParameterL[] = {1, 2, 4, 8, 16, 32}; const int nParams = 5;
+	const int ParameterL[] = {1, 2, 4, 8, 16, 32}; const int nParams = 4;
 }
 
 /* Rate comparison */
 namespace rate {
 	const float designSNR = 0.0; //10.0*log10(-1.0 * log(0.5));//=-1.591745dB
 	const int nParams = 6;
-	const int N = 1<<7;
+	const int N = 4096;
 	const float ParameterR[] = {1.0/4.0, 1.0/2.0, 2.0/3.0, 3.0/4.0, 5.0/6.0, 0.9};
 	const int L = 1;
-	const bool useCRC = false;
+	const int crcLength = 0;
+	const int crcFactor = crcLength>0 ? crcLength : 8;
 	const bool systematic = true;
 }
  
@@ -78,7 +80,7 @@ std::condition_variable threadCV[ConcurrentThreads];
 struct DataPoint
 {
 	//Codec-Parameters
-	float designSNR, EbN0; int N,K,L; bool useCRC, systematic;
+	float designSNR, EbN0; int N,K,L; int crcLength; bool systematic;
 
 	//Simulation-Parameters
 	int BlocksToSimulate;
@@ -160,7 +162,7 @@ void simulate(DataPoint* Graph, int SimIndex)
 	message += ", L=";
 	message += std::to_string(Graph[SimIndex].L);
 	message += ", ";
-	message += (Graph[SimIndex].useCRC?"with":"without");
+	message += (Graph[SimIndex].crcLength>0?"with":"without");
 	message += " CRC\n";
 
 	message += "Progress: ";
@@ -183,14 +185,13 @@ void simulate(DataPoint* Graph, int SimIndex)
 
 	int BlocksToSimulate = Graph[SimIndex].BlocksToSimulate;
 
-	int nBits = Graph[SimIndex].K;
-//	if(Graph[SimIndex].useCRC)nBits-=8;
+	int nBits = Graph[SimIndex].K-Graph[SimIndex].crcLength;
 
 	aligned_float_vector encodedData(N);
 	float factor = sqrt(pow(10.0, EbN0/10.0) * 2.0 * R);
 	vec facVec = set1_ps(factor);
 
-	PolarCode PC(N, Graph[SimIndex].K, L, Graph[SimIndex].useCRC, Graph[SimIndex].designSNR, Graph[SimIndex].systematic);
+	PolarCode PC(N, Graph[SimIndex].K, L, Graph[SimIndex].crcLength, Graph[SimIndex].designSNR, Graph[SimIndex].systematic);
 
 	//Allocate memory
 	data = new unsigned char[Graph[SimIndex].K>>3];
@@ -386,7 +387,7 @@ int main(int argc, char** argv)
 			Graph[0][idCounter].K = codeLength::ParameterK[p];
 			Graph[0][idCounter].L = codeLength::L;
 			Graph[0][idCounter].designSNR = codeLength::designSNR;
-			Graph[0][idCounter].useCRC = codeLength::useCRC;
+			Graph[0][idCounter].crcLength = codeLength::crcLength;
 			Graph[0][idCounter].systematic = codeLength::systematic;
 			Graph[0][idCounter].BlocksToSimulate = BitsToSimulate / codeLength::ParameterN[p];
 			Threads.push_back(std::thread(simulate, Graph[0], idCounter++));
@@ -404,7 +405,7 @@ int main(int argc, char** argv)
 			Graph[1][idCounter].K = listLength::K;
 			Graph[1][idCounter].L = listLength::ParameterL[p];
 			Graph[1][idCounter].designSNR = listLength::designSNR;
-			Graph[1][idCounter].useCRC = listLength::useCRC;
+			Graph[1][idCounter].crcLength = listLength::crcLength;
 			Graph[1][idCounter].systematic = listLength::systematic;
 			Graph[1][idCounter].BlocksToSimulate = BitsToSimulate / listLength::N;
 			Threads.push_back(std::thread(simulate, Graph[1], idCounter++));
@@ -422,7 +423,7 @@ int main(int argc, char** argv)
 			Graph[2][idCounter].K = designSNR::K;
 			Graph[2][idCounter].L = designSNR::L;
 			Graph[2][idCounter].designSNR = designSNR::designParam[p];
-			Graph[2][idCounter].useCRC = designSNR::useCRC;
+			Graph[2][idCounter].crcLength = designSNR::crcLength;
 			Graph[2][idCounter].systematic = designSNR::systematic;
 			Graph[2][idCounter].BlocksToSimulate = BitsToSimulate / designSNR::N;
 			Threads.push_back(std::thread(simulate, Graph[2], idCounter++));
@@ -437,10 +438,10 @@ int main(int argc, char** argv)
 		{
 			Graph[3][idCounter].EbN0 = EbN0_min + (EbN0_max-EbN0_min)/(EbN0_count-1)*i;
 			Graph[3][idCounter].N = rate::N;
-			Graph[3][idCounter].K = floor(rate::N * rate::ParameterR[p] / 8.0)*8 + (rate::useCRC?8:0);
+			Graph[3][idCounter].K = floor(rate::N * rate::ParameterR[p] / rate::crcFactor)*rate::crcFactor + rate::crcLength;
 			Graph[3][idCounter].L = rate::L;
 			Graph[3][idCounter].designSNR = rate::designSNR;
-			Graph[3][idCounter].useCRC = rate::useCRC;
+			Graph[3][idCounter].crcLength = rate::crcLength;
 			Graph[3][idCounter].systematic = rate::systematic;
 			Graph[3][idCounter].BlocksToSimulate = BitsToSimulate / rate::N;
 			Threads.push_back(std::thread(simulate, Graph[3], idCounter++));
