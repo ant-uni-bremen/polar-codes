@@ -1,4 +1,10 @@
 ## README ##
+
+Welcome to my personal implementation of a Polar Coding Simulation program.
+The current C++-code is the result of my self-taught programming skills and
+sadly I skipped learning Clean Code conventions.
+I am about to adapt the whole code to Clean Coding.
+
 This is a library and simulation tool for a Forward Error Correcting (FEC)
 scheme named "Polar Codes". A very promising group of codes that have low
 encoding and decoding latency with high BLER-performance.
