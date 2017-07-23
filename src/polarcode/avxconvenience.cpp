@@ -38,3 +38,20 @@ unsigned _mm256_minpos_epu8(__m256i x)
 
     return ret;
 }
+
+__m256i _mm256_subVectorShift_epu8(__m256i x, int shift) {
+	switch(shift) {
+	case 8:
+		return _mm256_srli_epi16(x, 8);
+	case 16:
+		return _mm256_srli_epi32(x, 16);
+	case 32:
+		return _mm256_srli_epi64(x, 32);
+	case 64:
+		return _mm256_srli_si256(x, 8);
+	case 128:
+		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b00100001);
+	default:
+		throw "Subvector shift of undefined size.";
+	}
+}

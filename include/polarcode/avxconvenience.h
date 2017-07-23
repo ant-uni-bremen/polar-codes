@@ -89,6 +89,14 @@ static inline unsigned _mm256_minidx_ps(__m256 x, float *minVal) {
  */
 unsigned _mm256_minpos_epu8(__m256i x);
 
+/*!
+ * \brief Create a sub-vector-size child node by shifting the right-hand side bits.
+ * \param x The vector containing left and right bits.
+ * \param shift The number of bits to shift.
+ * \return The right child node's bits.
+ */
+__m256i _mm256_subVectorShift_epu8(__m256i x, int shift);
+
 
 #endif //AVXCONVENIENCE
 
