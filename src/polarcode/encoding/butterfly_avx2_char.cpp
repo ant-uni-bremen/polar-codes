@@ -2,6 +2,7 @@
 #include <polarcode/bitcontainer.h>
 #include <polarcode/avxconvenience.h>
 #include <cmath>
+#include <iostream>
 
 
 namespace PolarCode {
@@ -9,11 +10,13 @@ namespace Encoding {
 
 
 ButterflyAvx2Char::ButterflyAvx2Char() {
+	featureCheck();
 }
 
 ButterflyAvx2Char::ButterflyAvx2Char(
 		size_t blockLength,
 		const std::set<unsigned> &frozenBits) {
+	featureCheck();
 	initialize(blockLength, frozenBits);
 }
 
@@ -31,7 +34,13 @@ void ButterflyAvx2Char::initialize(
 }
 
 void ButterflyAvx2Char::encode() {
-	transform();
+	try {
+		transform();
+	} catch(...) {
+		std::cerr << "Caught exception in transform." << std::endl;
+		exit(1);
+	}
+
 	if(mSystematic) {
 		mBitContainer->resetFrozenBits(mFrozenBits);
 		transform();
@@ -75,6 +84,14 @@ void ButterflyAvx2Char::transform() {
 				_mm256_store_si256(vBit+group+block, Left);
 			}
 		}
+	}
+}
+
+void ButterflyAvx2Char::featureCheck()
+		throw (Avx2NotSupportedException) {
+
+	if(!__builtin_cpu_supports("avx2")) {
+		throw Avx2NotSupportedException();
 	}
 }
 

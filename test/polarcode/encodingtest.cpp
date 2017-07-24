@@ -40,6 +40,14 @@ void EncodingTest::avxCharTest() {
 
 	memset(expectedOutput, 0xFF, maxBytes);
 
+	//At first, check if AVX2 is supported
+	if(!avx2supported()) {
+		std::cerr << std::endl
+				  << "PolarCode::Encoding::ButterflyAvx2Char can't be testet." << std::endl
+				  << "AVX2 is not supported on this system." << std::endl;
+		return;
+	}
+
 	for(size_t testBytes = 1; testBytes<=maxBytes; testBytes<<=1) {
 		size_t testBits = testBytes*8;
 //		std::cout << "Test length: " << testBytes << " Bytes, " << testBits << " Bits" << std::endl;
@@ -57,5 +65,15 @@ void EncodingTest::avxCharTest() {
 		delete encoder;
 
 		CPPUNIT_ASSERT_EQUAL(0, memcmp(output, expectedOutput, testBytes));
+	}
+}
+
+bool EncodingTest::avx2supported() {
+	try {
+		encoder = new PolarCode::Encoding::ButterflyAvx2Char();
+		delete encoder;
+		return true;
+	} catch (PolarCode::Encoding::Avx2NotSupportedException) {
+		return false;
 	}
 }
