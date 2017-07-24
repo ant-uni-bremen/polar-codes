@@ -13,12 +13,9 @@ CTestTestfile.cmake
 [Oo]bj/
 *.user
 *~
-*.out
-*.a
-pcsim
 .directory
-doc/
 build-PCTree-Desktop-Debug/
 build-PCTree-Desktop-Release/
 .idea/
+build/
 
