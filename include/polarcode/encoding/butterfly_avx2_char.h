@@ -6,6 +6,8 @@
 namespace PolarCode {
 namespace Encoding {
 
+class Avx2NotSupportedException{};
+
 /*!
  * \brief Complete butterfly transformation with AVX2 char bits.
  *
@@ -16,6 +18,7 @@ namespace Encoding {
  */
 class ButterflyAvx2Char : public Encoder {
 	void transform();
+	void featureCheck() throw (Avx2NotSupportedException);
 
 public:
 	ButterflyAvx2Char();
