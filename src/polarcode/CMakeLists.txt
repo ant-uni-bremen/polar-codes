@@ -24,7 +24,9 @@ add_library(PolarDecoder OBJECT
 
 add_library(PolarConstructor OBJECT
         construction/constructor
-        ${CMAKE_SOURCE_DIR}/include/polarcode/construction/constructor.h)
+        construction/bhattacharrya
+        ${CMAKE_SOURCE_DIR}/include/polarcode/construction/constructor.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/construction/bhattacharrya.h)
 
 add_library(PolarCode
         $<TARGET_OBJECTS:PolarConstructor>

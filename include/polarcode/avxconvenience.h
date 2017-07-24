@@ -1,16 +1,17 @@
 #ifndef AVXCONVENIENCE_H
 #define AVXCONVENIENCE_H
 
+#include <immintrin.h>
+
+
 /*
 	AVX:    256 bit per register
 	SSE:    128 bit per register
 	float:   32 bit per value
 */
-
-#include <immintrin.h>
-
 #define FLOATSPERVECTOR 8
 #define BYTESPERVECTOR 32
+
 
 static inline float reduce_add_ps(__m256 x) {
     /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
