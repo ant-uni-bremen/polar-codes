@@ -1,3 +1,4 @@
+#include <polarcode/construction/bhattacharrya.h>
 #include "constructiontest.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ConstructionTest);

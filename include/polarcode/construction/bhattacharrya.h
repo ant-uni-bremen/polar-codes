@@ -8,7 +8,17 @@
 namespace PolarCode {
 namespace Construction {
 
-
+/*!
+ * \brief Code Construction via Bhattacharrya channel parameter
+ *
+ * This class implements Polar Code Construction via the intuitively created
+ * method of calculating the upper bound on error probability for a given
+ * channel.
+ *
+ * See "Channel Polarization: A Method for Constructing Capacity-Achieving Codes
+ * for Symmetric Binary-Input Memoryless Channels" by Erdal Arıkan
+ * Published in: IEEE TRANSACTIONS ON INFORMATION THEORY, VOL. 55, NO. 7, JULY 2009
+ */
 class Bhattacharrya : public Constructor {
 	float mInitialParameter;
 	std::vector<float> mChannelParameters;

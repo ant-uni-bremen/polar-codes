@@ -2,7 +2,7 @@
 #define PC_TEST_CONSTRUCTION_H
 
 #include <cppunit/extensions/HelperMacros.h>
-#include <polarcode/construction/bhattacharrya.h>
+#include <polarcode/construction/constructor.h>
 
 class ConstructionTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST_SUITE(ConstructionTest);
