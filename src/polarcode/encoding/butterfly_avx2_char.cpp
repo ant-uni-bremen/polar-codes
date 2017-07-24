@@ -34,12 +34,7 @@ void ButterflyAvx2Char::initialize(
 }
 
 void ButterflyAvx2Char::encode() {
-	try {
-		transform();
-	} catch(...) {
-		std::cerr << "Caught exception in transform." << std::endl;
-		exit(1);
-	}
+	transform();
 
 	if(mSystematic) {
 		mBitContainer->resetFrozenBits(mFrozenBits);
