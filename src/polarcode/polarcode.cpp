@@ -2,9 +2,8 @@
 
 namespace PolarCode {
 
-PolarCoder::PolarCoder(Encoding::Encoder *enc, Decoding::Decoder *dec,
-					   Construction::Constructor *con)
-	: mEncoder(enc), mDecoder(dec), mConstructor(con) {
+PolarCoder::PolarCoder(Encoding::Encoder *encoder, Decoding::Decoder *decoder)
+	: mEncoder(encoder), mDecoder(decoder) {
 }
 
 }//namespace PolarCode

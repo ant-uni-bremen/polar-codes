@@ -20,6 +20,12 @@ class ButterflyAvxFloat : public Encoder {
 
 public:
 	ButterflyAvxFloat();
+
+	/*!
+	 * \brief Create the butterfly encoder and initialize its parameters.
+	 * \param blockLength Number of code bits.
+	 * \param frozenBits Set of frozen channel indices.
+	 */
 	ButterflyAvxFloat(size_t blockLength,
 					  const std::set<unsigned> &frozenBits);
 

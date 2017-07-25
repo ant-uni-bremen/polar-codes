@@ -22,12 +22,16 @@ protected:
 
 public:
 	Encoder();
-	virtual ~Encoder() = 0;
-	virtual void encode() = 0;
+	virtual ~Encoder();
+	virtual void encode() = 0;///< Execute the encoding algorithm.
+
+	/*!
+	 * \brief Set the encoder's parameters.
+	 * \param blockLength Number of code bits.
+	 * \param frozenBits A set of frozen channel indices.
+	 */
 	virtual void initialize(size_t blockLength,
 							const std::set<unsigned> &frozenBits) = 0;
-
-	size_t blockLength();
 
 	/*!
 	 * \brief Explicitly call setSystematic(false); to use

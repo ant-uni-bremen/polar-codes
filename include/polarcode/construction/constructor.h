@@ -14,12 +14,11 @@ class InvalidBlockLengthException{};
  */
 class Constructor {
 protected:
-	size_t mBlockLength;
-	size_t mInformationLength;
+	size_t mBlockLength;///< Number of code bits.
+	size_t mInformationLength;///< Number of information bits.
 
 public:
 	Constructor();
-	Constructor(size_t N, size_t K);
 	virtual ~Constructor();
 
 	/*!

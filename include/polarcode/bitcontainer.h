@@ -109,7 +109,7 @@ class FloatContainer : public BitContainer {
 
 public:
 	FloatContainer();
-	FloatContainer(size_t size);
+	FloatContainer(size_t size);///<Initialize the container to specified size.
 	~FloatContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
@@ -120,7 +120,7 @@ public:
 	void getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits);
 	void resetFrozenBits(std::set<unsigned> &frozenBits);
 
-	float* data();
+	float* data();///< Get a pointer to the container's memory.
 };
 
 
@@ -137,7 +137,7 @@ class CharContainer : public BitContainer {
 
 public:
 	CharContainer();
-	CharContainer(size_t size);
+	CharContainer(size_t size);///<Initialize the container to specified size.
 	~CharContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
@@ -148,7 +148,7 @@ public:
 	void getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits);
 	void resetFrozenBits(std::set<unsigned> &frozenBits);
 
-	char* data();
+	char* data();///< Get a pointer to the container's memory.
 };
 
 }//namespace PolarCode

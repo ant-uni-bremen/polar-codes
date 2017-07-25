@@ -22,12 +22,18 @@ class ButterflyAvx2Char : public Encoder {
 
 public:
 	ButterflyAvx2Char();
+
+	/*!
+	 * \brief Create the butterfly encoder and initialize its parameters.
+	 * \param blockLength Number of code bits.
+	 * \param frozenBits Set of frozen channel indices.
+	 */
 	ButterflyAvx2Char(size_t blockLength,
 					  const std::set<unsigned> &frozenBits);
 
 	~ButterflyAvx2Char();
 
-	void encode();
+	void encode();///< Perform the butterfly transformation.
 	void initialize(size_t blockLength,
 					const std::set<unsigned> &frozenBits);
 };

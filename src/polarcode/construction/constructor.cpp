@@ -8,11 +8,6 @@ Constructor::Constructor()
 	: mBlockLength(0), mInformationLength(0) {
 }
 
-Constructor::Constructor(size_t N, size_t K) {
-	setBlockLength(N);
-	setInformationLength(K);
-}
-
 Constructor::~Constructor() {
 }
 

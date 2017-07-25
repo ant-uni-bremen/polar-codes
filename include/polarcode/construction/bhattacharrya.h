@@ -28,7 +28,20 @@ class Bhattacharrya : public Constructor {
 
 public:
 	Bhattacharrya();
+
+	/*!
+	 * \brief Create the constructor and initialize the length parameters.
+	 * \param N Code length.
+	 * \param K Information length.
+	 */
 	Bhattacharrya(size_t N, size_t K);
+
+	/*!
+	 * \brief Create the constructor and initialize all parameters.
+	 * \param N Code length.
+	 * \param K Information length.
+	 * \param param Upper bound on error probability for design channel.
+	 */
 	Bhattacharrya(size_t N, size_t K, float param);
 	~Bhattacharrya();
 
