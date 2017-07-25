@@ -19,11 +19,11 @@ void Encoder::setSystematic(bool sys) {
 }
 
 void Encoder::setInformation(void *pData) {
-	mBitContainer->insertPackedInformation(pData, mFrozenBits);
+	mBitContainer->insertPackedInformationBits(pData, mFrozenBits);
 }
 
 void Encoder::getEncodedData(void *pData) {
-	mBitContainer->getPacked(pData);
+	mBitContainer->getPackedBits(pData);
 }
 
 }//namespace Encoding

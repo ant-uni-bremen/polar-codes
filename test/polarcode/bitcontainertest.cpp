@@ -23,29 +23,29 @@ void BitContainerTest::tearDown() {
 }
 
 void BitContainerTest::testFloatContainer() {
-	floatContainer->insertPacked(mTestData.data());
-	floatContainer->getPacked(control);
+	floatContainer->insertPackedBits(mTestData.data());
+	floatContainer->getPackedBits(control);
 
 	CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size()) == 0);
 }
 
 void BitContainerTest::testFloatContainerWithFrozenBits() {
-	floatContainer->insertPackedInformation(mTestData.data(), mFrozenBits);
-	floatContainer->getPackedInformation(control, mFrozenBits);
+	floatContainer->insertPackedInformationBits(mTestData.data(), mFrozenBits);
+	floatContainer->getPackedInformationBits(control, mFrozenBits);
 
 	CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size()-1) == 0);
 }
 
 void BitContainerTest::testCharContainer() {
-	charContainer->insertPacked(mTestData.data());
-	charContainer->getPacked(control);
+	charContainer->insertPackedBits(mTestData.data());
+	charContainer->getPackedBits(control);
 
 	CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size()) == 0);
 }
 
 void BitContainerTest::testCharContainerWithFrozenBits() {
-	charContainer->insertPackedInformation(mTestData.data(), mFrozenBits);
-	charContainer->getPackedInformation(control, mFrozenBits);
+	charContainer->insertPackedInformationBits(mTestData.data(), mFrozenBits);
+	charContainer->getPackedInformationBits(control, mFrozenBits);
 
 	CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size()-1) == 0);
 }

@@ -2,8 +2,32 @@
 #include <polarcode/avxconvenience.h>
 #include <immintrin.h>
 #include <cassert>
+#include <cmath>
+#include <cstring>
 
 namespace PolarCode {
+
+/*!
+ * \brief Restrict a value to boundaries.
+ * \param min The minimum value
+ * \param x The value to be restricted
+ * \param max The maximum value
+ * \return x, if it is between the boundaries, or the respective boundary.
+ */
+float frestrict(float min, float x, float max) {
+	return fmin(fmax(x, min), max);
+}
+
+/*!
+ * \brief Quantize a single precision floating point value to an eight-bit integer.
+ * \param x The value to be quantized.
+ * \return An eight-bit integer in the range of -128 to 127.
+ */
+char convertFtoC(float x) {
+	x = frestrict(-128.0, x, 127.0);
+	x = round(x);
+	return static_cast<char>(x);
+}
 
 BitContainer::BitContainer()
 	: mElementCount(0) {
@@ -47,7 +71,7 @@ void FloatContainer::setSize(size_t newSize) {
 	}
 }
 
-void FloatContainer::insertPacked(const void* pData) {
+void FloatContainer::insertPackedBits(const void* pData) {
 	// Float bits are mapped as follows: 0 => 0.0, 1 => -0.0
 	unsigned int nBytes = mElementCount/8;
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
@@ -64,7 +88,7 @@ void FloatContainer::insertPacked(const void* pData) {
 	}
 }
 
-void FloatContainer::insertPackedInformation(const void *pData, std::set<unsigned> &frozenBits) {
+void FloatContainer::insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits) {
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
 	unsigned int bitPool = charPtr[0]<<24;
 	unsigned int bitCounter = 0, byteCounter = 1;
@@ -86,7 +110,17 @@ void FloatContainer::insertPackedInformation(const void *pData, std::set<unsigne
 	}
 }
 
-void FloatContainer::getPacked(void* pData) {
+void FloatContainer::insertLlr(const float *pLlr) {
+	memcpy(mData, pLlr, 4*mElementCount);
+}
+
+void FloatContainer::insertLlr(const char *pLlr) {
+	for(unsigned int bit = 0; bit < mElementCount; ++bit) {
+		mData[bit] = static_cast<float>(pLlr[bit]);
+	}
+}
+
+void FloatContainer::getPackedBits(void* pData) {
 	unsigned int nBytes = mElementCount/8;
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char currentByte;
@@ -101,7 +135,7 @@ void FloatContainer::getPacked(void* pData) {
 	}
 }
 
-void FloatContainer::getPackedInformation(void* pData, std::set<unsigned> &frozenBits) {
+void FloatContainer::getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits) {
 	unsigned int bit=0;
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char currentByte = 0, currentBit = 0;
@@ -169,7 +203,7 @@ void CharContainer::setSize(size_t newSize) {
 	}
 }
 
-void CharContainer::insertPacked(const void* pData) {
+void CharContainer::insertPackedBits(const void* pData) {
 	// Char bits are mapped as follows: 0 => 0, 1 => 1
 	unsigned int nBytes = mElementCount/8;
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
@@ -184,7 +218,7 @@ void CharContainer::insertPacked(const void* pData) {
 	}
 }
 
-void CharContainer::insertPackedInformation(const void *pData, std::set<unsigned> &frozenBits) {
+void CharContainer::insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits) {
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
 	unsigned char bitPool = charPtr[0];
 	unsigned int bitCounter = 0, byteCounter = 1;
@@ -203,7 +237,17 @@ void CharContainer::insertPackedInformation(const void *pData, std::set<unsigned
 	}
 }
 
-void CharContainer::getPacked(void* pData) {
+void CharContainer::insertLlr(const float *pLlr) {
+	for(unsigned int bit=0; bit < mElementCount; ++bit) {
+		mData[bit] = convertFtoC(pLlr[bit]);
+	}
+}
+
+void CharContainer::insertLlr(const char *pLlr) {
+	memcpy(mData, pLlr, mElementCount);
+}
+
+void CharContainer::getPackedBits(void* pData) {
 	unsigned int nBytes = mElementCount/8;
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char currentByte;
@@ -217,7 +261,7 @@ void CharContainer::getPacked(void* pData) {
 	}
 }
 
-void CharContainer::getPackedInformation(void* pData, std::set<unsigned> &frozenBits) {
+void CharContainer::getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits) {
 	unsigned int bit=0;
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char currentByte = 0, currentBit = 0;

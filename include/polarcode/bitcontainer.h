@@ -32,19 +32,31 @@ public:
 	 * This function reads mElementCount/8 bytes from pData and inserts it
 	 * into internal storage in the needed bit format.
 	 *
-	 * \sa insertPackedInformation()
+	 * \sa insertPackedInformationBits()
 	 * \param pData Any kind of pointer to memory location of packed bytes
 	 */
-	virtual void insertPacked(const void* pData) = 0;
+	virtual void insertPackedBits(const void* pData) = 0;
 
 	/*!
 	 * \brief Insert bits into non-frozen locations.
-	 * \sa insertPacked()
+	 * \sa insertPackedBits()
 	 * \param pData Information bits.
 	 * \param frozenBits Location indices of frozen bits.
 	 */
-	virtual void insertPackedInformation(const void *pData,
+	virtual void insertPackedInformationBits(const void *pData,
 										   std::set<unsigned> &frozenBits) = 0;
+
+	/*!
+	 * \brief Insert single precision floating point soft-bits of received code word.
+	 * \param pLlr LLRs of received signal.
+	 */
+	virtual void insertLlr(const float *pLlr) = 0;
+
+	/*!
+	 * \brief Insert 8-bit quantized soft-bits of received code word.
+	 * \param pLlr LLRs of received signal.
+	 */
+	virtual void insertLlr(const char  *pLlr) = 0;
 
 	/*!
 	 * \brief Write packed bits into pData.
@@ -53,10 +65,10 @@ public:
 	 * at pData. Note that pData must hold at least (mElementCount/8) bytes
 	 * of allocated memory.
 	 *
-	 * \sa getPackedInformation()
+	 * \sa getPackedInformationBits()
 	 * \param pData Pointer to destination memory for packed data.
 	 */
-	virtual void getPacked(void* pData) = 0;
+	virtual void getPackedBits(void* pData) = 0;
 
 	/*!
 	 * \brief Write packed information bits into pData.
@@ -66,11 +78,11 @@ public:
 	 * at least (mElementCount-frozenBits.size())/8 bytes must be allocated
 	 * to pData.
 	 *
-	 * \sa getPacked()
+	 * \sa getPackedBits()
 	 * \param pData Memory location for packed information data.
 	 * \param frozenBits Indices of bits to ignore at information extraction.
 	 */
-	virtual void getPackedInformation(void* pData,
+	virtual void getPackedInformationBits(void* pData,
 									  std::set<unsigned> &frozenBits) = 0;
 
 	/*!
@@ -100,10 +112,12 @@ public:
 	FloatContainer(size_t size);
 	~FloatContainer();
 	void setSize(size_t newSize);
-	void insertPacked(const void* pData);
-	void insertPackedInformation(const void *pData, std::set<unsigned> &frozenBits);
-	void getPacked(void* pData);
-	void getPackedInformation(void* pData, std::set<unsigned> &frozenBits);
+	void insertPackedBits(const void* pData);
+	void insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits);
+	void insertLlr(const float *pLlr);
+	void insertLlr(const char  *pLlr);
+	void getPackedBits(void* pData);
+	void getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits);
 	void resetFrozenBits(std::set<unsigned> &frozenBits);
 
 	float* data();
@@ -126,10 +140,12 @@ public:
 	CharContainer(size_t size);
 	~CharContainer();
 	void setSize(size_t newSize);
-	void insertPacked(const void* pData);
-	void insertPackedInformation(const void *pData, std::set<unsigned> &frozenBits);
-	void getPacked(void* pData);
-	void getPackedInformation(void* pData, std::set<unsigned> &frozenBits);
+	void insertPackedBits(const void* pData);
+	void insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits);
+	void insertLlr(const float *pLlr);
+	void insertLlr(const char  *pLlr);
+	void getPackedBits(void* pData);
+	void getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits);
 	void resetFrozenBits(std::set<unsigned> &frozenBits);
 
 	char* data();
