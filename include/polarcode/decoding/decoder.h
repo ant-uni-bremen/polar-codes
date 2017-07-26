@@ -20,6 +20,7 @@ protected:
 	size_t mBlockLength;///< Length of the Polar Code
 	bool mSystematic;///< Whether to use systematic coding
 	BitContainer *mBitContainer;///< Soft-input / hard-output bit container
+	std::set<unsigned> mFrozenBits; ///< Indices for frozen bits
 
 public:
 	Decoder();
@@ -30,6 +31,13 @@ public:
 	 */
 	virtual void decode() = 0;
 
+	/*!
+	 * \brief Set the decoder's parameters.
+	 * \param blockLength Number of code bits.
+	 * \param frozenBits A set of frozen channel indices.
+	 */
+	virtual void initialize(size_t blockLength,
+							const std::set<unsigned> &frozenBits) = 0;
 	/*!
 	 * \brief Set an error detection scheme.
 	 * \param pDetector Pointer to an error detecting object. Ownership is taken.

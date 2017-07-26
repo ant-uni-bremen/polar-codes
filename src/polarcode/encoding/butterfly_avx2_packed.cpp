@@ -1,4 +1,4 @@
-#include <polarcode/encoding/butterfly_avx2_char.h>
+#include <polarcode/encoding/butterfly_avx2_packed.h>
 #include <polarcode/bitcontainer.h>
 #include <cmath>
 #include <iostream>
@@ -8,31 +8,31 @@ namespace PolarCode {
 namespace Encoding {
 
 
-ButterflyAvx2Char::ButterflyAvx2Char() {
+ButterflyAvx2Packed::ButterflyAvx2Packed() {
 	featureCheck();
 }
 
-ButterflyAvx2Char::ButterflyAvx2Char(
+ButterflyAvx2Packed::ButterflyAvx2Packed(
 		size_t blockLength,
 		const std::set<unsigned> &frozenBits) {
 	featureCheck();
 	initialize(blockLength, frozenBits);
 }
 
-ButterflyAvx2Char::~ButterflyAvx2Char() {
+ButterflyAvx2Packed::~ButterflyAvx2Packed() {
 }
 
-void ButterflyAvx2Char::initialize(
+void ButterflyAvx2Packed::initialize(
 		size_t blockLength,
 		const std::set<unsigned> &frozenBits) {
 	mBlockLength = blockLength;
 	mFrozenBits = frozenBits;
 
 	if(mBitContainer != nullptr) delete mBitContainer;
-	mBitContainer = new CharContainer(mBlockLength);
+	mBitContainer = new PackedContainer(mBlockLength);
 }
 
-void ButterflyAvx2Char::encode() {
+void ButterflyAvx2Packed::encode() {
 	transform();
 
 	if(mSystematic) {
@@ -41,23 +41,23 @@ void ButterflyAvx2Char::encode() {
 	}
 }
 
-void ButterflyAvx2Char::transform() {
+void ButterflyAvx2Packed::transform() {
 	__m256i *vBit = reinterpret_cast<__m256i*>(
-					dynamic_cast<CharContainer*>(
+					dynamic_cast<PackedContainer*>(
 						mBitContainer
 					)->data()
 				);
 
-	int blockCount = (mBlockLength+31)/32;
+	int blockCount = (mBlockLength+255)/256;
 
 	int n = log2(mBlockLength);
-	int firstLoop = std::min(5, n);
+	int firstLoop = std::min(8, n);
 
 	__m256i Left, Right;
 
 	// Sub-vector-length butterfly operations
 	for(int stage = 1; stage <= firstLoop; ++stage) {
-		int stageBits = 4<<stage;
+		int stageBits = 1<<(stage-1);
 
 		for(int block=0; block<blockCount; ++block) {
 			Left = _mm256_load_si256(vBit+block);
@@ -67,8 +67,8 @@ void ButterflyAvx2Char::transform() {
 		}
 	}
 	// Cross-vector operands have to be selected differently
-	for(int stage = 6; stage<=n; ++stage) {
-		int blockShift = 1<<(stage-6);
+	for(int stage = 9; stage<=n; ++stage) {
+		int blockShift = 1<<(stage-9);
 		int blockJump = blockShift*2;
 		for(int group=0; group<blockCount; group+=blockJump) {
 			for(int block=0; block < blockShift; block += 1) {
@@ -81,7 +81,7 @@ void ButterflyAvx2Char::transform() {
 	}
 }
 
-void ButterflyAvx2Char::featureCheck()
+void ButterflyAvx2Packed::featureCheck()
 		throw (Avx2NotSupportedException) {
 
 	if(!featureCheckAvx2()) {

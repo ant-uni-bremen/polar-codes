@@ -2,8 +2,22 @@
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/construction/constructor.h>
 #include <polarcode/errordetection/errordetector.h>
+#include <set>
 
 namespace PolarCode {
+
+/*!
+ * \brief Split up a set of frozen bits for subcodes.
+ * \param source The set to split.
+ * \param subBlockLength Length of the subcodes.
+ * \param left Indices of frozen bits in left subcode.
+ * \param right Indices of frozen bits in right subcode.
+ */
+void splitFrozenBits(
+		const std::set<unsigned> &source,
+		size_t subBlockLength,
+		std::set<unsigned> &left,
+		std::set<unsigned> &right);
 
 /**
  * @brief The PolarCoder class ultimately merges all algorithms

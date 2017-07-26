@@ -151,6 +151,39 @@ public:
 	char* data();///< Get a pointer to the container's memory.
 };
 
+/*!
+ * \brief A class that holds packed bits for encoding.
+ *
+ * Encoding polar codes can be done fully utilizing the 256 bits per register
+ * with AVX2-commands very similar to the char bit implementation.
+ * This container cannot contain LLR values.
+ */
+class PackedContainer : public BitContainer {
+	char *mData;
+	size_t fakeSize;
+
+	void insertBit(unsigned int bit, char value);
+	void clearBit(unsigned int bit);
+
+public:
+	PackedContainer();
+	PackedContainer(size_t size);///<Initialize the container to specified size.
+	~PackedContainer();
+	void setSize(size_t newSize);
+	void insertPackedBits(const void* pData);
+	void insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits);
+	void getPackedBits(void* pData);
+	void resetFrozenBits(std::set<unsigned> &frozenBits);
+
+	/* The following functions are dummies */
+	void insertLlr(const float *pLlr);
+	void insertLlr(const char  *pLlr);
+	void getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits);
+
+
+	char* data();///< Get a pointer to the container's memory.
+};
+
 }//namespace PolarCode
 
 #endif

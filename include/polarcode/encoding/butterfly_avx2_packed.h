@@ -1,5 +1,5 @@
-#ifndef PC_ENC_BUTTERFLY_AVX2_CHAR_H
-#define PC_ENC_BUTTERFLY_AVX2_CHAR_H
+#ifndef PC_ENC_BUTTERFLY_AVX2_PACKED_H
+#define PC_ENC_BUTTERFLY_AVX2_PACKED_H
 
 #include <polarcode/encoding/encoder.h>
 #include <polarcode/avxconvenience.h>
@@ -8,29 +8,29 @@ namespace PolarCode {
 namespace Encoding {
 
 /*!
- * \brief Complete butterfly transformation with AVX2 char bits.
+ * \brief Complete butterfly transformation with AVX2 operations.
  *
  * This encoder simply executes the complete butterfly transformation.
- * The AVX2 instruction set allows to encode 32 eight bit values per operand,
- * so this encoder can XOR 32 char bits per operand at once.
+ * The AVX2 instruction set allows to encode 256 bit values per operand,
+ * so this encoder can XOR 256 bits per operand at once.
  *
  */
-class ButterflyAvx2Char : public Encoder {
+class ButterflyAvx2Packed : public Encoder {
 	void transform();
 	void featureCheck() throw (Avx2NotSupportedException);
 
 public:
-	ButterflyAvx2Char();
+	ButterflyAvx2Packed();
 
 	/*!
 	 * \brief Create the butterfly encoder and initialize its parameters.
 	 * \param blockLength Number of code bits.
 	 * \param frozenBits Set of frozen channel indices.
 	 */
-	ButterflyAvx2Char(size_t blockLength,
+	ButterflyAvx2Packed(size_t blockLength,
 					  const std::set<unsigned> &frozenBits);
 
-	~ButterflyAvx2Char();
+	~ButterflyAvx2Packed();
 
 	void encode();///< Perform the butterfly transformation.
 	void initialize(size_t blockLength,
@@ -41,5 +41,5 @@ public:
 }//namespace Encoding
 }//namespace PolarCode
 
-#endif
+#endif // PC_ENC_BUTTERFLY_AVX2_PACKED_H
 

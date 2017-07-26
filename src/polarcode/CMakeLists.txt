@@ -14,13 +14,17 @@ add_library(PolarEncoder OBJECT
         encoding/encoder
         encoding/butterfly_avx_float
         encoding/butterfly_avx2_char
+        encoding/butterfly_avx2_packed
         ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/encoder.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx_float.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx2_char.h)
+        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx2_char.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx2_packed.h)
 
 add_library(PolarDecoder OBJECT
         decoding/decoder
-        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/decoder.h)
+        decoding/fastssc_avx2_char
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/decoder.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fastssc_avx2_char.h)
 
 add_library(PolarConstructor OBJECT
         construction/constructor
@@ -40,4 +44,5 @@ add_library(PolarCode
         ${CMAKE_SOURCE_DIR}/include/polarcode/avxconvenience.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/arrayfuncs.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/bitcontainer.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/datapool.txx
         ${CMAKE_SOURCE_DIR}/include/polarcode/polarcode.h)

@@ -20,6 +20,14 @@ void Decoder::setErrorDetection(ErrorDetection::Detector *pDetector) {
 	mErrorDetector = pDetector;
 }
 
+void Decoder::setSignal(const float *pLlr) {
+	mBitContainer->insertLlr(pLlr);
+}
+
+void Decoder::setSignal(const char *pLlr) {
+	mBitContainer->insertLlr(pLlr);
+}
+
 
 }//namespace Decoding
 }//namespace PolarCode

@@ -292,4 +292,123 @@ char* CharContainer::data() {
 }
 
 
+PackedContainer::PackedContainer()
+	: mData(nullptr) {
+}
+
+PackedContainer::PackedContainer(size_t size)
+	: mData(nullptr) {
+	setSize(size);
+}
+
+PackedContainer::~PackedContainer() {
+	if(mData != nullptr) {
+		_mm_free(mData);
+	}
+}
+
+void PackedContainer::setSize(size_t newSize) {
+	//Precautions
+	assert(newSize%8 == 0);
+	if(newSize == mElementCount) return;
+
+	mElementCount = newSize;
+	fakeSize = std::max((size_t)256, mElementCount);
+
+	// Free previously allocated memory, if neccessary
+	if(mData != nullptr) {
+		_mm_free(mData);
+	}
+
+	// Allocate new memory
+	mData = static_cast<char*>(_mm_malloc(fakeSize/8, 32));
+	if(mData == nullptr) {
+		throw "Allocating memory for packed bit container failed.";
+	}
+}
+
+void PackedContainer::insertPackedBits(const void* pData) {
+	unsigned int nBytes = mElementCount/8;
+
+	if(nBytes < fakeSize/8) {
+		memcpy(mData+(32-nBytes), pData, nBytes);
+	} else {
+		memcpy(mData, pData, nBytes);
+	}
+}
+
+void PackedContainer::insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits) {
+	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
+	unsigned char bitPool = charPtr[0];
+	unsigned int bitCounter = 0, byteCounter = 1;
+
+	memset(mData, 0, fakeSize/8);
+
+	for(unsigned int bit=0; bit<mElementCount; ++bit) {
+		if(frozenBits.find(bit) == frozenBits.end()) {
+			insertBit(bit, (bitPool&0x80)>>7);
+			bitPool <<= 1;
+			if(++bitCounter == 8 && bit+1 != mElementCount) {
+				bitPool = charPtr[byteCounter++];
+				bitCounter = 0;
+			}
+		}
+	}
+}
+
+void PackedContainer::getPackedBits(void* pData) {
+	unsigned int nBytes = mElementCount/8;
+	memcpy(pData, mData+(fakeSize-mElementCount)/8, nBytes);
+}
+
+void PackedContainer::resetFrozenBits(std::set<unsigned> &frozenBits) {
+	std::set<unsigned>::iterator it = frozenBits.begin();
+	while(it != frozenBits.end()) {
+		clearBit(*(it++));
+	}
+}
+
+char* PackedContainer::data() {
+	return mData;
+}
+
+//Dummy
+void PackedContainer::insertLlr(const float *pLlr){}
+void PackedContainer::insertLlr(const char  *pLlr){}
+void PackedContainer::getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits){}
+
+
+void PackedContainer::insertBit(unsigned int bit, char value) {
+	unsigned byteAddress;
+
+	if(mElementCount<fakeSize) {
+		byteAddress = (fakeSize-mElementCount+bit)/8;
+	} else {
+		byteAddress = bit/8;
+	}
+
+	char currentByte = mData[byteAddress];
+	unsigned int offset = bit%8;
+	currentByte |= (value<<(7-offset));
+	mData[byteAddress] = currentByte;
+
+}
+
+void PackedContainer::clearBit(unsigned int bit) {
+	unsigned byteAddress;
+
+	if(mElementCount<fakeSize) {
+		byteAddress = (fakeSize-mElementCount+bit)/8;
+	} else {
+		byteAddress = bit/8;
+	}
+
+	char currentByte = mData[byteAddress];
+	unsigned int offset = bit%8;
+	char mask = 1<<(7-offset);//Set the bit to be cleared in mask
+	mask = ~mask;//Invert for bit removal operation
+	currentByte &= mask;//Clear the bit
+	mData[byteAddress] = currentByte;//Save the result
+}
+
 }//namespace PolarCode
