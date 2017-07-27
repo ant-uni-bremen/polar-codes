@@ -28,9 +28,9 @@ public:
 
 	~DataPool() {
 		for(auto &stack : freeBlocks) {
-			while(!stack.empty()) {
-				_mm_free(stack.top()->data);
-				stack.pop();
+			while(!stack.second.empty()) {
+				_mm_free(stack.second.top()->data);
+				stack.second.pop();
 			}
 		}
 	}
@@ -46,6 +46,10 @@ public:
 	 */
 	Block<T>* allocate(size_t size) {
 		Block<T> *block;
+
+		if(freeBlocks.find(size) == freeBlocks.end()) {
+			freeBlocks.insert({size, std::stack<Block<T>*>()});
+		}
 
 		if(freeBlocks[size].empty()) {
 			block = new Block<T>();

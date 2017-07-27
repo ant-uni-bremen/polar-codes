@@ -9,6 +9,7 @@ class EncodingTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST(avxFloatTest);
 	CPPUNIT_TEST(avxCharTest);
 	CPPUNIT_TEST(avxPackedTest);
+	CPPUNIT_TEST(performanceComparison);
 	CPPUNIT_TEST_SUITE_END();
 
 	PolarCode::Encoding::Encoder *encoder;
@@ -23,6 +24,7 @@ public:
 	void avxFloatTest();
 	void avxCharTest();
 	void avxPackedTest();
+	void performanceComparison();
 };
 
 #endif //PC_TEST_ENCODING_H

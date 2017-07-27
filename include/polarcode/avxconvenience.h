@@ -27,10 +27,10 @@ static inline float reduce_add_ps(__m256 x) {
 
 static inline char reduce_adds_epi8(__m256i x) {
 	const __m128i x128 = _mm_adds_epi8(_mm256_extracti128_si256(x,0), _mm256_extracti128_si256(x,1));
-	const __m128i x64 = _mm_adds_epi8(x128, _mm_srli_si128(x128, 8));
-	const __m128i x32 = _mm_adds_epi8(x64, _mm_srli_si128(x64, 4));
-	const __m128i x16 = _mm_adds_epi8(x32, _mm_srli_si128(x32, 2));
-	const __m128i x8 = _mm_adds_epi8(x16, _mm_srli_si128(x16, 1));
+	const __m128i x64  = _mm_adds_epi8(x128, _mm_srli_si128(x128, 8));
+	const __m128i x32  = _mm_adds_epi8(x64,  _mm_srli_si128(x64, 4));
+	const __m128i x16  = _mm_adds_epi8(x32,  _mm_srli_si128(x32, 2));
+	const __m128i x8   = _mm_adds_epi8(x16,  _mm_srli_si128(x16, 1));
 	return ((char*)&x8)[0];
 }
 
@@ -52,6 +52,16 @@ static inline float _mm_reduce_xor_ps(__m128 x) {
     const __m128 x32 = _mm_xor_ps(x64, _mm_shuffle_ps(x64, x64, 0x55));
     /* Conversion to float is a no-op on x86-64 */
     return _mm_cvtss_f32(x32);
+}
+
+static inline char reduce_xor_si256(__m256i x) {
+	const __m128i x128 = _mm_xor_si128(_mm256_extracti128_si256(x,0), _mm256_extracti128_si256(x,1));
+	const __m128i x64  = _mm_xor_si128(x128, _mm_srli_si128(x128, 8));
+	const __m128i x32  = _mm_xor_si128(x64,  _mm_srli_si128(x64, 4));
+	const __m128i x16  = _mm_xor_si128(x32,  _mm_srli_si128(x32, 2));
+	const __m128i x8   = _mm_xor_si128(x16,  _mm_srli_si128(x16, 1));
+	return ((char*)&x8)[0];
+
 }
 
 
@@ -98,7 +108,7 @@ static inline unsigned _mm256_minidx_ps(__m256 x, float *minVal) {
  * in vector x and returns the respective position.
  * 
  */
-unsigned _mm256_minpos_epu8(__m256i x);
+unsigned _mm256_minpos_epu8(__m256i x, char *val = nullptr);
 
 /*!
  * \brief Create a sub-vector-size child node by shifting the right-hand side bits.
@@ -107,6 +117,7 @@ unsigned _mm256_minpos_epu8(__m256i x);
  * \return The right child node's bits.
  */
 __m256i _mm256_subVectorShift_epu8(__m256i x, int shift);
+__m256i _mm256_subVectorBackShift_epu8(__m256i x, int shift);
 
 /*!
  * \brief Check if AVX2 is available

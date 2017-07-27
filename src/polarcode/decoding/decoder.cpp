@@ -28,6 +28,9 @@ void Decoder::setSignal(const char *pLlr) {
 	mBitContainer->insertLlr(pLlr);
 }
 
+void Decoder::getDecodedInformationBits(void *pData) {
+	mBitContainer->getPackedInformationBits(pData, mFrozenBits);
+}
 
 }//namespace Decoding
 }//namespace PolarCode

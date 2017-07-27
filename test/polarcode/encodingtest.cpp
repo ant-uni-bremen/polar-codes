@@ -5,6 +5,7 @@
 #include <polarcode/encoding/butterfly_avx2_packed.h>
 #include <cstring>
 #include <iostream>
+#include <chrono>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(EncodingTest);
 
@@ -89,7 +90,7 @@ void EncodingTest::avxPackedTest() {
 
 	for(size_t testBytes = 1; testBytes<=maxBytes; testBytes<<=1) {
 		size_t testBits = testBytes*8;
-		std::cout << "Test length: " << testBytes << " Bytes, " << testBits << " Bits" << std::endl;
+//		std::cout << "Test length: " << testBytes << " Bytes, " << testBits << " Bits" << std::endl;
 
 		frozenBits.clear();
 		for(unsigned i=0; i<testBits-1; ++i) {
@@ -103,7 +104,65 @@ void EncodingTest::avxPackedTest() {
 		encoder->getEncodedData(output);
 		delete encoder;
 
-		CPPUNIT_ASSERT_EQUAL(0, memcmp(output, expectedOutput, testBytes));
+		bool testPassed = (0 == memcmp(output, expectedOutput, testBytes));
+		if(!testPassed) {
+			std::cout << "Packed encoding failed for a block of size " << testBits << std::endl;
+		}
+		CPPUNIT_ASSERT(testPassed);
+	}
+}
+
+void EncodingTest::performanceComparison() {
+	using namespace std::chrono;
+	high_resolution_clock::time_point TimeStart, TimeEnd;
+	duration<float> TimeUsed;
+
+	const size_t testBits = 1<<19;
+
+	unsigned char input = 0x80;
+
+	frozenBits.clear();
+	for(unsigned i=0; i<testBits-1; ++i) {
+		frozenBits.insert(i);
+	}
+
+	std::cout << "Encoding blocks of " << testBits << " bits:" << std::endl;
+
+	encoder = new PolarCode::Encoding::ButterflyAvxFloat(testBits, frozenBits);
+	encoder->setSystematic(false);
+	encoder->setInformation(&input);
+	TimeStart = high_resolution_clock::now();
+	encoder->encode();
+	TimeEnd = high_resolution_clock::now();
+	delete encoder;
+	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
+	float speed = (testBits/TimeUsed.count()/1000000);
+	std::cout << "AVX-Float Speed: " <<  speed << " Mbps (" << (speed/8) << " MB/s)" << std::endl;
+
+	if(avx2supported()) {
+		encoder = new PolarCode::Encoding::ButterflyAvx2Char(testBits, frozenBits);
+		encoder->setSystematic(false);
+		encoder->setInformation(&input);
+		TimeStart = high_resolution_clock::now();
+		encoder->encode();
+		TimeEnd = high_resolution_clock::now();
+		delete encoder;
+		TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
+		speed = (testBits/TimeUsed.count()/1000000);
+		std::cout << "AVX2-Char Speed: " <<  speed << " Mbps (" << (speed/8) << " MB/s)" << std::endl;
+
+		encoder = new PolarCode::Encoding::ButterflyAvx2Packed(testBits, frozenBits);
+		encoder->setSystematic(false);
+		encoder->setInformation(&input);
+		TimeStart = high_resolution_clock::now();
+		encoder->encode();
+		TimeEnd = high_resolution_clock::now();
+		delete encoder;
+		TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
+		speed = (testBits/TimeUsed.count()/1000000);
+		std::cout << "AVX2-Packed Speed: " <<  speed << " Mbps (" << (speed/8) << " MB/s)" << std::endl;
+	} else {
+		std::cout << "AVX2 can't be tested on this system, sorry." << std::endl;
 	}
 }
 

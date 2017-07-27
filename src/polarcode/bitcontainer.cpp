@@ -170,16 +170,21 @@ float* FloatContainer::data() {
 
 
 CharContainer::CharContainer()
-	: mData(nullptr) {
+	: mData(nullptr), mDataIsExternal(false) {
 }
 
 CharContainer::CharContainer(size_t size)
-	: mData(nullptr) {
+	: mData(nullptr), mDataIsExternal(false) {
 	setSize(size);
 }
 
+CharContainer::CharContainer(char *external, size_t size)
+	: mData(external), mDataIsExternal(true) {
+	mElementCount = size;
+}
+
 CharContainer::~CharContainer() {
-	if(mData != nullptr) {
+	if(mData != nullptr && !mDataIsExternal) {
 		_mm_free(mData);
 	}
 }
@@ -187,6 +192,7 @@ CharContainer::~CharContainer() {
 void CharContainer::setSize(size_t newSize) {
 	//Precautions
 	assert(newSize%8 == 0);
+	assert(!mDataIsExternal);
 	if(newSize == mElementCount) return;
 
 	mElementCount = newSize;
@@ -277,6 +283,10 @@ void CharContainer::getPackedInformationBits(void* pData, std::set<unsigned> &fr
 			}
 		}
 		++bit;
+	}
+
+	if(frozenBits.size()%8 != 0) {
+		*charPtr = currentByte;
 	}
 }
 

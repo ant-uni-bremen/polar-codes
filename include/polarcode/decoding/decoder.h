@@ -55,6 +55,8 @@ public:
 	 * \param pLlr Pointer to eight-bit integer LLRs.
 	 */
 	void setSignal(const char  *pLlr);
+
+	void getDecodedInformationBits(void *pData);
 };
 
 }//namespace Decoding

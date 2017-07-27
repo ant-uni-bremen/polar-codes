@@ -2,6 +2,7 @@
 #define PC_DEC_FASTSSC_AVX2_H
 
 #include <polarcode/decoding/decoder.h>
+#include <polarcode/encoding/butterfly_avx2_char.h>
 #include <polarcode/datapool.txx>
 
 namespace PolarCode {
@@ -16,9 +17,18 @@ class Node {
 	typedef DataPool<__m256i, 32> datapool_t;
 	Block<__m256i> *mLlr, *mBit;
 
+	void clearBlocks();
+	void clearLlrBlock();
+	void clearBitBlock();
+
 protected:
 	datapool_t *xmDataPool;//xm = eXternal member (not owned by this Node)
-	size_t mBlockLength;
+	size_t mBlockLength,
+		   mVecCount;
+
+	void setInput(Block<__m256i> *newInputBlock);
+	void setOutput(Block<__m256i> *newOutputBlock);
+	void unsetBlockPointers();
 
 public:
 	Node();
@@ -30,7 +40,7 @@ public:
 	Node(size_t blockLength, datapool_t *pool);
 	virtual ~Node();
 
-	virtual void decode() = 0;///< Execute a specialized decoding algorithm.
+	virtual void decode();///< Execute a specialized decoding algorithm.
 
 	/*!
 	 * \brief Get a pointer to the datapool.
@@ -58,12 +68,43 @@ public:
 
 };
 
+class Preparer {
+public:
+	Preparer();
+	virtual ~Preparer();
+	virtual void prepare(__m256i *x);
+};
+
+class RepetitionPrep : public Preparer {
+	unsigned mCodeLength;
+public:
+	RepetitionPrep(size_t codeLength);
+	~RepetitionPrep();
+	void prepare(__m256i *x);
+};
+
+class SpcPrep : public Preparer {
+	unsigned mCodeLength;
+public:
+	SpcPrep(size_t codeLength);
+	~SpcPrep();
+	void prepare(__m256i *x);
+};
+
 /*!
  * \brief A Rate-R node redirects decoding to polar subcodes of lower complexity.
  */
 class RateRNode : public Node {
 	Node *mParent;
 	Node *mLeft, *mRight;
+
+	void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out);
+	void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out);
+
+	void F_function(__m256i *LLRin, __m256i *LLRout);
+	void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn);
+	void Combine(__m256i *Left, __m256i *Right, __m256i *Out);
+
 public:
 	/*!
 	 * \brief Using the set of frozen bits, specialized subcodes are selected.
@@ -93,6 +134,7 @@ public:
 
 class RepetitionNode : public Node {
 	Node *mParent;
+	Preparer *mPreparer;
 public:
 	RepetitionNode(Node* parent);
 	~RepetitionNode();
@@ -101,6 +143,7 @@ public:
 
 class SpcNode : public Node {
 	Node *mParent;
+	Preparer *mPreparer;
 public:
 	SpcNode(Node* parent);
 	~SpcNode();
@@ -128,7 +171,9 @@ size_t nBit2vecCount(size_t blockLength);
  * \brief The recursive systematic Fast-SSC decoder.
  */
 class FastSscAvx2Char : public Decoder {
-	FastSscAvx2::Node* mRootNode;
+	FastSscAvx2::Node *mNodeBase,///< General code information
+					  *mRootNode;///< Actual decoder
+	DataPool<__m256i, 32> *mDataPool;///< Lazy-copy data-block pool
 
 public:
 	FastSscAvx2Char(size_t blockLength, const std::set<unsigned> &frozenBits);

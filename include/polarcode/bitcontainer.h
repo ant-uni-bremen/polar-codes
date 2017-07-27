@@ -134,10 +134,12 @@ public:
  */
 class CharContainer : public BitContainer {
 	char *mData;
+	bool mDataIsExternal;
 
 public:
 	CharContainer();
 	CharContainer(size_t size);///<Initialize the container to specified size.
+	CharContainer(char *external, size_t size);///<Assign an external storage to this container.
 	~CharContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
