@@ -466,6 +466,7 @@ bool FastSscAvx2Char::decode() {
 		encoder->encode();
 		encoder->getEncodedData(mOutputContainer->data());
 		delete encoder;
+		mBitContainer->insertPackedBits(mOutputContainer->data());
 	}
 	return mErrorDetector->check(mOutputContainer->data(), mBlockLength/8);
 }
