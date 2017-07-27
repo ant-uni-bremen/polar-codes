@@ -425,6 +425,7 @@ FastSscAvx2Char::FastSscAvx2Char(size_t blockLength, const std::set<unsigned> &f
 }
 
 FastSscAvx2Char::~FastSscAvx2Char() {
+	delete mLlrContainer;
 	delete mBitContainer;
 	delete mRootNode;
 	delete mNodeBase;
@@ -432,34 +433,23 @@ FastSscAvx2Char::~FastSscAvx2Char() {
 }
 
 void FastSscAvx2Char::initialize(size_t blockLength, const std::set<unsigned> &frozenBits) {
-	if(blockLength == mBlockLength) {
-		delete mBitContainer;
-		mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()), mBlockLength);
+	if(blockLength == mBlockLength && frozenBits == mFrozenBits) {
+		return;
 	} else {
 		mBlockLength = blockLength;
 		mFrozenBits = frozenBits;
 		mDataPool = new DataPool<__m256i, 32>();
 		mNodeBase = new FastSscAvx2::Node(blockLength, mDataPool);
 		mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase);
-		mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()), mBlockLength);
+		mLlrContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()),  mBlockLength);
+		mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);
 	}
 }
 
 void FastSscAvx2Char::decode() {
-	if(mBlockLength < 32) {
-		unsigned offset = 32-mBlockLength;
-//		memmove(reinterpret_cast<char*>(mNodeBase->input()) + offset,
-//				mNodeBase->input(),
-//				mBlockLength);
 		mRootNode->decode();
-//		memmove(mNodeBase->output(),
-//				reinterpret_cast<char*>(mNodeBase->output()) + offset,
-//				mBlockLength);
-	} else {
-		mRootNode->decode();
-	}
-	delete mBitContainer;
-	mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);
 }
+
+
 }// namespace Decoding
 }// namespace PolarCode

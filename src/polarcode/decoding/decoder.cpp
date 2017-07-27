@@ -21,11 +21,11 @@ void Decoder::setErrorDetection(ErrorDetection::Detector *pDetector) {
 }
 
 void Decoder::setSignal(const float *pLlr) {
-	mBitContainer->insertLlr(pLlr);
+	mLlrContainer->insertLlr(pLlr);
 }
 
 void Decoder::setSignal(const char *pLlr) {
-	mBitContainer->insertLlr(pLlr);
+	mLlrContainer->insertLlr(pLlr);
 }
 
 void Decoder::getDecodedInformationBits(void *pData) {
