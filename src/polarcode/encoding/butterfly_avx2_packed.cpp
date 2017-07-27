@@ -12,6 +12,11 @@ ButterflyAvx2Packed::ButterflyAvx2Packed() {
 	featureCheck();
 }
 
+ButterflyAvx2Packed::ButterflyAvx2Packed(size_t blockLength) {
+	featureCheck();
+	initialize(blockLength, {});
+}
+
 ButterflyAvx2Packed::ButterflyAvx2Packed(
 		size_t blockLength,
 		const std::set<unsigned> &frozenBits) {

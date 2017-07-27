@@ -51,6 +51,12 @@ public:
 	void setInformation(void *pData);
 
 	/*!
+	 * \brief Insert packed bits.
+	 * \param pData Pointer to memory location of packed bits.
+	 */
+	void setCodeword(void *pData);
+
+	/*!
 	 * \brief Writes packed code bits into memory.
 	 * \param pData Memory location for encoded data. Must be pre-allocated.
 	 */

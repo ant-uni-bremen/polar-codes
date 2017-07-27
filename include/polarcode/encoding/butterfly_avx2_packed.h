@@ -23,6 +23,12 @@ public:
 	ButterflyAvx2Packed();
 
 	/*!
+	 * \brief Create the butterfly encoder without frozen bits.
+	 * \param blockLength Number of code bits.
+	 */
+	ButterflyAvx2Packed(size_t blockLength);
+
+	/*!
 	 * \brief Create the butterfly encoder and initialize its parameters.
 	 * \param blockLength Number of code bits.
 	 * \param frozenBits Set of frozen channel indices.

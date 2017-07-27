@@ -21,6 +21,7 @@ protected:
 	bool mSystematic;///< Whether to use systematic coding
 	BitContainer *mLlrContainer;///< Soft-input container
 	BitContainer *mBitContainer;///< Hard-output bit container
+	PackedContainer *mOutputContainer;///< Final data container, gets filled for error detection
 	std::set<unsigned> mFrozenBits; ///< Indices for frozen bits
 
 public:
@@ -29,8 +30,9 @@ public:
 
 	/*!
 	 * \brief Decode the received signal.
+	 * \return True, if no errors detected after decoding.
 	 */
-	virtual void decode() = 0;
+	virtual bool decode() = 0;
 
 	/*!
 	 * \brief Set the decoder's parameters.

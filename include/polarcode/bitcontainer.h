@@ -47,6 +47,12 @@ public:
 										   std::set<unsigned> &frozenBits) = 0;
 
 	/*!
+	 * \brief Insert byte-wise defined bits, for example after decoding.
+	 * \param pData Pointer to char-bits.
+	 */
+	virtual void insertCharBits(const char* pData) = 0;
+
+	/*!
 	 * \brief Insert single precision floating point soft-bits of received code word.
 	 * \param pLlr LLRs of received signal.
 	 */
@@ -114,6 +120,7 @@ public:
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
 	void insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits);
+	void insertCharBits(const char* pData);
 	void insertLlr(const float *pLlr);
 	void insertLlr(const char  *pLlr);
 	void getPackedBits(void* pData);
@@ -144,6 +151,7 @@ public:
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
 	void insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits);
+	void insertCharBits(const char* pData);
 	void insertLlr(const float *pLlr);
 	void insertLlr(const char  *pLlr);
 	void getPackedBits(void* pData);
@@ -174,6 +182,7 @@ public:
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
 	void insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits);
+	void insertCharBits(const char* pData);
 	void getPackedBits(void* pData);
 	void resetFrozenBits(std::set<unsigned> &frozenBits);
 

@@ -175,11 +175,13 @@ class FastSscAvx2Char : public Decoder {
 					  *mRootNode;///< Actual decoder
 	DataPool<__m256i, 32> *mDataPool;///< Lazy-copy data-block pool
 
+	void clear();
+
 public:
 	FastSscAvx2Char(size_t blockLength, const std::set<unsigned> &frozenBits);
 	~FastSscAvx2Char();
 
-    void decode();
+	bool decode();
 	void initialize(size_t blockLength, const std::set<unsigned> &frozenBits);
 };
 

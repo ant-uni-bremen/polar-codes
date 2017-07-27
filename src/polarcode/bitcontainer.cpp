@@ -110,6 +110,16 @@ void FloatContainer::insertPackedInformationBits(const void *pData, std::set<uns
 	}
 }
 
+void FloatContainer::insertCharBits(const char *pData) {
+	unsigned int *iPtr = reinterpret_cast<unsigned int*>(mData);
+	unsigned int temp;
+	for(unsigned int bit = 0; bit < mElementCount; ++bit) {
+		temp = pData[bit];
+		temp <<= 31;//Move bit to MSB
+		iPtr[bit] = temp;
+	}
+}
+
 void FloatContainer::insertLlr(const float *pLlr) {
 	memcpy(mData, pLlr, 4*mElementCount);
 }
@@ -243,6 +253,10 @@ void CharContainer::insertPackedInformationBits(const void *pData, std::set<unsi
 	}
 }
 
+void CharContainer::insertCharBits(const char *pData) {
+	memcpy(mData, pData, mElementCount);
+}
+
 void CharContainer::insertLlr(const float *pLlr) {
 	for(unsigned int bit=0; bit < mElementCount; ++bit) {
 		mData[bit] = convertFtoC(pLlr[bit]);
@@ -363,6 +377,21 @@ void PackedContainer::insertPackedInformationBits(const void *pData, std::set<un
 				bitCounter = 0;
 			}
 		}
+	}
+}
+
+void PackedContainer::insertCharBits(const char *pData) {
+	unsigned int nBytes = mElementCount/8;
+	unsigned char *outPtr = reinterpret_cast<unsigned char*>(mData);
+	const unsigned char *inPtr  = reinterpret_cast<const unsigned char*>(pData);
+	unsigned char currentByte;
+
+	for(unsigned int byte=0; byte<nBytes; ++byte) {
+		currentByte = 0;
+		for(unsigned int bit=0; bit<8; ++bit) {
+			currentByte |= (inPtr[byte*8+bit]<<(7-bit));
+		}
+		outPtr[byte] = currentByte;
 	}
 }
 

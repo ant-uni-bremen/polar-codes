@@ -1,4 +1,5 @@
 #include <polarcode/decoding/fastssc_avx2_char.h>
+#include <polarcode/encoding/butterfly_avx2_packed.h>
 #include <polarcode/polarcode.h>
 
 #include <cstring> //for memset
@@ -421,12 +422,18 @@ size_t nBit2vecCount(size_t blockLength) {
 }// namespace FastSscAvx2
 
 FastSscAvx2Char::FastSscAvx2Char(size_t blockLength, const std::set<unsigned> &frozenBits) {
+	mBlockLength = 0;// Hint in order to not delete objects that don't exist yet.
 	initialize(blockLength, frozenBits);
 }
 
 FastSscAvx2Char::~FastSscAvx2Char() {
+	clear();
+}
+
+void FastSscAvx2Char::clear() {
 	delete mLlrContainer;
 	delete mBitContainer;
+	delete mOutputContainer;
 	delete mRootNode;
 	delete mNodeBase;
 	delete mDataPool;
@@ -436,6 +443,9 @@ void FastSscAvx2Char::initialize(size_t blockLength, const std::set<unsigned> &f
 	if(blockLength == mBlockLength && frozenBits == mFrozenBits) {
 		return;
 	} else {
+		if(mBlockLength != 0) {
+			clear();
+		}
 		mBlockLength = blockLength;
 		mFrozenBits = frozenBits;
 		mDataPool = new DataPool<__m256i, 32>();
@@ -443,11 +453,21 @@ void FastSscAvx2Char::initialize(size_t blockLength, const std::set<unsigned> &f
 		mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase);
 		mLlrContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()),  mBlockLength);
 		mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);
+		mOutputContainer = new PackedContainer(mBlockLength);
 	}
 }
 
-void FastSscAvx2Char::decode() {
-		mRootNode->decode();
+bool FastSscAvx2Char::decode() {
+	mRootNode->decode();
+	mOutputContainer->insertCharBits(reinterpret_cast<char*>(mNodeBase->output()));
+	if(!mSystematic) {
+		Encoding::Encoder* encoder = new Encoding::ButterflyAvx2Packed(mBlockLength);
+		encoder->setCodeword(mOutputContainer->data());
+		encoder->encode();
+		encoder->getEncodedData(mOutputContainer->data());
+		delete encoder;
+	}
+	return mErrorDetector->check(mOutputContainer->data(), mBlockLength/8);
 }
 
 

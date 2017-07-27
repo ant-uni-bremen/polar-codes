@@ -22,6 +22,10 @@ void Encoder::setInformation(void *pData) {
 	mBitContainer->insertPackedInformationBits(pData, mFrozenBits);
 }
 
+void Encoder::setCodeword(void *pData) {
+	mBitContainer->insertPackedBits(pData);
+}
+
 void Encoder::getEncodedData(void *pData) {
 	mBitContainer->getPackedBits(pData);
 }
