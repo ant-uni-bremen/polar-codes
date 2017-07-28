@@ -138,6 +138,11 @@ RateRNode::RateRNode(std::set<unsigned> &frozenBits, Node *parent)
 
 	mBlockLength *= 2;
 	mVecCount = nBit2vecCount(mBlockLength);
+
+	unsigned vecCount = nBit2vecCount(mBlockLength/2);
+	ChildLlr = xmDataPool->allocate(vecCount);
+	LeftBits = xmDataPool->allocate(vecCount);
+	RightBits = xmDataPool->allocate(vecCount);
 }
 
 RateZeroNode::RateZeroNode(Node *parent)
@@ -185,6 +190,11 @@ SpcNode::SpcNode(Node *parent)
 RateRNode::~RateRNode() {
 	delete mLeft;
 	delete mRight;
+	xmDataPool->release(ChildLlr);
+	xmDataPool->release(LeftBits);
+	xmDataPool->release(RightBits);
+
+	unsetBlockPointers();
 }
 
 RateZeroNode::~RateZeroNode() {
@@ -314,12 +324,12 @@ void RateRNode::F_function(__m256i *LLRin, __m256i *LLRout) {
 	__m256i Left, Right;
 	if(mBlockLength < 32) {
 		Left = _mm256_load_si256(LLRin);
-		Right = _mm256_subVectorShift_epu8(Left, mBlockLength*8/2);
+		Right = _mm256_subVectorShift_epu8(Left, mBlockLength*8/4);
 		F_function_calc(Left, Right, LLRout);
 	} else {
-		for(unsigned i=0; i<mVecCount; i++) {
+		for(unsigned i=0; i<mVecCount/4; i++) {
 			Left = _mm256_load_si256(LLRin+i);
-			Right = _mm256_load_si256(LLRin+i+mVecCount);
+			Right = _mm256_load_si256(LLRin+i+mVecCount/4);
 			F_function_calc(Left, Right, LLRout+i);
 		}
 	}
@@ -327,16 +337,16 @@ void RateRNode::F_function(__m256i *LLRin, __m256i *LLRout) {
 
 void RateRNode::G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn) {
 	__m256i Left, Right, Bits;
-	if(mBlockLength < 32) {
+	if(mBlockLength*8/4 < 32) {
 		Left = _mm256_load_si256(LLRin);
-		Right = _mm256_subVectorShift_epu8(Left, mBlockLength*8/2);
+		Right = _mm256_subVectorShift_epu8(Left, mBlockLength*8/4);
 		Bits = _mm256_load_si256(BitsIn);
 		G_function_calc(Left, Right, Bits, LLRout);
 	} else {
-		for(unsigned i=0; i<mVecCount; i++) {
+		for(unsigned i=0; i<mVecCount/4; i++) {
 			Left = _mm256_load_si256(LLRin+i);
-			Right = _mm256_load_si256(LLRin+i+mVecCount);
-			Bits = _mm256_load_si256(BitsIn+i+mVecCount);
+			Right = _mm256_load_si256(LLRin+i+mVecCount/4);
+			Bits = _mm256_load_si256(BitsIn+i+mVecCount/4);
 			G_function_calc(Left, Right, Bits, LLRout+i);
 		}
 	}
@@ -345,33 +355,23 @@ void RateRNode::G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn) {
 
 void RateRNode::Combine(__m256i *Left, __m256i *Right, __m256i *Out) {
 	if(mBlockLength/2 < 32) {
+		*Left = _mm256_xor_si256(*Left, *Right);
 		*Right = _mm256_subVectorBackShift_epu8(*Right, mBlockLength*8/2);
 		_mm256_store_si256(Out, _mm256_or_si256(*Left, *Right));
 	} else {
-		// Copy left bits
-		for(unsigned i=0; i<mVecCount; i++) {
-			__m256i temp = _mm256_load_si256(Left+i);
-			_mm256_store_si256(Out+i, temp);
-		}
-		// Copy right bits
-		for(unsigned i=0; i<mVecCount; i++) {
-			__m256i temp = _mm256_load_si256(Right+i);
-			_mm256_store_si256(Out+mVecCount+i, temp);
+		for(unsigned i=0; i<mVecCount/2; i++) {
+			__m256i tempL = _mm256_load_si256(Left+i);
+			__m256i tempR = _mm256_load_si256(Right+i);
+			tempL = _mm256_xor_si256(tempL, tempR);
+			_mm256_store_si256(Out+i, tempL);
+			_mm256_store_si256(Out+mVecCount/2+i, tempR);
 		}
 	}
-	// Combine
-	Encoding::ButterflyAvx2CharTransform(Out, mBlockLength, log2(mBlockLength)-1);
 }
 
 void RateRNode::decode() {
 	__m256i *LlrIn = mParent->input();
 	__m256i* BitsOut = mParent->output();
-
-	Block<__m256i> *ChildLlr, *LeftBits, *RightBits;
-	unsigned vecCount = nBit2vecCount(mBlockLength/2);
-	ChildLlr = xmDataPool->allocate(vecCount);
-	LeftBits = xmDataPool->allocate(vecCount);
-	RightBits = xmDataPool->allocate(vecCount);
 
 	F_function(LlrIn, ChildLlr->data);
 	setInput(ChildLlr);
@@ -383,12 +383,6 @@ void RateRNode::decode() {
 	mRight->decode();
 
 	Combine(LeftBits->data, RightBits->data, BitsOut);
-
-	xmDataPool->release(ChildLlr);
-	xmDataPool->release(LeftBits);
-	xmDataPool->release(RightBits);
-
-	unsetBlockPointers();
 }
 
 // End of mass defining
@@ -433,7 +427,7 @@ FastSscAvx2Char::~FastSscAvx2Char() {
 void FastSscAvx2Char::clear() {
 	delete mLlrContainer;
 	delete mBitContainer;
-	delete mOutputContainer;
+	delete [] mOutputContainer;
 	delete mRootNode;
 	delete mNodeBase;
 	delete mDataPool;
@@ -453,22 +447,23 @@ void FastSscAvx2Char::initialize(size_t blockLength, const std::set<unsigned> &f
 		mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase);
 		mLlrContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()),  mBlockLength);
 		mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);
-		mOutputContainer = new PackedContainer(mBlockLength);
+		mOutputContainer = new unsigned char[(mBlockLength-frozenBits.size()+7)/8];
 	}
 }
 
 bool FastSscAvx2Char::decode() {
 	mRootNode->decode();
-	mOutputContainer->insertCharBits(reinterpret_cast<char*>(mNodeBase->output()));
 	if(!mSystematic) {
 		Encoding::Encoder* encoder = new Encoding::ButterflyAvx2Packed(mBlockLength);
-		encoder->setCodeword(mOutputContainer->data());
+		encoder->setCodeword(mBitContainer->data());
 		encoder->encode();
-		encoder->getEncodedData(mOutputContainer->data());
+		encoder->getEncodedData(mBitContainer->data());
 		delete encoder;
-		mBitContainer->insertPackedBits(mOutputContainer->data());
 	}
-	return mErrorDetector->check(mOutputContainer->data(), mBlockLength/8);
+	mBitContainer->getPackedInformationBits(mOutputContainer, mFrozenBits);
+	bool result = mErrorDetector->check(mOutputContainer, mBlockLength/8);
+	_mm256_zeroall();
+	return result;
 }
 
 

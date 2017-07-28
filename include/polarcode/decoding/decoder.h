@@ -19,9 +19,9 @@ protected:
 	ErrorDetection::Detector* mErrorDetector;///< Error detecting object
 	size_t mBlockLength;///< Length of the Polar Code
 	bool mSystematic;///< Whether to use systematic coding
-	BitContainer *mLlrContainer;///< Soft-input container
-	BitContainer *mBitContainer;///< Hard-output bit container
-	PackedContainer *mOutputContainer;///< Final data container, gets filled for error detection
+	CharContainer *mLlrContainer;///< Soft-input container
+	CharContainer *mBitContainer;///< Hard-output bit container
+	unsigned char *mOutputContainer;///< Final data container, gets filled for error detection
 	std::set<unsigned> mFrozenBits; ///< Indices for frozen bits
 
 public:

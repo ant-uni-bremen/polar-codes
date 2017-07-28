@@ -26,7 +26,9 @@ void ButterflyAvx2Char::initialize(
 		size_t blockLength,
 		const std::set<unsigned> &frozenBits) {
 	mBlockLength = blockLength;
-	mFrozenBits = frozenBits;
+	//mFrozenBits = frozenBits;
+	mFrozenBits.clear();
+	mFrozenBits.insert(frozenBits.begin(), frozenBits.end());
 
 	if(mBitContainer != nullptr) delete mBitContainer;
 	mBitContainer = new CharContainer(mBlockLength);

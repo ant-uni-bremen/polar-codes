@@ -98,6 +98,8 @@ class RateRNode : public Node {
 	Node *mParent;
 	Node *mLeft, *mRight;
 
+	Block<__m256i> *ChildLlr, *LeftBits, *RightBits;
+
 	void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out);
 	void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out);
 

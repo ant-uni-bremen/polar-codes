@@ -7,6 +7,7 @@
 class DecodingTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST_SUITE(DecodingTest);
 	CPPUNIT_TEST(testAvx2);
+	CPPUNIT_TEST(testAvx2Performance);
 	CPPUNIT_TEST_SUITE_END();
 
 	PolarCode::Decoding::Decoder *mDecoder;
@@ -16,6 +17,7 @@ public:
 	void tearDown();
 
 	void testAvx2();
+	void testAvx2Performance();
 };
 
 #endif //PC_TEST_DECODING_H

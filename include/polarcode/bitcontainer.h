@@ -191,7 +191,6 @@ public:
 	void insertLlr(const char  *pLlr);
 	void getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits);
 
-
 	char* data();///< Get a pointer to the container's memory.
 };
 

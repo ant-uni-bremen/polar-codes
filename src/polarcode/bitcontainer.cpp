@@ -212,8 +212,10 @@ void CharContainer::setSize(size_t newSize) {
 		_mm_free(mData);
 	}
 
+	size_t allocBytes = std::max(static_cast<size_t>(BYTESPERVECTOR), mElementCount);
+
 	// Allocate new memory
-	mData = static_cast<char*>(_mm_malloc(mElementCount, BYTESPERVECTOR));
+	mData = static_cast<char*>(_mm_malloc(allocBytes, BYTESPERVECTOR));
 	if(mData == nullptr) {
 		throw "Allocating memory for char-container failed.";
 	}
@@ -236,21 +238,31 @@ void CharContainer::insertPackedBits(const void* pData) {
 
 void CharContainer::insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits) {
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
-	unsigned char bitPool = charPtr[0];
-	unsigned int bitCounter = 0, byteCounter = 1;
+	unsigned char bitPool = *(charPtr++);
+	unsigned int bitCounter = 0;
 
+	unsigned *skipList = new unsigned[frozenBits.size()+1];
+	skipList[frozenBits.size()] = 0;
+	unsigned *listPtr = skipList;
+	for(unsigned i : frozenBits) {
+		*(listPtr++) = i;
+	}
+	memset(mData, 0, mElementCount);
+
+	listPtr = skipList;
 	for(unsigned int bit=0; bit<mElementCount; ++bit) {
-		if(frozenBits.find(bit) == frozenBits.end()) {
+		if(bit != *listPtr) {
 			mData[bit] = (bitPool&0x80)>>7;
 			bitPool <<= 1;
 			if(++bitCounter == 8 && bit+1 != mElementCount) {
-				bitPool = charPtr[byteCounter++];
+				bitPool = *(charPtr++);
 				bitCounter = 0;
 			}
 		} else {
-			mData[bit] = 0;
+			++listPtr;
 		}
 	}
+	delete [] skipList;
 }
 
 void CharContainer::insertCharBits(const char *pData) {
@@ -305,9 +317,8 @@ void CharContainer::getPackedInformationBits(void* pData, std::set<unsigned> &fr
 }
 
 void CharContainer::resetFrozenBits(std::set<unsigned> &frozenBits) {
-	std::set<unsigned>::iterator it = frozenBits.begin();
-	while(it != frozenBits.end()) {
-		mData[*(it++)] = 0;
+	for(unsigned idx : frozenBits) {
+		mData[idx] = 0;
 	}
 }
 
@@ -363,21 +374,32 @@ void PackedContainer::insertPackedBits(const void* pData) {
 
 void PackedContainer::insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits) {
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
-	unsigned char bitPool = charPtr[0];
-	unsigned int bitCounter = 0, byteCounter = 1;
+	unsigned char bitPool = *(charPtr++);
+	unsigned int bitCounter = 0;
 
+	unsigned *skipList = new unsigned[frozenBits.size()+1];
+	skipList[frozenBits.size()] = 0;
+	unsigned *listPtr = skipList;
+	for(unsigned i : frozenBits) {
+		*(listPtr++) = i;
+	}
+
+	listPtr = skipList;
 	memset(mData, 0, fakeSize/8);
 
 	for(unsigned int bit=0; bit<mElementCount; ++bit) {
-		if(frozenBits.find(bit) == frozenBits.end()) {
+		if(bit != *listPtr) {
 			insertBit(bit, (bitPool&0x80)>>7);
 			bitPool <<= 1;
 			if(++bitCounter == 8 && bit+1 != mElementCount) {
-				bitPool = charPtr[byteCounter++];
+				bitPool = *(charPtr++);
 				bitCounter = 0;
 			}
+		} else {
+			++listPtr;
 		}
 	}
+	delete [] skipList;
 }
 
 void PackedContainer::insertCharBits(const char *pData) {

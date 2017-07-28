@@ -130,8 +130,8 @@ void EncodingTest::performanceComparison() {
 
 	encoder = new PolarCode::Encoding::ButterflyAvxFloat(testBits, frozenBits);
 	encoder->setSystematic(false);
-	encoder->setInformation(&input);
 	TimeStart = high_resolution_clock::now();
+	encoder->setInformation(&input);
 	encoder->encode();
 	TimeEnd = high_resolution_clock::now();
 	delete encoder;
@@ -142,8 +142,8 @@ void EncodingTest::performanceComparison() {
 	if(avx2supported()) {
 		encoder = new PolarCode::Encoding::ButterflyAvx2Char(testBits, frozenBits);
 		encoder->setSystematic(false);
-		encoder->setInformation(&input);
 		TimeStart = high_resolution_clock::now();
+		encoder->setInformation(&input);
 		encoder->encode();
 		TimeEnd = high_resolution_clock::now();
 		delete encoder;
@@ -153,8 +153,8 @@ void EncodingTest::performanceComparison() {
 
 		encoder = new PolarCode::Encoding::ButterflyAvx2Packed(testBits, frozenBits);
 		encoder->setSystematic(false);
-		encoder->setInformation(&input);
 		TimeStart = high_resolution_clock::now();
+		encoder->setInformation(&input);
 		encoder->encode();
 		TimeEnd = high_resolution_clock::now();
 		delete encoder;

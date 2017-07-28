@@ -1,5 +1,6 @@
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/errordetection/dummy.h>
+#include <cstring>
 
 namespace PolarCode {
 namespace Decoding {
@@ -29,7 +30,7 @@ void Decoder::setSignal(const char *pLlr) {
 }
 
 void Decoder::getDecodedInformationBits(void *pData) {
-	mBitContainer->getPackedInformationBits(pData, mFrozenBits);
+	memcpy(pData, mOutputContainer, (mBlockLength-mFrozenBits.size()+7)/8);
 }
 
 }//namespace Decoding
