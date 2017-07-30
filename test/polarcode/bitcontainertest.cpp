@@ -7,11 +7,8 @@ void BitContainerTest::setUp() {
 	mTestData = "TestData";
 	mFrozenBits.insert({0,1,2,3,4,5,6,7});//Freeze first byte
 
-	floatContainer = new PolarCode::FloatContainer();
-	floatContainer->setSize(mTestData.size()*8);
-
-	charContainer = new PolarCode::CharContainer();
-	charContainer->setSize(mTestData.size()*8);
+	floatContainer = new PolarCode::FloatContainer(mTestData.size()*8, mFrozenBits);
+	 charContainer = new PolarCode::CharContainer(mTestData.size()*8, mFrozenBits);
 
 	control = new unsigned char[mTestData.size()];
 }
@@ -30,8 +27,8 @@ void BitContainerTest::testFloatContainer() {
 }
 
 void BitContainerTest::testFloatContainerWithFrozenBits() {
-	floatContainer->insertPackedInformationBits(mTestData.data(), mFrozenBits);
-	floatContainer->getPackedInformationBits(control, mFrozenBits);
+	floatContainer->insertPackedInformationBits(mTestData.data());
+	floatContainer->getPackedInformationBits(control);
 
 	CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size()-1) == 0);
 }
@@ -44,8 +41,8 @@ void BitContainerTest::testCharContainer() {
 }
 
 void BitContainerTest::testCharContainerWithFrozenBits() {
-	charContainer->insertPackedInformationBits(mTestData.data(), mFrozenBits);
-	charContainer->getPackedInformationBits(control, mFrozenBits);
+	charContainer->insertPackedInformationBits(mTestData.data());
+	charContainer->getPackedInformationBits(control);
 
 	CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size()-1) == 0);
 }

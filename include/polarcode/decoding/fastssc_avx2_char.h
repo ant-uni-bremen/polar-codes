@@ -40,7 +40,7 @@ public:
 	Node(size_t blockLength, datapool_t *pool);
 	virtual ~Node();
 
-	virtual void decode();///< Execute a specialized decoding algorithm.
+	virtual void decode(__m256i *LlrIn, __m256i *BitsOut);///< Execute a specialized decoding algorithm.
 
 	/*!
 	 * \brief Get a pointer to the datapool.
@@ -91,6 +91,13 @@ public:
 	void prepare(__m256i *x);
 };
 
+void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out);
+void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out);
+
+void F_function(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength);
+void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBlockLength);
+void Combine(__m256i *Left, __m256i *Right, __m256i *Out, unsigned subBlockLength);
+
 /*!
  * \brief A Rate-R node redirects decoding to polar subcodes of lower complexity.
  */
@@ -100,13 +107,6 @@ class RateRNode : public Node {
 
 	Block<__m256i> *ChildLlr, *LeftBits, *RightBits;
 
-	void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out);
-	void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out);
-
-	void F_function(__m256i *LLRin, __m256i *LLRout);
-	void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn);
-	void Combine(__m256i *Left, __m256i *Right, __m256i *Out);
-
 public:
 	/*!
 	 * \brief Using the set of frozen bits, specialized subcodes are selected.
@@ -115,7 +115,7 @@ public:
 	 */
 	RateRNode(std::set<unsigned> &frozenBits, Node *parent);
 	~RateRNode();
-	void decode();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 
 class RateZeroNode : public Node {
@@ -123,7 +123,7 @@ class RateZeroNode : public Node {
 public:
 	RateZeroNode(Node* parent);
 	~RateZeroNode();
-	void decode();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 
 class RateOneNode : public Node {
@@ -131,7 +131,7 @@ class RateOneNode : public Node {
 public:
 	RateOneNode(Node* parent);
 	~RateOneNode();
-	void decode();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 
 class RepetitionNode : public Node {
@@ -140,7 +140,7 @@ class RepetitionNode : public Node {
 public:
 	RepetitionNode(Node* parent);
 	~RepetitionNode();
-	void decode();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 
 class SpcNode : public Node {
@@ -149,7 +149,7 @@ class SpcNode : public Node {
 public:
 	SpcNode(Node* parent);
 	~SpcNode();
-	void decode();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 
 /*!

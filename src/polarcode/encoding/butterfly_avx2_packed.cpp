@@ -34,14 +34,14 @@ void ButterflyAvx2Packed::initialize(
 	mFrozenBits = frozenBits;
 
 	if(mBitContainer != nullptr) delete mBitContainer;
-	mBitContainer = new PackedContainer(mBlockLength);
+	mBitContainer = new PackedContainer(mBlockLength, mFrozenBits);
 }
 
 void ButterflyAvx2Packed::encode() {
 	transform();
 
 	if(mSystematic) {
-		mBitContainer->resetFrozenBits(mFrozenBits);
+		mBitContainer->resetFrozenBits();
 		transform();
 	}
 }

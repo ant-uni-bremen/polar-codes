@@ -10,7 +10,7 @@ namespace Decoding {
 
 namespace FastSscAvx2 {
 
-static inline __m256i hardDecode(__m256i x) {
+__m256i hardDecode(__m256i x) {
 	static const __m256i mask = _mm256_set1_epi8(-128);
 	const __m256i sign = _mm256_and_si256(x, mask);// Get signs of LLRs
 	const __m256i result = _mm256_srli_epi16(sign, 7);//Move them to LSB
@@ -37,7 +37,7 @@ Node::~Node() {
 	clearBlocks();
 }
 
-void Node::decode() {
+void Node::decode(__m256i *LlrIn, __m256i *BitsOut) {
 }
 
 void Node::clearBlocks() {
@@ -60,12 +60,12 @@ void Node::clearBitBlock() {
 }
 
 void Node::setInput(Block<__m256i> *newInputBlock) {
-	clearLlrBlock();
+//	clearLlrBlock();
 	mLlr = newInputBlock;
 }
 
 void Node::setOutput(Block<__m256i> *newOutputBlock) {
-	clearBitBlock();
+//	clearBitBlock();
 	mBit = newOutputBlock;
 }
 
@@ -136,13 +136,12 @@ RateRNode::RateRNode(std::set<unsigned> &frozenBits, Node *parent)
 	mLeft = createDecoder(leftFrozenBits, this);
 	mRight = createDecoder(rightFrozenBits, this);
 
-	mBlockLength *= 2;
+//	mBlockLength *= 2;
 	mVecCount = nBit2vecCount(mBlockLength);
 
-	unsigned vecCount = nBit2vecCount(mBlockLength/2);
-	ChildLlr = xmDataPool->allocate(vecCount);
-	LeftBits = xmDataPool->allocate(vecCount);
-	RightBits = xmDataPool->allocate(vecCount);
+	ChildLlr = xmDataPool->allocate(mVecCount);
+	LeftBits = xmDataPool->allocate(mVecCount);
+	RightBits = xmDataPool->allocate(mVecCount);
 }
 
 RateZeroNode::RateZeroNode(Node *parent)
@@ -213,14 +212,11 @@ SpcNode::~SpcNode() {
 
 // Decoders
 
-void RateZeroNode::decode() {
-	memset(mParent->output(), 0, mBlockLength);
+void RateZeroNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
+	memset(BitsOut, 0, mBlockLength);
 }
 
-void RateOneNode::decode() {
-	__m256i* LlrIn = mParent->input();
-	__m256i* BitsOut = mParent->output();
-
+void RateOneNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	for(unsigned i=0; i<mVecCount; i++) {
 		__m256i vec = _mm256_load_si256(LlrIn+i);
 		vec = hardDecode(vec);
@@ -237,10 +233,7 @@ void RateOneNode::decode() {
 
 	Conversion to epi16 will reduce throughput but circumvents that problem.
 */
-void RepetitionNode::decode() {
-	__m256i* LlrIn = mParent->input();
-	__m256i* BitsOut = mParent->output();
-
+void RepetitionNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	__m256i LlrSum = _mm256_setzero_si256();
 
 	mPreparer->prepare(LlrIn);
@@ -263,10 +256,7 @@ void RepetitionNode::decode() {
 	}
 }
 
-void SpcNode::decode() {
-	__m256i* LlrIn = mParent->input();
-	__m256i* BitsOut = mParent->output();
-
+void SpcNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	__m256i parVec = _mm256_setzero_si256();
 	unsigned minIdx = 0;
 	char testAbs, minAbs = 127;
@@ -300,7 +290,7 @@ void SpcNode::decode() {
 
 }
 
-void RateRNode::F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out)
+void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out)
 {
 	__m256i absL = _mm256_abs_epi8(Left);
 	__m256i absR = _mm256_abs_epi8(Right);
@@ -310,7 +300,7 @@ void RateRNode::F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out)
 	_mm256_store_si256(Out, outV);//save
 }
 
-void RateRNode::G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out)
+void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out)
 {
 	__m256i sum  = _mm256_adds_epi8(Right, Left);
 	__m256i diff = _mm256_subs_epi8(Right, Left);
@@ -320,69 +310,65 @@ void RateRNode::G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __
 }
 
 
-void RateRNode::F_function(__m256i *LLRin, __m256i *LLRout) {
+void F_function(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength) {
 	__m256i Left, Right;
-	if(mBlockLength < 32) {
+	if(subBlockLength < 32) {
 		Left = _mm256_load_si256(LLRin);
-		Right = _mm256_subVectorShift_epu8(Left, mBlockLength*8/4);
+		Right = _mm256_subVectorShift_epu8(Left, subBlockLength*8);
 		F_function_calc(Left, Right, LLRout);
 	} else {
-		for(unsigned i=0; i<mVecCount/4; i++) {
+		unsigned vecCount = nBit2vecCount(subBlockLength);
+		for(unsigned i=0; i<vecCount; i++) {
 			Left = _mm256_load_si256(LLRin+i);
-			Right = _mm256_load_si256(LLRin+i+mVecCount/4);
+			Right = _mm256_load_si256(LLRin+i+vecCount);
 			F_function_calc(Left, Right, LLRout+i);
 		}
 	}
 }
 
-void RateRNode::G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn) {
+void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBlockLength) {
 	__m256i Left, Right, Bits;
-	if(mBlockLength*8/4 < 32) {
+	if(subBlockLength < 32) {
 		Left = _mm256_load_si256(LLRin);
-		Right = _mm256_subVectorShift_epu8(Left, mBlockLength*8/4);
+		Right = _mm256_subVectorShift_epu8(Left, subBlockLength*8);
 		Bits = _mm256_load_si256(BitsIn);
 		G_function_calc(Left, Right, Bits, LLRout);
 	} else {
-		for(unsigned i=0; i<mVecCount/4; i++) {
+		unsigned vecCount = nBit2vecCount(subBlockLength);
+		for(unsigned i=0; i<vecCount; i++) {
 			Left = _mm256_load_si256(LLRin+i);
-			Right = _mm256_load_si256(LLRin+i+mVecCount/4);
-			Bits = _mm256_load_si256(BitsIn+i+mVecCount/4);
+			Right = _mm256_load_si256(LLRin+i+vecCount);
+			Bits = _mm256_load_si256(BitsIn+i+vecCount);
 			G_function_calc(Left, Right, Bits, LLRout+i);
 		}
 	}
-
 }
 
-void RateRNode::Combine(__m256i *Left, __m256i *Right, __m256i *Out) {
-	if(mBlockLength/2 < 32) {
+void Combine(__m256i *Left, __m256i *Right, __m256i *Out, unsigned subBlockLength) {
+	if(subBlockLength < 32) {
 		*Left = _mm256_xor_si256(*Left, *Right);
-		*Right = _mm256_subVectorBackShift_epu8(*Right, mBlockLength*8/2);
+		*Right = _mm256_subVectorBackShift_epu8(*Right, subBlockLength*8);
 		_mm256_store_si256(Out, _mm256_or_si256(*Left, *Right));
 	} else {
-		for(unsigned i=0; i<mVecCount/2; i++) {
+		unsigned vecCount = nBit2vecCount(subBlockLength);
+		for(unsigned i=0; i<vecCount; i++) {
 			__m256i tempL = _mm256_load_si256(Left+i);
 			__m256i tempR = _mm256_load_si256(Right+i);
 			tempL = _mm256_xor_si256(tempL, tempR);
 			_mm256_store_si256(Out+i, tempL);
-			_mm256_store_si256(Out+mVecCount/2+i, tempR);
+			_mm256_store_si256(Out+vecCount+i, tempR);
 		}
 	}
 }
 
-void RateRNode::decode() {
-	__m256i *LlrIn = mParent->input();
-	__m256i* BitsOut = mParent->output();
+void RateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
+	F_function(LlrIn, ChildLlr->data, mBlockLength);
+	mLeft->decode(ChildLlr->data, LeftBits->data);
 
-	F_function(LlrIn, ChildLlr->data);
-	setInput(ChildLlr);
-	setOutput(LeftBits);
-	mLeft->decode();
+	G_function(LlrIn, ChildLlr->data, LeftBits->data, mBlockLength);
+	mRight->decode(ChildLlr->data, RightBits->data);
 
-	G_function(LlrIn, ChildLlr->data, LeftBits->data);
-	setOutput(RightBits);
-	mRight->decode();
-
-	Combine(LeftBits->data, RightBits->data, BitsOut);
+	Combine(LeftBits->data, RightBits->data, BitsOut, mBlockLength);
 }
 
 // End of mass defining
@@ -447,12 +433,14 @@ void FastSscAvx2Char::initialize(size_t blockLength, const std::set<unsigned> &f
 		mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase);
 		mLlrContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()),  mBlockLength);
 		mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);
+		mLlrContainer->setFrozenBits(mFrozenBits);
+		mBitContainer->setFrozenBits(mFrozenBits);
 		mOutputContainer = new unsigned char[(mBlockLength-frozenBits.size()+7)/8];
 	}
 }
 
 bool FastSscAvx2Char::decode() {
-	mRootNode->decode();
+	mRootNode->decode(mNodeBase->input(), mNodeBase->output());
 	if(!mSystematic) {
 		Encoding::Encoder* encoder = new Encoding::ButterflyAvx2Packed(mBlockLength);
 		encoder->setCodeword(mBitContainer->data());
@@ -460,7 +448,7 @@ bool FastSscAvx2Char::decode() {
 		encoder->getEncodedData(mBitContainer->data());
 		delete encoder;
 	}
-	mBitContainer->getPackedInformationBits(mOutputContainer, mFrozenBits);
+	mBitContainer->getPackedInformationBits(mOutputContainer);
 	bool result = mErrorDetector->check(mOutputContainer, mBlockLength/8);
 	_mm256_zeroall();
 	return result;

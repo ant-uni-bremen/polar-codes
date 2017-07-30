@@ -31,14 +31,14 @@ void ButterflyAvx2Char::initialize(
 	mFrozenBits.insert(frozenBits.begin(), frozenBits.end());
 
 	if(mBitContainer != nullptr) delete mBitContainer;
-	mBitContainer = new CharContainer(mBlockLength);
+	mBitContainer = new CharContainer(mBlockLength, mFrozenBits);
 }
 
 void ButterflyAvx2Char::encode() {
 	transform();
 
 	if(mSystematic) {
-		mBitContainer->resetFrozenBits(mFrozenBits);
+		mBitContainer->resetFrozenBits();
 		transform();
 	}
 }

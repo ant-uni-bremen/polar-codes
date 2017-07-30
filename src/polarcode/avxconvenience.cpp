@@ -2,7 +2,7 @@
 
 unsigned _mm256_minpos_epu8(__m256i x, char *val)
 {
-    //Get the two 128-bit lanes
+	//Get the two 128-bit lanes
 	const __m128i l0 = _mm256_extracti128_si256(x, 0);//low lane
 	const __m128i l1 = _mm256_extracti128_si256(x, 1);//high lane
 
@@ -44,72 +44,58 @@ unsigned _mm256_minpos_epu8(__m256i x, char *val)
 }
 
 __m256i _mm256_subVectorShift_epu8(__m256i x, int shift) {
-	if(shift < 8) {
-		__m256i y;
+	static const __m256i mask[4] = {
+		_mm256_set1_epi8(0b0101010-128),
+		_mm256_set1_epi8(0b1001100-128),
+		_mm256_undefined_si256(),
+		_mm256_set1_epi8(0b1110000-128)};
+	__m256i y;
+	switch(shift) {
+	case 1:
+	case 2:
+	case 4:
 		y = _mm256_slli_epi16(x, shift);
-		switch(shift) {
-		case 1:
-			//clear the low bit per bit pair
-			return _mm256_and_si256(y, _mm256_set1_epi8(0b10101010));
-		case 2:
-			//clear the lower 2 bits per 4 bit
-			return _mm256_and_si256(y, _mm256_set1_epi8(0b11001100));
-		case 4:
-			//clear the low 4 bits
-			return _mm256_and_si256(y, _mm256_set1_epi8(0b11110000));
-		default:
-			throw "Subvector shift of undefined size.";
-		}
-	} else {
-		switch(shift) {
-		case 8:
-			return _mm256_srli_epi16(x, 8);
-		case 16:
-			return _mm256_srli_epi32(x, 16);
-		case 32:
-			return _mm256_srli_epi64(x, 32);
-		case 64:
-			return _mm256_srli_si256(x, 8);
-		case 128:
-			return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b00100001);
-		default:
-			throw "Subvector shift of undefined size.";
-		}
+		return _mm256_and_si256(y, mask[shift-1]);
+	case 8:
+		return _mm256_srli_epi16(x, 8);
+	case 16:
+		return _mm256_srli_epi32(x, 16);
+	case 32:
+		return _mm256_srli_epi64(x, 32);
+	case 64:
+		return _mm256_srli_si256(x, 8);
+	case 128:
+		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b00100001);
+	default:
+		throw "Subvector shift of undefined size.";
 	}
 }
 
 __m256i _mm256_subVectorBackShift_epu8(__m256i x, int shift) {
-	if(shift < 8) {
-		__m256i y;
+	static const __m256i mask[4] = {
+		_mm256_set1_epi8(0b01010101),
+		_mm256_set1_epi8(0b00110011),
+		_mm256_undefined_si256(),
+		_mm256_set1_epi8(0b00001111)};
+	__m256i y;
+	switch(shift) {
+	case 1:
+	case 2:
+	case 4:
 		y = _mm256_srli_epi16(x, shift);
-		switch(shift) {
-		case 1:
-			//clear the high bit per bit pair
-			return _mm256_and_si256(y, _mm256_set1_epi8(0b01010101));
-		case 2:
-			//clear the higher 2 bits per 4 bit
-			return _mm256_and_si256(y, _mm256_set1_epi8(0b00110011));
-		case 4:
-			//clear the high 4 bits
-			return _mm256_and_si256(y, _mm256_set1_epi8(0b00001111));
-		default:
-			throw "Subvector shift of undefined size.";
-		}
-	} else {
-		switch(shift) {
-		case 8:
-			return _mm256_slli_epi16(x, 8);
-		case 16:
-			return _mm256_slli_epi32(x, 16);
-		case 32:
-			return _mm256_slli_epi64(x, 32);
-		case 64:
-			return _mm256_slli_si256(x, 8);
-		case 128:
-			return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b00010010);
-		default:
-			throw "Subvector shift of undefined size.";
-		}
+		return _mm256_and_si256(y, mask[shift-1]);
+	case 8:
+		return _mm256_slli_epi16(x, 8);
+	case 16:
+		return _mm256_slli_epi32(x, 16);
+	case 32:
+		return _mm256_slli_epi64(x, 32);
+	case 64:
+		return _mm256_slli_si256(x, 8);
+	case 128:
+		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b00010010);
+	default:
+		throw "Subvector shift of undefined size.";
 	}
 }
 

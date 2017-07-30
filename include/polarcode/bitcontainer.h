@@ -13,11 +13,19 @@ namespace PolarCode {
  * a converting bit container is needed.
  */
 class BitContainer {
+	void clear();
+	void calculateSkipTable();
 
 protected:
 	size_t mElementCount;///< The fixed number of bits stored in this container.
+	std::set<unsigned> mFrozenBits;
+	unsigned *mSkipTable;
+
 public:
 	BitContainer();
+	BitContainer(size_t size);
+	BitContainer(size_t size, std::set<unsigned> &frozenBits);
+
 	virtual ~BitContainer();
 
 	/*!
@@ -25,6 +33,8 @@ public:
 	 * \param newSize The new bit count.
 	 */
 	virtual void setSize(size_t newSize) = 0;
+
+	void setFrozenBits(std::set<unsigned> frozenBits);
 
 	/*!
 	 * \brief Fill internal storage with given data.
@@ -41,10 +51,8 @@ public:
 	 * \brief Insert bits into non-frozen locations.
 	 * \sa insertPackedBits()
 	 * \param pData Information bits.
-	 * \param frozenBits Location indices of frozen bits.
 	 */
-	virtual void insertPackedInformationBits(const void *pData,
-										   std::set<unsigned> &frozenBits) = 0;
+	virtual void insertPackedInformationBits(const void *pData) = 0;
 
 	/*!
 	 * \brief Insert byte-wise defined bits, for example after decoding.
@@ -86,16 +94,13 @@ public:
 	 *
 	 * \sa getPackedBits()
 	 * \param pData Memory location for packed information data.
-	 * \param frozenBits Indices of bits to ignore at information extraction.
 	 */
-	virtual void getPackedInformationBits(void* pData,
-									  std::set<unsigned> &frozenBits) = 0;
+	virtual void getPackedInformationBits(void* pData) = 0;
 
 	/*!
 	 * \brief Set all frozen bits to zero.
-	 * \param frozenBits The set of frozen bits.
 	 */
-	virtual void resetFrozenBits(std::set<unsigned> &frozenBits) = 0;
+	virtual void resetFrozenBits() = 0;
 };
 
 /*!
@@ -116,16 +121,17 @@ class FloatContainer : public BitContainer {
 public:
 	FloatContainer();
 	FloatContainer(size_t size);///<Initialize the container to specified size.
+	FloatContainer(size_t size, std::set<unsigned> &frozenBits);
 	~FloatContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
-	void insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits);
+	void insertPackedInformationBits(const void *pData);
 	void insertCharBits(const char* pData);
 	void insertLlr(const float *pLlr);
 	void insertLlr(const char  *pLlr);
 	void getPackedBits(void* pData);
-	void getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits);
-	void resetFrozenBits(std::set<unsigned> &frozenBits);
+	void getPackedInformationBits(void* pData);
+	void resetFrozenBits();
 
 	float* data();///< Get a pointer to the container's memory.
 };
@@ -147,16 +153,17 @@ public:
 	CharContainer();
 	CharContainer(size_t size);///<Initialize the container to specified size.
 	CharContainer(char *external, size_t size);///<Assign an external storage to this container.
+	CharContainer(size_t size, std::set<unsigned> &frozenBits);
 	~CharContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
-	void insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits);
+	void insertPackedInformationBits(const void *pData);
 	void insertCharBits(const char* pData);
 	void insertLlr(const float *pLlr);
 	void insertLlr(const char  *pLlr);
 	void getPackedBits(void* pData);
-	void getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits);
-	void resetFrozenBits(std::set<unsigned> &frozenBits);
+	void getPackedInformationBits(void* pData);
+	void resetFrozenBits();
 
 	char* data();///< Get a pointer to the container's memory.
 };
@@ -170,7 +177,7 @@ public:
  */
 class PackedContainer : public BitContainer {
 	char *mData;
-	size_t fakeSize;
+	size_t mFakeSize;
 
 	void insertBit(unsigned int bit, char value);
 	void clearBit(unsigned int bit);
@@ -178,18 +185,19 @@ class PackedContainer : public BitContainer {
 public:
 	PackedContainer();
 	PackedContainer(size_t size);///<Initialize the container to specified size.
+	PackedContainer(size_t size, std::set<unsigned> &frozenBits);
 	~PackedContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
-	void insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits);
+	void insertPackedInformationBits(const void *pData);
 	void insertCharBits(const char* pData);
 	void getPackedBits(void* pData);
-	void resetFrozenBits(std::set<unsigned> &frozenBits);
+	void resetFrozenBits();
 
 	/* The following functions are dummies */
 	void insertLlr(const float *pLlr);
 	void insertLlr(const char  *pLlr);
-	void getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits);
+	void getPackedInformationBits(void* pData);
 
 	char* data();///< Get a pointer to the container's memory.
 };

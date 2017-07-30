@@ -27,13 +27,13 @@ void ButterflyAvxFloat::initialize(
 	mFrozenBits = frozenBits;
 
 	if(mBitContainer != nullptr) delete mBitContainer;
-	mBitContainer = new FloatContainer(mBlockLength);
+	mBitContainer = new FloatContainer(mBlockLength, mFrozenBits);
 }
 
 void ButterflyAvxFloat::encode() {
 	transform();
 	if(mSystematic) {
-		mBitContainer->resetFrozenBits(mFrozenBits);
+		mBitContainer->resetFrozenBits();
 		transform();
 	}
 }

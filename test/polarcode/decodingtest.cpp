@@ -53,7 +53,7 @@ void DecodingTest::testAvx2Performance() {
 	duration<float> TimeUsed;
 	std::set<unsigned> frozenBits;
 
-	const size_t blockLength = 1<<12;
+	const size_t blockLength = 1<<10;
 
 	/* Get a set of frozen bits */ {
 		PolarCode::Construction::Constructor *constructor

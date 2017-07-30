@@ -30,10 +30,48 @@ char convertFtoC(float x) {
 }
 
 BitContainer::BitContainer()
-	: mElementCount(0) {
+	: mElementCount(0),
+	  mFrozenBits({}),
+	  mSkipTable(nullptr) {
+}
+
+BitContainer::BitContainer(size_t size)
+	: mElementCount(size),
+	  mFrozenBits({}),
+	  mSkipTable(nullptr) {
+}
+
+BitContainer::BitContainer(size_t size, std::set<unsigned> &frozenBits)
+	: mElementCount(size),
+	  mFrozenBits(frozenBits),
+	  mSkipTable(nullptr) {
+	calculateSkipTable();
 }
 
 BitContainer::~BitContainer() {
+	clear();
+}
+
+void BitContainer::clear() {
+	mFrozenBits.clear();
+	if(mSkipTable != nullptr) {
+		delete [] mSkipTable;
+	}
+}
+
+void BitContainer::calculateSkipTable() {
+	mSkipTable = new unsigned[mFrozenBits.size()+1];
+	mSkipTable[mFrozenBits.size()] = 0;
+	unsigned *listPtr = mSkipTable;
+	for(unsigned i : mFrozenBits) {
+		*(listPtr++) = i;
+	}
+}
+
+void BitContainer::setFrozenBits(std::set<unsigned> frozenBits) {
+	clear();
+	mFrozenBits = frozenBits;
+	calculateSkipTable();
 }
 
 FloatContainer::FloatContainer()
@@ -42,7 +80,14 @@ FloatContainer::FloatContainer()
 }
 
 FloatContainer::FloatContainer(size_t size)
-	: mData(nullptr) {
+	: BitContainer(size),
+	  mData(nullptr) {
+	setSize(size);
+}
+
+FloatContainer::FloatContainer(size_t size, std::set<unsigned> &frozenBits)
+	: BitContainer(size, frozenBits),
+	  mData(nullptr) {
 	setSize(size);
 }
 
@@ -55,7 +100,6 @@ FloatContainer::~FloatContainer() {
 void FloatContainer::setSize(size_t newSize) {
 	//Precautions
 	assert(newSize%8 == 0);
-	if(newSize == mElementCount) return;
 
 	mElementCount = newSize;
 
@@ -88,15 +132,16 @@ void FloatContainer::insertPackedBits(const void* pData) {
 	}
 }
 
-void FloatContainer::insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits) {
+void FloatContainer::insertPackedInformationBits(const void *pData) {
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
 	unsigned int bitPool = charPtr[0]<<24;
 	unsigned int bitCounter = 0, byteCounter = 1;
 	unsigned int currentBit = 0;
 	float *fBit = reinterpret_cast<float*>(&currentBit);
+	unsigned *skipPtr = mSkipTable;
 
 	for(unsigned int bit=0; bit<mElementCount; ++bit) {
-		if(frozenBits.find(bit) == frozenBits.end()) {
+		if(bit != *skipPtr) {
 			currentBit = bitPool&0x80000000;
 			bitPool <<= 1;
 			mData[bit] = *fBit;
@@ -106,6 +151,7 @@ void FloatContainer::insertPackedInformationBits(const void *pData, std::set<uns
 			}
 		} else {
 			mData[bit] = 0.0;
+			++skipPtr;
 		}
 	}
 }
@@ -145,14 +191,14 @@ void FloatContainer::getPackedBits(void* pData) {
 	}
 }
 
-void FloatContainer::getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits) {
-	unsigned int bit=0;
+void FloatContainer::getPackedInformationBits(void* pData) {
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char currentByte = 0, currentBit = 0;
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(mData);
+	unsigned *skipPtr = mSkipTable;
 
-	while(bit < mElementCount) {
-		if(frozenBits.find(bit) == frozenBits.end()) {
+	for(unsigned bit = 0; bit < mElementCount; ++bit) {
+		if(bit != *skipPtr) {
 			currentByte |= static_cast<unsigned char>(iBit[bit]>>(24+(currentBit++)));
 			if(currentBit == 8) {
 				*charPtr = currentByte;
@@ -160,15 +206,15 @@ void FloatContainer::getPackedInformationBits(void* pData, std::set<unsigned> &f
 				currentBit = 0;
 				++charPtr;
 			}
+		} else {
+			++skipPtr;
 		}
-		++bit;
 	}
 }
 
-void FloatContainer::resetFrozenBits(std::set<unsigned> &frozenBits) {
-	std::set<unsigned>::iterator it = frozenBits.begin();
-	while(it != frozenBits.end()) {
-		mData[*(it++)] = 0.0;
+void FloatContainer::resetFrozenBits() {
+	for(unsigned i : mFrozenBits) {
+		mData[i] = 0.0;
 	}
 }
 
@@ -184,12 +230,17 @@ CharContainer::CharContainer()
 }
 
 CharContainer::CharContainer(size_t size)
-	: mData(nullptr), mDataIsExternal(false) {
+	: BitContainer(size), mData(nullptr), mDataIsExternal(false) {
+	setSize(size);
+}
+
+CharContainer::CharContainer(size_t size, std::set<unsigned> &frozenBits)
+	: BitContainer(size, frozenBits), mData(nullptr), mDataIsExternal(false) {
 	setSize(size);
 }
 
 CharContainer::CharContainer(char *external, size_t size)
-	: mData(external), mDataIsExternal(true) {
+	: BitContainer(size), mData(external), mDataIsExternal(true) {
 	mElementCount = size;
 }
 
@@ -203,7 +254,6 @@ void CharContainer::setSize(size_t newSize) {
 	//Precautions
 	assert(newSize%8 == 0);
 	assert(!mDataIsExternal);
-	if(newSize == mElementCount) return;
 
 	mElementCount = newSize;
 
@@ -236,22 +286,16 @@ void CharContainer::insertPackedBits(const void* pData) {
 	}
 }
 
-void CharContainer::insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits) {
+void CharContainer::insertPackedInformationBits(const void *pData) {
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
 	unsigned char bitPool = *(charPtr++);
 	unsigned int bitCounter = 0;
+	unsigned *skipPtr = mSkipTable;
 
-	unsigned *skipList = new unsigned[frozenBits.size()+1];
-	skipList[frozenBits.size()] = 0;
-	unsigned *listPtr = skipList;
-	for(unsigned i : frozenBits) {
-		*(listPtr++) = i;
-	}
 	memset(mData, 0, mElementCount);
 
-	listPtr = skipList;
 	for(unsigned int bit=0; bit<mElementCount; ++bit) {
-		if(bit != *listPtr) {
+		if(bit != *skipPtr) {
 			mData[bit] = (bitPool&0x80)>>7;
 			bitPool <<= 1;
 			if(++bitCounter == 8 && bit+1 != mElementCount) {
@@ -259,10 +303,9 @@ void CharContainer::insertPackedInformationBits(const void *pData, std::set<unsi
 				bitCounter = 0;
 			}
 		} else {
-			++listPtr;
+			++skipPtr;
 		}
 	}
-	delete [] skipList;
 }
 
 void CharContainer::insertCharBits(const char *pData) {
@@ -293,13 +336,13 @@ void CharContainer::getPackedBits(void* pData) {
 	}
 }
 
-void CharContainer::getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits) {
-	unsigned int bit=0;
+void CharContainer::getPackedInformationBits(void* pData) {
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char currentByte = 0, currentBit = 0;
+	unsigned *skipPtr = mSkipTable;
 
-	while(bit < mElementCount) {
-		if(frozenBits.find(bit) == frozenBits.end()) {
+	for(unsigned bit = 0; bit < mElementCount; ++bit) {
+		if(bit != *skipPtr) {
 			currentByte |= mData[bit]<<(7-(currentBit++));
 			if(currentBit == 8) {
 				*charPtr = currentByte;
@@ -307,18 +350,19 @@ void CharContainer::getPackedInformationBits(void* pData, std::set<unsigned> &fr
 				currentBit = 0;
 				++charPtr;
 			}
+		} else {
+			++skipPtr;
 		}
-		++bit;
 	}
 
-	if(frozenBits.size()%8 != 0) {
+	if(mFrozenBits.size()%8 != 0) {
 		*charPtr = currentByte;
 	}
 }
 
-void CharContainer::resetFrozenBits(std::set<unsigned> &frozenBits) {
-	for(unsigned idx : frozenBits) {
-		mData[idx] = 0;
+void CharContainer::resetFrozenBits() {
+	for(unsigned i : mFrozenBits) {
+		mData[i] = 0;
 	}
 }
 
@@ -332,7 +376,12 @@ PackedContainer::PackedContainer()
 }
 
 PackedContainer::PackedContainer(size_t size)
-	: mData(nullptr) {
+	: BitContainer(size), mData(nullptr) {
+	setSize(size);
+}
+
+PackedContainer::PackedContainer(size_t size, std::set<unsigned> &frozenBits)
+	: BitContainer(size, frozenBits), mData(nullptr) {
 	setSize(size);
 }
 
@@ -345,10 +394,9 @@ PackedContainer::~PackedContainer() {
 void PackedContainer::setSize(size_t newSize) {
 	//Precautions
 	assert(newSize%8 == 0);
-	if(newSize == mElementCount) return;
 
 	mElementCount = newSize;
-	fakeSize = std::max((size_t)256, mElementCount);
+	mFakeSize = std::max((size_t)256, mElementCount);
 
 	// Free previously allocated memory, if neccessary
 	if(mData != nullptr) {
@@ -356,7 +404,7 @@ void PackedContainer::setSize(size_t newSize) {
 	}
 
 	// Allocate new memory
-	mData = static_cast<char*>(_mm_malloc(fakeSize/8, 32));
+	mData = static_cast<char*>(_mm_malloc(mFakeSize/8, 32));
 	if(mData == nullptr) {
 		throw "Allocating memory for packed bit container failed.";
 	}
@@ -365,29 +413,52 @@ void PackedContainer::setSize(size_t newSize) {
 void PackedContainer::insertPackedBits(const void* pData) {
 	unsigned int nBytes = mElementCount/8;
 
-	if(nBytes < fakeSize/8) {
+	if(nBytes < mFakeSize/8) {
 		memcpy(mData+(32-nBytes), pData, nBytes);
 	} else {
 		memcpy(mData, pData, nBytes);
 	}
 }
 
-void PackedContainer::insertPackedInformationBits(const void *pData, std::set<unsigned> &frozenBits) {
+void PackedContainer::insertPackedInformationBits(const void *pData) {
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
 	unsigned char bitPool = *(charPtr++);
-	unsigned int bitCounter = 0;
+	unsigned int codeBit = 0, informationBit = 0;
+	unsigned *skipPtr = mSkipTable;
 
-	unsigned *skipList = new unsigned[frozenBits.size()+1];
-	skipList[frozenBits.size()] = 0;
-	unsigned *listPtr = skipList;
-	for(unsigned i : frozenBits) {
-		*(listPtr++) = i;
+	memset(mData, 0, mFakeSize/8);
+
+	unsigned nVecs = (mElementCount+31)/32;
+	unsigned char *uData = reinterpret_cast<unsigned char*>(mData);
+	if(mElementCount<mFakeSize) {
+		uData += (mFakeSize-mElementCount)/8;
 	}
 
-	listPtr = skipList;
-	memset(mData, 0, fakeSize/8);
+	for(unsigned int veci=0; veci < nVecs; ++veci) {
+		__m256i currentVector = _mm256_setzero_si256();
+		unsigned char *cVec = reinterpret_cast<unsigned char*>(&currentVector);
+		for(unsigned vecBit = 0; vecBit < 32 && codeBit < mElementCount; ++vecBit, ++codeBit) {
+			if(codeBit != *skipPtr) {
+				cVec[31-vecBit] = bitPool&0x80;
+				if(++informationBit == 8 && codeBit+1 != mElementCount) {
+					bitPool = *(charPtr++);
+					informationBit = 0;
+				} else {
+					bitPool <<= 1;
+				}
+			} else {
+				++skipPtr;
+			}
+		}
+		int packedBits = _mm256_movemask_epi8(currentVector);
+		unsigned char *swapper = reinterpret_cast<unsigned char *>(&packedBits);
+		*(uData++) = swapper[3];
+		*(uData++) = swapper[2];
+		*(uData++) = swapper[1];
+		*(uData++) = swapper[0];
+	}
 
-	for(unsigned int bit=0; bit<mElementCount; ++bit) {
+/*	for(unsigned int bit=0; bit<mElementCount; ++bit) {
 		if(bit != *listPtr) {
 			insertBit(bit, (bitPool&0x80)>>7);
 			bitPool <<= 1;
@@ -398,8 +469,7 @@ void PackedContainer::insertPackedInformationBits(const void *pData, std::set<un
 		} else {
 			++listPtr;
 		}
-	}
-	delete [] skipList;
+	}*/
 }
 
 void PackedContainer::insertCharBits(const char *pData) {
@@ -419,13 +489,12 @@ void PackedContainer::insertCharBits(const char *pData) {
 
 void PackedContainer::getPackedBits(void* pData) {
 	unsigned int nBytes = mElementCount/8;
-	memcpy(pData, mData+(fakeSize-mElementCount)/8, nBytes);
+	memcpy(pData, mData+(mFakeSize-mElementCount)/8, nBytes);
 }
 
-void PackedContainer::resetFrozenBits(std::set<unsigned> &frozenBits) {
-	std::set<unsigned>::iterator it = frozenBits.begin();
-	while(it != frozenBits.end()) {
-		clearBit(*(it++));
+void PackedContainer::resetFrozenBits() {
+	for(unsigned i : mFrozenBits) {
+		clearBit(i);
 	}
 }
 
@@ -436,14 +505,14 @@ char* PackedContainer::data() {
 //Dummy
 void PackedContainer::insertLlr(const float *pLlr){}
 void PackedContainer::insertLlr(const char  *pLlr){}
-void PackedContainer::getPackedInformationBits(void* pData, std::set<unsigned> &frozenBits){}
+void PackedContainer::getPackedInformationBits(void* pData){}
 
 
 void PackedContainer::insertBit(unsigned int bit, char value) {
 	unsigned byteAddress;
 
-	if(mElementCount<fakeSize) {
-		byteAddress = (fakeSize-mElementCount+bit)/8;
+	if(mElementCount<mFakeSize) {
+		byteAddress = (mFakeSize-mElementCount+bit)/8;
 	} else {
 		byteAddress = bit/8;
 	}
@@ -458,8 +527,8 @@ void PackedContainer::insertBit(unsigned int bit, char value) {
 void PackedContainer::clearBit(unsigned int bit) {
 	unsigned byteAddress;
 
-	if(mElementCount<fakeSize) {
-		byteAddress = (fakeSize-mElementCount+bit)/8;
+	if(mElementCount<mFakeSize) {
+		byteAddress = (mFakeSize-mElementCount+bit)/8;
 	} else {
 		byteAddress = bit/8;
 	}

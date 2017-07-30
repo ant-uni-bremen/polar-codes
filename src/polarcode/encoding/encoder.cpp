@@ -19,7 +19,7 @@ void Encoder::setSystematic(bool sys) {
 }
 
 void Encoder::setInformation(void *pData) {
-	mBitContainer->insertPackedInformationBits(pData, mFrozenBits);
+	mBitContainer->insertPackedInformationBits(pData);
 }
 
 void Encoder::setCodeword(void *pData) {
