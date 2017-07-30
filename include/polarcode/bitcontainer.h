@@ -183,6 +183,9 @@ class PackedContainer : public BitContainer {
 	void insertBit(unsigned int bit, char value);
 	void clearBit(unsigned int bit);
 
+	void byteWiseInjection(const void *pData);
+	void vectorWiseInjection(const void *pData);
+
 public:
 	PackedContainer();
 	PackedContainer(size_t size);///<Initialize the container to specified size.

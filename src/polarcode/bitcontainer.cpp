@@ -411,71 +411,74 @@ void PackedContainer::insertPackedBits(const void* pData) {
 		memcpy(mData, pData, nBytes);
 	}
 }
-void packAndWrite(unsigned char *dst, __m256i &vec, unsigned maxWrite = 4) {
-	int packedBits; unsigned char *swapper = reinterpret_cast<unsigned char *>(&packedBits);
-	packedBits = _mm256_movemask_epi8(vec);
-	for(unsigned i=0; i<maxWrite; ++i) {
-		dst[i] = swapper[3-i];
-	}
-}
 
-void PackedContainer::insertPackedInformationBits(const void *pData) {
+void PackedContainer::byteWiseInjection(const void *pData) {
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
 	unsigned char bitPool = *(charPtr++);
 	unsigned *lutPtr = mLUT;
 
+	unsigned char *uData = reinterpret_cast<unsigned char*>(mData);
+	unsigned char currentByte = 0;
+	int currentDestinationByte = -1;
+
+	uData += (mFakeSize-mElementCount)/8;
+
+	for(unsigned infoBit = 0; infoBit < mInformationBitCount; ++infoBit) {
+		int infoDestination = *(lutPtr++);
+		if(infoDestination/8 > currentDestinationByte) {
+			if(currentDestinationByte != -1) {
+				uData[currentDestinationByte] = currentByte;
+				currentByte = 0;
+			}
+			currentDestinationByte = infoDestination/8;
+		}
+		currentByte |= (bitPool&0x80)>>(infoDestination%8);
+		if((infoBit+1)%8 == 0) {
+			bitPool = *(charPtr++);
+		} else {
+			bitPool <<= 1;
+		}
+	}
+	uData[currentDestinationByte] = currentByte;
+}
+
+void PackedContainer::vectorWiseInjection(const void *pData) {
+	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
+	unsigned char bitPool = *(charPtr++);
+	unsigned *lutPtr = mLUT;
+
+	int* iData = reinterpret_cast<int*>(mData);
+	__m256i tempVector = _mm256_setzero_si256();
+	unsigned char *cTemp = reinterpret_cast<unsigned char*>(&tempVector);
+	unsigned vectorIndex = 0;
+
+	for(unsigned infoBit = 0; infoBit < mInformationBitCount; ++infoBit) {
+		unsigned infoDestination = *(lutPtr++);
+		infoDestination = (infoDestination&0xFFFFFFF8)+7-(infoDestination%8);
+		if(infoDestination/32 != vectorIndex) {
+			int packedBits = _mm256_movemask_epi8(tempVector);
+			iData[vectorIndex] = packedBits;
+			tempVector = _mm256_setzero_si256();
+			vectorIndex = infoDestination/32;
+		}
+		cTemp[infoDestination%32] = bitPool&0x80;
+		if(infoBit%8 == 7) {
+			bitPool = *(charPtr++);
+		} else {
+			bitPool <<= 1;
+		}
+	}
+	int packedBits = _mm256_movemask_epi8(tempVector);
+	iData[vectorIndex] = packedBits;
+}
+void PackedContainer::insertPackedInformationBits(const void *pData) {
+	unsigned nPackedVectors = mFakeSize/256;
 	memset(mData, 0, mFakeSize/8);
 
-	unsigned nPackedVectors = mFakeSize/256;
-
 	if(nPackedVectors == 1) {
-		unsigned char *uData = reinterpret_cast<unsigned char*>(mData);
-		unsigned char currentByte = 0;
-		int currentDestinationByte = -1;
-
-		uData += (mFakeSize-mElementCount)/8;
-
-		for(unsigned infoBit = 0; infoBit < mInformationBitCount; ++infoBit) {
-			int infoDestination = *(lutPtr++);
-			if(infoDestination/8 > currentDestinationByte) {
-				if(currentDestinationByte != -1) {
-					uData[currentDestinationByte] = currentByte;
-					currentByte = 0;
-				}
-				currentDestinationByte = infoDestination/8;
-			}
-			currentByte |= (bitPool&0x80)>>(infoDestination%8);
-			if((infoBit+1)%8 == 0) {
-				bitPool = *(charPtr++);
-			} else {
-				bitPool <<= 1;
-			}
-		}
-		uData[currentDestinationByte] = currentByte;
+		byteWiseInjection(pData);
 	} else {
-		int* iData = reinterpret_cast<int*>(mData);
-		__m256i tempVector = _mm256_setzero_si256();
-		unsigned char *cTemp = reinterpret_cast<unsigned char*>(&tempVector);
-		unsigned vectorIndex = 0;
-
-		for(unsigned infoBit = 0; infoBit < mInformationBitCount; ++infoBit) {
-			unsigned infoDestination = *(lutPtr++);
-			infoDestination = (infoDestination&0xFFFFFFF8)+7-(infoDestination%8);
-			if(infoDestination/32 != vectorIndex) {
-				int packedBits = _mm256_movemask_epi8(tempVector);
-				iData[vectorIndex] = packedBits;
-				tempVector = _mm256_setzero_si256();
-				vectorIndex = infoDestination/32;
-			}
-			cTemp[infoDestination%32] = bitPool&0x80;
-			if(infoBit%8 == 7) {
-				bitPool = *(charPtr++);
-			} else {
-				bitPool <<= 1;
-			}
-		}
-		int packedBits = _mm256_movemask_epi8(tempVector);
-		iData[vectorIndex] = packedBits;
+		vectorWiseInjection(pData);
 	}
 }
 
