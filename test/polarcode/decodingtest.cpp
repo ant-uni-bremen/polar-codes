@@ -29,11 +29,8 @@ void DecodingTest::testAvx2() {
 
 	PolarCode::Decoding::Decoder *decoder = new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits);
 
-	decoder->setSignal(signal);
-	decoder->decode();
-	decoder->setSignal(signal);
-
 	TimeStart = high_resolution_clock::now();
+	decoder->setSignal(signal);
 	decoder->decode();
 	TimeEnd = high_resolution_clock::now();
 	decoder->getDecodedInformationBits(&output);
@@ -41,7 +38,7 @@ void DecodingTest::testAvx2() {
 
 	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart).count();
 
-	std::cout << "Decoder speed for 8-bit block: " << (8.0/TimeUsed/1000000.0) << " Mbps (" << (TimeUsed*1000000000) << " ns per block)" << std::endl;
+	std::cout << "Decoder speed for 8-bit block: " << (blockLength/1e6/TimeUsed) << " Mbps (" << (TimeUsed*1000000000.0) << " ns per block)" << std::endl;
 
 	delete decoder;
 
@@ -49,11 +46,11 @@ void DecodingTest::testAvx2() {
 
 void DecodingTest::testAvx2Performance() {
 	using namespace std::chrono;
-	high_resolution_clock::time_point TimeStart, TimeEnd;
-	duration<float> TimeUsed;
+	high_resolution_clock::time_point TimeDecode, TimeInject, TimeEnd;
+	float TimeUsed, TimeDecoder;
 	std::set<unsigned> frozenBits;
 
-	const size_t blockLength = 1<<10;
+	const size_t blockLength = 1<<12;
 
 	/* Get a set of frozen bits */ {
 		PolarCode::Construction::Constructor *constructor
@@ -75,16 +72,20 @@ void DecodingTest::testAvx2Performance() {
 
 	PolarCode::Decoding::Decoder *decoder = new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits);
 
+	TimeInject = high_resolution_clock::now();
 	decoder->setSignal(signal);
-	TimeStart = high_resolution_clock::now();
+	TimeDecode = high_resolution_clock::now();
 	decoder->decode();
 	TimeEnd = high_resolution_clock::now();
+
 	//decoder->getDecodedInformationBits(&output);
 	//CPPUNIT_ASSERT(output == 0xF0);
 
-	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
+	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeInject).count();
+	TimeDecoder = duration_cast<duration<float>>(TimeEnd-TimeDecode).count();
 
-	std::cout << "Decoder speed for " << blockLength << "-bit block: " << (8.0/TimeUsed.count()/1000000.0) << " Mbps (" << TimeUsed.count()*1000000000 << " ns per block)" << std::endl;
+	std::cout << "Decoder speed for " << blockLength << "-bit block: " << (blockLength*1e-6/TimeUsed) << " Mbps (" << (TimeUsed*1e9) << " ns per block)"
+			  << " [Decoder without bit injection: " << (blockLength*1e-6/TimeDecoder) << " Mbps, " << (TimeDecoder*1e9) << " ns/block]" << std::endl;
 
 	delete decoder;
 
