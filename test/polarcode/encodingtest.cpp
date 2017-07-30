@@ -117,7 +117,7 @@ void EncodingTest::performanceComparison() {
 	high_resolution_clock::time_point TimeStart, TimeEnd;
 	duration<float> TimeUsed;
 
-	const size_t testBits = 1<<10;
+	const size_t testBits = 1<<12;
 
 	unsigned char input = 0x80;
 

@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <algorithm>
 
 namespace PolarCode {
 
@@ -32,20 +33,23 @@ char convertFtoC(float x) {
 BitContainer::BitContainer()
 	: mElementCount(0),
 	  mFrozenBits({}),
-	  mSkipTable(nullptr) {
+	  mInformationBitCount(0),
+	  mLUT(nullptr) {
 }
 
 BitContainer::BitContainer(size_t size)
 	: mElementCount(size),
 	  mFrozenBits({}),
-	  mSkipTable(nullptr) {
+	  mInformationBitCount(size),
+	  mLUT(nullptr) {
 }
 
 BitContainer::BitContainer(size_t size, std::set<unsigned> &frozenBits)
 	: mElementCount(size),
 	  mFrozenBits(frozenBits),
-	  mSkipTable(nullptr) {
-	calculateSkipTable();
+	  mInformationBitCount(size-frozenBits.size()),
+	  mLUT(nullptr) {
+	calculateLUT();
 }
 
 BitContainer::~BitContainer() {
@@ -54,24 +58,27 @@ BitContainer::~BitContainer() {
 
 void BitContainer::clear() {
 	mFrozenBits.clear();
-	if(mSkipTable != nullptr) {
-		delete [] mSkipTable;
+	mInformationBitCount = mElementCount;
+	if(mLUT != nullptr) {
+		delete [] mLUT;
 	}
 }
 
-void BitContainer::calculateSkipTable() {
-	mSkipTable = new unsigned[mFrozenBits.size()+1];
-	mSkipTable[mFrozenBits.size()] = 0;
-	unsigned *listPtr = mSkipTable;
-	for(unsigned i : mFrozenBits) {
-		*(listPtr++) = i;
+void BitContainer::calculateLUT() {
+	mLUT = new unsigned[mInformationBitCount];
+	unsigned *lutPtr = mLUT;
+	for(unsigned i=0; i<mElementCount; ++i) {
+		if(mFrozenBits.find(i) == mFrozenBits.end())  {
+			*(lutPtr++) = i;
+		}
 	}
 }
 
 void BitContainer::setFrozenBits(std::set<unsigned> frozenBits) {
 	clear();
 	mFrozenBits = frozenBits;
-	calculateSkipTable();
+	mInformationBitCount = mElementCount - mFrozenBits.size();
+	calculateLUT();
 }
 
 FloatContainer::FloatContainer()
@@ -138,20 +145,17 @@ void FloatContainer::insertPackedInformationBits(const void *pData) {
 	unsigned int bitCounter = 0, byteCounter = 1;
 	unsigned int currentBit = 0;
 	float *fBit = reinterpret_cast<float*>(&currentBit);
-	unsigned *skipPtr = mSkipTable;
+	unsigned *lutPtr = mLUT;
 
-	for(unsigned int bit=0; bit<mElementCount; ++bit) {
-		if(bit != *skipPtr) {
-			currentBit = bitPool&0x80000000;
-			bitPool <<= 1;
-			mData[bit] = *fBit;
-			if(++bitCounter == 8 && bit+1 != mElementCount) {
-				bitPool = charPtr[byteCounter++]<<24;
-				bitCounter = 0;
-			}
-		} else {
-			mData[bit] = 0.0;
-			++skipPtr;
+	memset(mData, 0, mElementCount*4);
+
+	for(unsigned int bit=0; bit<mInformationBitCount; ++bit) {
+		currentBit = bitPool&0x80000000;
+		bitPool <<= 1;
+		mData[*(lutPtr++)] = *fBit;
+		if(++bitCounter == 8 && bit+1 != mElementCount) {
+			bitPool = charPtr[byteCounter++]<<24;
+			bitCounter = 0;
 		}
 	}
 }
@@ -195,19 +199,15 @@ void FloatContainer::getPackedInformationBits(void* pData) {
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char currentByte = 0, currentBit = 0;
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(mData);
-	unsigned *skipPtr = mSkipTable;
+	unsigned *lutPtr = mLUT;
 
-	for(unsigned bit = 0; bit < mElementCount; ++bit) {
-		if(bit != *skipPtr) {
-			currentByte |= static_cast<unsigned char>(iBit[bit]>>(24+(currentBit++)));
-			if(currentBit == 8) {
-				*charPtr = currentByte;
-				currentByte = 0;
-				currentBit = 0;
-				++charPtr;
-			}
-		} else {
-			++skipPtr;
+	for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {
+		currentByte |= static_cast<unsigned char>(iBit[*(lutPtr++)]>>(24+(currentBit++)));
+		if(currentBit == 8) {
+			*charPtr = currentByte;
+			currentByte = 0;
+			currentBit = 0;
+			++charPtr;
 		}
 	}
 }
@@ -290,20 +290,16 @@ void CharContainer::insertPackedInformationBits(const void *pData) {
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
 	unsigned char bitPool = *(charPtr++);
 	unsigned int bitCounter = 0;
-	unsigned *skipPtr = mSkipTable;
+	unsigned *lutPtr = mLUT;
 
 	memset(mData, 0, mElementCount);
 
-	for(unsigned int bit=0; bit<mElementCount; ++bit) {
-		if(bit != *skipPtr) {
-			mData[bit] = (bitPool&0x80)>>7;
-			bitPool <<= 1;
-			if(++bitCounter == 8 && bit+1 != mElementCount) {
-				bitPool = *(charPtr++);
-				bitCounter = 0;
-			}
-		} else {
-			++skipPtr;
+	for(unsigned int bit=0; bit<mInformationBitCount; ++bit) {
+		mData[*(lutPtr++)] = (bitPool&0x80)>>7;
+		bitPool <<= 1;
+		if(++bitCounter == 8 && bit+1 != mElementCount) {
+			bitPool = *(charPtr++);
+			bitCounter = 0;
 		}
 	}
 }
@@ -339,19 +335,15 @@ void CharContainer::getPackedBits(void* pData) {
 void CharContainer::getPackedInformationBits(void* pData) {
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char currentByte = 0, currentBit = 0;
-	unsigned *skipPtr = mSkipTable;
+	unsigned *lutPtr = mLUT;
 
-	for(unsigned bit = 0; bit < mElementCount; ++bit) {
-		if(bit != *skipPtr) {
-			currentByte |= mData[bit]<<(7-(currentBit++));
-			if(currentBit == 8) {
-				*charPtr = currentByte;
-				currentByte = 0;
-				currentBit = 0;
-				++charPtr;
-			}
-		} else {
-			++skipPtr;
+	for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {
+		currentByte |= mData[*(lutPtr++)]<<(7-(currentBit++));
+		if(currentBit == 8) {
+			*charPtr = currentByte;
+			currentByte = 0;
+			currentBit = 0;
+			++charPtr;
 		}
 	}
 
@@ -419,57 +411,72 @@ void PackedContainer::insertPackedBits(const void* pData) {
 		memcpy(mData, pData, nBytes);
 	}
 }
+void packAndWrite(unsigned char *dst, __m256i &vec, unsigned maxWrite = 4) {
+	int packedBits; unsigned char *swapper = reinterpret_cast<unsigned char *>(&packedBits);
+	packedBits = _mm256_movemask_epi8(vec);
+	for(unsigned i=0; i<maxWrite; ++i) {
+		dst[i] = swapper[3-i];
+	}
+}
 
 void PackedContainer::insertPackedInformationBits(const void *pData) {
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
 	unsigned char bitPool = *(charPtr++);
-	unsigned int codeBit = 0, informationBit = 0;
-	unsigned *skipPtr = mSkipTable;
+	unsigned *lutPtr = mLUT;
 
 	memset(mData, 0, mFakeSize/8);
 
-	unsigned nVecs = (mElementCount+31)/32;
-	unsigned char *uData = reinterpret_cast<unsigned char*>(mData);
-	if(mElementCount<mFakeSize) {
+	unsigned nPackedVectors = mFakeSize/256;
+
+	if(nPackedVectors == 1) {
+		unsigned char *uData = reinterpret_cast<unsigned char*>(mData);
+		unsigned char currentByte = 0;
+		int currentDestinationByte = -1;
+
 		uData += (mFakeSize-mElementCount)/8;
-	}
 
-	for(unsigned int veci=0; veci < nVecs; ++veci) {
-		__m256i currentVector = _mm256_setzero_si256();
-		unsigned char *cVec = reinterpret_cast<unsigned char*>(&currentVector);
-		for(unsigned vecBit = 0; vecBit < 32 && codeBit < mElementCount; ++vecBit, ++codeBit) {
-			if(codeBit != *skipPtr) {
-				cVec[31-vecBit] = bitPool&0x80;
-				if(++informationBit == 8 && codeBit+1 != mElementCount) {
-					bitPool = *(charPtr++);
-					informationBit = 0;
-				} else {
-					bitPool <<= 1;
+		for(unsigned infoBit = 0; infoBit < mInformationBitCount; ++infoBit) {
+			int infoDestination = *(lutPtr++);
+			if(infoDestination/8 > currentDestinationByte) {
+				if(currentDestinationByte != -1) {
+					uData[currentDestinationByte] = currentByte;
+					currentByte = 0;
 				}
-			} else {
-				++skipPtr;
+				currentDestinationByte = infoDestination/8;
 			}
-		}
-		int packedBits = _mm256_movemask_epi8(currentVector);
-		unsigned char *swapper = reinterpret_cast<unsigned char *>(&packedBits);
-		*(uData++) = swapper[3];
-		*(uData++) = swapper[2];
-		*(uData++) = swapper[1];
-		*(uData++) = swapper[0];
-	}
-
-/*	for(unsigned int bit=0; bit<mElementCount; ++bit) {
-		if(bit != *listPtr) {
-			insertBit(bit, (bitPool&0x80)>>7);
-			bitPool <<= 1;
-			if(++bitCounter == 8 && bit+1 != mElementCount) {
+			currentByte |= (bitPool&0x80)>>(infoDestination%8);
+			if((infoBit+1)%8 == 0) {
 				bitPool = *(charPtr++);
-				bitCounter = 0;
+			} else {
+				bitPool <<= 1;
 			}
-		} else {
-			++listPtr;
 		}
-	}*/
+		uData[currentDestinationByte] = currentByte;
+	} else {
+		int* iData = reinterpret_cast<int*>(mData);
+		__m256i tempVector = _mm256_setzero_si256();
+		unsigned char *cTemp = reinterpret_cast<unsigned char*>(&tempVector);
+		unsigned vectorIndex = 0;
+
+		for(unsigned infoBit = 0; infoBit < mInformationBitCount; ++infoBit) {
+			unsigned infoDestination = *(lutPtr++);
+			infoDestination = (infoDestination&0xFFFFFFF8)+7-(infoDestination%8);
+			if(infoDestination/32 != vectorIndex) {
+				int packedBits = _mm256_movemask_epi8(tempVector);
+				iData[vectorIndex] = packedBits;
+				tempVector = _mm256_setzero_si256();
+				vectorIndex = infoDestination/32;
+			}
+			cTemp[infoDestination%32] = bitPool&0x80;
+			if(infoBit%8 == 7) {
+				bitPool = *(charPtr++);
+			} else {
+				bitPool <<= 1;
+			}
+		}
+		int packedBits = _mm256_movemask_epi8(tempVector);
+		iData[vectorIndex] = packedBits;
+	}
 }
 
 void PackedContainer::insertCharBits(const char *pData) {

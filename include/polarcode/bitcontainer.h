@@ -14,12 +14,13 @@ namespace PolarCode {
  */
 class BitContainer {
 	void clear();
-	void calculateSkipTable();
+	void calculateLUT();
 
 protected:
 	size_t mElementCount;///< The fixed number of bits stored in this container.
 	std::set<unsigned> mFrozenBits;
-	unsigned *mSkipTable;
+	unsigned mInformationBitCount;
+	unsigned *mLUT;
 
 public:
 	BitContainer();
