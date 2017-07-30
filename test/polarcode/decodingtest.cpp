@@ -38,7 +38,7 @@ void DecodingTest::testAvx2() {
 
 	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart).count();
 
-	std::cout << "Decoder speed for 8-bit block: " << (blockLength/1e6/TimeUsed) << " Mbps (" << (TimeUsed*1000000000.0) << " ns per block)" << std::endl;
+	std::cout << "Decoder speed for 8-bit block: " << (blockLength/1e6/TimeUsed) << " Mbps (" << (TimeUsed*1e9) << " ns per block)" << std::endl;
 
 	delete decoder;
 
