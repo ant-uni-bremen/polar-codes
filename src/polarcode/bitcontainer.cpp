@@ -485,14 +485,43 @@ void PackedContainer::vectorWiseInjection(const void *pData) {
 	iData[vectorIndex] = packedBits;
 }
 
-void PackedContainer::fullyVectorizedInjection(const void *pData) {
-/*	const unsigned int *inputPtr = static_cast<const unsigned int*>(pData);
-	__m256i inputVector = _mm256_get_mask_epi8(*(inputPtr++));
-	unsigned *lutPtr = mLUT;
+int bitVecAddress(int index) {
+	const int byteIndex = (3 - index/8) * 8;
+	const int bitIndex = index%8;
+	const int vectorIndex = 31 - (byteIndex+bitIndex);
+	return vectorIndex;
+}
 
-	int *iData = reinterpret_cast<int*>(mData);
-	__m256i tempVector = _mm256_setzero_si256();
-	*/
+void PackedContainer::fullyVectorizedInjection(const void *pData) {
+	const unsigned int *inputPtr = static_cast<const unsigned int*>(pData);
+	__m256i inputVector = _mm256_get_mask_epi8(inputPtr[0]);
+	char* inputChar = reinterpret_cast<char*>(&inputVector);
+	int currentInfoChunk = 0;
+
+	int *outputPtr = reinterpret_cast<int*>(mData);
+	__m256i outputVector = _mm256_get_mask_epi8(outputPtr[0]);
+	char* outputChar = reinterpret_cast<char*>(&outputVector);
+	int currentOutputChunk = 0;
+
+	for(unsigned infoBit = 0; infoBit < mInformationBitCount; ++infoBit) {
+		int infoChunk = infoBit/32;
+		if(infoChunk != currentInfoChunk) {
+			inputVector = _mm256_get_mask_epi8(inputPtr[infoChunk]);
+			currentInfoChunk = infoChunk;
+		}
+		int outputChunk = mLUT[infoBit]/32;
+		if(outputChunk != currentOutputChunk) {
+			outputPtr[currentOutputChunk] = _mm256_movemask_epi8(outputVector);
+			outputVector = _mm256_setzero_si256();//loading not needed
+			currentOutputChunk = outputChunk;
+		}
+
+		int inputAddress = bitVecAddress(infoBit%32);
+		int outputAddress = bitVecAddress(mLUT[infoBit]%32);
+
+		outputChar[outputAddress] = inputChar[inputAddress];
+	}
+	outputPtr[currentOutputChunk] = _mm256_movemask_epi8(outputVector);
 }
 
 void PackedContainer::insertPackedInformationBits(const void *pData) {
@@ -501,11 +530,11 @@ void PackedContainer::insertPackedInformationBits(const void *pData) {
 
 	if(nPackedVectors == 1) {
 		byteWiseInjection(pData);
-	} else/* if (mInformationBitCount < 32)*/{
+	} else if (mInformationBitCount < 32) {
 		vectorWiseInjection(pData);
-	}/* else {
+	} else {
 		fullyVectorizedInjection(pData);
-	}*/
+	}
 }
 
 void PackedContainer::insertCharBits(const char *pData) {
@@ -533,9 +562,38 @@ void PackedContainer::getPackedBits(void* pData) {
 }
 
 void PackedContainer::resetFrozenBits() {
+	if(mElementCount < 256) {
+		resetFrozenBitsSimple();
+	} else {
+		resetFrozenBitsVectorized();
+	}
+}
+
+void PackedContainer::resetFrozenBitsSimple() {
 	for(unsigned i : mFrozenBits) {
 		clearBit(i);
 	}
+}
+
+void PackedContainer::resetFrozenBitsVectorized() {
+	__m256i currentChunk;
+	char* chunkPtr = reinterpret_cast<char*>(&currentChunk);
+	const int chunkSize = 32;
+	unsigned int *uiData = reinterpret_cast<unsigned int*>(mData);//get mask expects unsigned as input
+	int *iData = reinterpret_cast<int*>(mData);//movemask creates signed as output
+	currentChunk = _mm256_get_mask_epi8(uiData[0]);
+	unsigned chunkIndex = 0;
+	for(unsigned frozenIndex : mFrozenBits) {
+		unsigned bitChunkIndex = frozenIndex/chunkSize;
+		if(bitChunkIndex != chunkIndex) {
+			iData[chunkIndex] = _mm256_movemask_epi8(currentChunk);
+			currentChunk = _mm256_get_mask_epi8(uiData[bitChunkIndex]);
+			chunkIndex = bitChunkIndex;
+		}
+		unsigned address = bitVecAddress(frozenIndex%chunkSize);
+		chunkPtr[address] = 0;
+	}
+	iData[chunkIndex] = _mm256_movemask_epi8(currentChunk);
 }
 
 char* PackedContainer::data() {

@@ -266,11 +266,7 @@ void SpcNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	}
 
 	// Flip least reliable bit, if neccessary
-/*	char parity = ;
-	if(parity) {*/
-		reinterpret_cast<char*>(BitsOut)[minIdx] ^= reduce_xor_si256(parVec);
-/*	}*/
-
+	reinterpret_cast<unsigned char*>(BitsOut)[minIdx] ^= reduce_xor_si256(parVec);
 }
 
 void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out)
@@ -321,7 +317,7 @@ void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBl
 		for(unsigned i=0; i<vecCount; i++) {
 			Left = _mm256_load_si256(LLRin+i);
 			Right = _mm256_load_si256(LLRin+i+vecCount);
-			Bits = _mm256_load_si256(BitsIn+i+vecCount);
+			Bits = _mm256_load_si256(BitsIn+i);
 			G_function_calc(Left, Right, Bits, LLRout+i);
 		}
 	}

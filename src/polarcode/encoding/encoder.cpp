@@ -30,5 +30,9 @@ void Encoder::getEncodedData(void *pData) {
 	mBitContainer->getPackedBits(pData);
 }
 
+void Encoder::clearFrozenBits() {
+	mBitContainer->resetFrozenBits();
+}
+
 }//namespace Encoding
 }//namespace PolarCode

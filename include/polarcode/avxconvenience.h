@@ -54,13 +54,13 @@ static inline float _mm_reduce_xor_ps(__m128 x) {
     return _mm_cvtss_f32(x32);
 }
 
-static inline char reduce_xor_si256(__m256i x) {
+static inline unsigned char reduce_xor_si256(__m256i x) {
 	const __m128i x128 = _mm_xor_si128(_mm256_extracti128_si256(x,0), _mm256_extracti128_si256(x,1));
 	const __m128i x64  = _mm_xor_si128(x128, _mm_srli_si128(x128, 8));
 	const __m128i x32  = _mm_xor_si128(x64,  _mm_srli_si128(x64, 4));
 	const __m128i x16  = _mm_xor_si128(x32,  _mm_srli_si128(x32, 2));
 	const __m128i x8   = _mm_xor_si128(x16,  _mm_srli_si128(x16, 1));
-	return ((char*)&x8)[0];
+	return (reinterpret_cast<const unsigned char*>(&x8))[0];
 
 }
 

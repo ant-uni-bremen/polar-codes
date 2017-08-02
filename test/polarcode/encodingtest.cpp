@@ -116,7 +116,8 @@ void EncodingTest::avxPackedTest() {
 }
 
 void getRandomData(void *ptr, size_t length) {
-	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	//unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	unsigned seed = 1001;
 	std::mt19937_64 engine(seed);
 	length /= 8;
 	uint64_t *intPtr = reinterpret_cast<uint64_t*>(ptr);
@@ -131,7 +132,7 @@ void EncodingTest::avxRecursiveTest() {
 	using namespace std::chrono;
 
 	const size_t blockLength = 4096;
-	const size_t infoLength = 2048+1024;
+	const size_t infoLength = 2048;
 
 	Constructor *constructor = new Bhattacharrya(blockLength, infoLength);
 	frozenBits = constructor->construct();

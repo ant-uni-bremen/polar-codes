@@ -201,6 +201,9 @@ class PackedContainer : public BitContainer {
 	void vectorWiseInjection(const void *pData);
 	void fullyVectorizedInjection(const void *pData);
 
+	void resetFrozenBitsSimple();
+	void resetFrozenBitsVectorized();
+
 public:
 	PackedContainer();
 	PackedContainer(size_t size);///<Initialize the container to specified size.

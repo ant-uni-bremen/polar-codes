@@ -127,33 +127,35 @@ void RateZeroNode::encode(__m256i *Bits) {
 }
 
 void RepetitionNode::encode(__m256i *Bits) {
-	const char bit = 0 - reinterpret_cast<char*>(Bits+mVecCount-1)[31];
-	const __m256i vector = _mm256_set1_epi8(bit);
+	const char bit = reinterpret_cast<char*>(Bits+mVecCount-1)[31]&1;
+	const __m256i vector = _mm256_set1_epi8(0-bit);
 	for(unsigned i=0; i<mVecCount; ++i) {
 		_mm256_store_si256(Bits+i, vector);
 	}
 }
 
 void SpcNode::encode(__m256i *Bits) {
+	//clear the parity bit
+	unsigned char *firstByte = reinterpret_cast<unsigned char*>(Bits);
+	*firstByte &= 0x7F;
+
 	__m256i parVec = _mm256_setzero_si256();
 	for(unsigned i=0; i<mVecCount; ++i) {
 		parVec = _mm256_xor_si256(parVec, _mm256_load_si256(Bits+i));
 	}
-	char parity = reduce_xor_si256(parVec);
+	unsigned char parity = reduce_xor_si256(parVec);
 	//Above reduce operation stops at eight bit width
 	//We need to reduce further to single bit
 	parity ^= parity<<4;
 	parity ^= parity<<2;
 	parity ^= parity<<1;
 	parity &= 0x80;//Clear unused bits
-//	if(parity) { Commented out to prevent failing branch prediction cost for this very small portion of code
-		char* parityByte = reinterpret_cast<char*>(Bits);
-		*parityByte |= parity;//Insert parity information
-//	}
+	*firstByte |= parity;//Insert parity information
 }
 
 void ShortButterflyNode::encode(__m256i *Bits) {
 	mButterflyEncoder->setCodeword(Bits);
+	mButterflyEncoder->clearFrozenBits();
 	mButterflyEncoder->encode();
 	mButterflyEncoder->getEncodedData(Bits);
 }
@@ -183,10 +185,10 @@ Node* createEncoder(std::set<unsigned> &frozenBits, Node *parent) {
 	}
 
 	// "One bit unlike the others"
-	if(frozenBitCount == 1) {
+	if(frozenBitCount == (blockLength-1)) {
 		return new RepetitionNode(parent);
 	}
-	if(frozenBitCount == (blockLength-1)) {
+	if(frozenBitCount == 1) {
 		return new SpcNode(parent);
 	}
 

@@ -19,7 +19,6 @@ protected:
 	BitContainer *mBitContainer;   ///< Internal bit memory
 	std::set<unsigned> mFrozenBits; ///< Indices for frozen bits
 
-
 public:
 	Encoder();
 	virtual ~Encoder();
@@ -61,6 +60,11 @@ public:
 	 * \param pData Memory location for encoded data. Must be pre-allocated.
 	 */
 	void getEncodedData(void *pData);
+
+	/*!
+	 * \brief Set all frozen bits to 0. This is needed by the recursive encoder.
+	 */
+	void clearFrozenBits();
 };
 
 }//namespace Encoding
