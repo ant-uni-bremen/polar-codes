@@ -7,6 +7,10 @@
 namespace PolarCode {
 namespace Encoding {
 
+void ButterflyAvx2PackedTransform(__m256i* bitVector, size_t blockLength, int stage);
+void ButterflyAvx2PackedTransformSubVector(__m256i* bitVector, int stage, int blockCount);
+void ButterflyAvx2PackedTransformCrossVector(__m256i* bitVectors, int stage, int blockCount);
+
 /*!
  * \brief Complete butterfly transformation with AVX2 operations.
  *

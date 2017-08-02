@@ -43,8 +43,12 @@ void ButterflyAvxFloat::transform() {
 	unsigned int *iBit = reinterpret_cast<unsigned int *>(fBit);
 
 	int B, nB, base, inc;
-	int n = log2(mBlockLength);
+	int n = __builtin_ctz(mBlockLength);//log2() on powers of 2
 
+	// Copy/paste from old version. Won't be used in future, as it is totally
+	// useless to expand bits to 32-bit words only to compress them back lateron.
+	// Therefore, see ButterflyAvx2*** encoders. In case AVX2 is not available,
+	// a packed SSE version can be constructed from AVX2 with minor changes.
 	for(int i=n-1; i>=0; --i)
 	{
 		B = 1<<(n-i-1);

@@ -59,6 +59,10 @@ public:
 	 */
 	void setSignal(const char  *pLlr);
 
+	/*!
+	 * \brief Write the information bits from the decoded code word into _pData_.
+	 * \param pData Pointer to destination memory of decoded information.
+	 */
 	void getDecodedInformationBits(void *pData);
 };
 

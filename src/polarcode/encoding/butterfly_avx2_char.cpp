@@ -1,4 +1,5 @@
 #include <polarcode/encoding/butterfly_avx2_char.h>
+#include <polarcode/encoding/butterfly_avx2.h>
 #include <polarcode/bitcontainer.h>
 #include <cmath>
 #include <iostream>
@@ -49,47 +50,10 @@ void ButterflyAvx2Char::transform() {
 						mBitContainer
 					)->data()
 				);
-	int n = log2(mBlockLength);
+	int n = __builtin_ctz(mBlockLength);//log2() on powers of 2
 
 	for(int stage = 0; stage < n; ++stage) {
 		ButterflyAvx2CharTransform(vBit, mBlockLength, stage);
-	}
-}
-
-void ButterflyAvx2CharTransform(__m256i* bitVector, size_t blockLength, int stage) {
-	int blockCount = (blockLength+31)/32;
-
-	if(stage < 5) {
-		ButterflyAvx2CharTransformSubVector(bitVector, stage, blockCount);
-	} else {
-		ButterflyAvx2CharTransformCrossVector(bitVector, stage, blockCount);
-	}
-}
-
-void ButterflyAvx2CharTransformSubVector(__m256i* bitVector, int stage, int blockCount) {
-	__m256i Left, Right;
-	int stageBits = 8<<stage;
-
-	for(int block=0; block<blockCount; ++block) {
-		Left = _mm256_load_si256(bitVector+block);
-		Right = _mm256_subVectorShift_epu8(Left, stageBits);
-		Left = _mm256_xor_si256(Left, Right);
-		_mm256_store_si256(bitVector+block, Left);
-	}
-
-}
-
-void ButterflyAvx2CharTransformCrossVector(__m256i* bitVectors, int stage, int blockCount) {
-	__m256i Left, Right;
-	int blockShift = 1<<(stage-5);
-	int blockJump = blockShift*2;
-	for(int group=0; group<blockCount; group+=blockJump) {
-		for(int block=0; block < blockShift; block += 1) {
-			Left = _mm256_load_si256(bitVectors+group+block);
-			Right = _mm256_load_si256(bitVectors+group+block+blockShift);
-			Left = _mm256_xor_si256(Left, Right);
-			_mm256_store_si256(bitVectors+group+block, Left);
-		}
 	}
 }
 

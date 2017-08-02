@@ -9,6 +9,7 @@ class EncodingTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST(avxFloatTest);
 	CPPUNIT_TEST(avxCharTest);
 	CPPUNIT_TEST(avxPackedTest);
+	CPPUNIT_TEST(avxRecursiveTest);
 	CPPUNIT_TEST(performanceComparison);
 	CPPUNIT_TEST_SUITE_END();
 
@@ -24,6 +25,7 @@ public:
 	void avxFloatTest();
 	void avxCharTest();
 	void avxPackedTest();
+	void avxRecursiveTest();
 	void performanceComparison();
 };
 

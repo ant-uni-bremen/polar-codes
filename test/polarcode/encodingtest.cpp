@@ -3,9 +3,12 @@
 #include <polarcode/encoding/butterfly_avx_float.h>
 #include <polarcode/encoding/butterfly_avx2_char.h>
 #include <polarcode/encoding/butterfly_avx2_packed.h>
+#include <polarcode/encoding/recursive_avx2_packed.h>
+#include <polarcode/construction/bhattacharrya.h>
 #include <cstring>
 #include <iostream>
 #include <chrono>
+#include <random>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(EncodingTest);
 
@@ -110,6 +113,66 @@ void EncodingTest::avxPackedTest() {
 		}
 		CPPUNIT_ASSERT(testPassed);
 	}
+}
+
+void getRandomData(void *ptr, size_t length) {
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::mt19937_64 engine(seed);
+	length /= 8;
+	uint64_t *intPtr = reinterpret_cast<uint64_t*>(ptr);
+	for(unsigned int i=0; i<length; ++i) {
+		intPtr[i] = engine();
+	}
+}
+
+void EncodingTest::avxRecursiveTest() {
+	using namespace PolarCode::Construction;
+	using namespace PolarCode::Encoding;
+	using namespace std::chrono;
+
+	const size_t blockLength = 4096;
+	const size_t infoLength = 2048+1024;
+
+	Constructor *constructor = new Bhattacharrya(blockLength, infoLength);
+	frozenBits = constructor->construct();
+
+	Encoder *recursiveEncoder = new RecursiveAvx2Packed(blockLength, frozenBits);
+	Encoder *butterflyEncoder = new ButterflyAvx2Packed(blockLength, frozenBits);
+
+	unsigned char *input = new unsigned char[infoLength/8]();
+	unsigned char *recursiveOutput = new unsigned char[blockLength/8]();
+	unsigned char *butterflyOutput = new unsigned char[blockLength/8]();
+
+	getRandomData(input, infoLength/8);
+
+	recursiveEncoder->setInformation(input);
+	butterflyEncoder->setInformation(input);
+
+	high_resolution_clock::time_point start, mid, end;
+
+			start = high_resolution_clock::now();
+	recursiveEncoder->encode();
+			mid = high_resolution_clock::now();
+	butterflyEncoder->encode();
+			end = high_resolution_clock::now();
+
+	recursiveEncoder->getEncodedData(recursiveOutput);
+	butterflyEncoder->getEncodedData(butterflyOutput);
+
+	CPPUNIT_ASSERT(0 == memcmp(recursiveOutput, butterflyOutput, blockLength/8));
+
+	float recursiveSpeed = blockLength/1e6 / duration_cast<duration<float>>(mid-start).count();
+	float butterflySpeed = blockLength/1e6 / duration_cast<duration<float>>(end-mid).count();
+
+	std::cout << std::endl << "Comparison between recursive and butterfly encoders:" << std::endl
+		<< "Block size: " << blockLength << " bits, information size: " << infoLength << " bits" << std::endl
+		<< "Recursive encoding speed: " << recursiveSpeed << " Mbps" << std::endl
+		<< "Butterfly encoding speed: " << butterflySpeed << " Mbps" << std::endl;
+
+
+	delete constructor;
+	delete recursiveEncoder;
+	delete butterflyEncoder;
 }
 
 void EncodingTest::performanceComparison() {

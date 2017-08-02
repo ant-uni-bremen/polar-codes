@@ -61,6 +61,7 @@ void BitContainer::clear() {
 	mInformationBitCount = mElementCount;
 	if(mLUT != nullptr) {
 		delete [] mLUT;
+		mLUT = nullptr;
 	}
 }
 
@@ -364,21 +365,33 @@ char* CharContainer::data() {
 
 
 PackedContainer::PackedContainer()
-	: mData(nullptr) {
+	: mData(nullptr),
+	  mDataIsExternal(false) {
 }
 
 PackedContainer::PackedContainer(size_t size)
-	: BitContainer(size), mData(nullptr) {
+	: BitContainer(size),
+	  mData(nullptr),
+	  mDataIsExternal(false) {
 	setSize(size);
 }
 
 PackedContainer::PackedContainer(size_t size, std::set<unsigned> &frozenBits)
-	: BitContainer(size, frozenBits), mData(nullptr) {
+	: BitContainer(size, frozenBits),
+	  mData(nullptr),
+	  mDataIsExternal(false) {
 	setSize(size);
 }
 
+PackedContainer::PackedContainer(char *external, size_t size)
+	: BitContainer(size),
+	  mData(external),
+	  mFakeSize(std::max((size_t)256, size)),
+	  mDataIsExternal(true) {
+}
+
 PackedContainer::~PackedContainer() {
-	if(mData != nullptr) {
+	if(mData != nullptr && !mDataIsExternal) {
 		_mm_free(mData);
 	}
 }
@@ -471,15 +484,28 @@ void PackedContainer::vectorWiseInjection(const void *pData) {
 	int packedBits = _mm256_movemask_epi8(tempVector);
 	iData[vectorIndex] = packedBits;
 }
+
+void PackedContainer::fullyVectorizedInjection(const void *pData) {
+/*	const unsigned int *inputPtr = static_cast<const unsigned int*>(pData);
+	__m256i inputVector = _mm256_get_mask_epi8(*(inputPtr++));
+	unsigned *lutPtr = mLUT;
+
+	int *iData = reinterpret_cast<int*>(mData);
+	__m256i tempVector = _mm256_setzero_si256();
+	*/
+}
+
 void PackedContainer::insertPackedInformationBits(const void *pData) {
 	unsigned nPackedVectors = mFakeSize/256;
 	memset(mData, 0, mFakeSize/8);
 
 	if(nPackedVectors == 1) {
 		byteWiseInjection(pData);
-	} else {
+	} else/* if (mInformationBitCount < 32)*/{
 		vectorWiseInjection(pData);
-	}
+	}/* else {
+		fullyVectorizedInjection(pData);
+	}*/
 }
 
 void PackedContainer::insertCharBits(const char *pData) {
@@ -499,7 +525,11 @@ void PackedContainer::insertCharBits(const char *pData) {
 
 void PackedContainer::getPackedBits(void* pData) {
 	unsigned int nBytes = mElementCount/8;
-	memcpy(pData, mData+(mFakeSize-mElementCount)/8, nBytes);
+	if(mFakeSize != mElementCount) {
+		memcpy(pData, mData+(mFakeSize-mElementCount)/8, nBytes);
+	} else {
+		memcpy(pData, mData, nBytes);
+	}
 }
 
 void PackedContainer::resetFrozenBits() {

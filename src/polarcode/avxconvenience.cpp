@@ -47,7 +47,7 @@ __m256i _mm256_subVectorShift_epu8(__m256i x, int shift) {
 	static const __m256i mask[4] = {
 		_mm256_set1_epi8(0b0101010-128),
 		_mm256_set1_epi8(0b1001100-128),
-		_mm256_undefined_si256(),
+		_mm256_setzero_si256(),
 		_mm256_set1_epi8(0b1110000-128)};
 	__m256i y;
 	switch(shift) {
@@ -75,7 +75,7 @@ __m256i _mm256_subVectorBackShift_epu8(__m256i x, int shift) {
 	static const __m256i mask[4] = {
 		_mm256_set1_epi8(0b01010101),
 		_mm256_set1_epi8(0b00110011),
-		_mm256_undefined_si256(),
+		_mm256_setzero_si256(),
 		_mm256_set1_epi8(0b00001111)};
 	__m256i y;
 	switch(shift) {

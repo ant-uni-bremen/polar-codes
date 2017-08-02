@@ -22,13 +22,10 @@ class Node {
 	void clearBitBlock();
 
 protected:
-	datapool_t *xmDataPool;//xm = eXternal member (not owned by this Node)
-	size_t mBlockLength,
-		   mVecCount;
-
-	void setInput(Block<__m256i> *newInputBlock);
-	void setOutput(Block<__m256i> *newOutputBlock);
-	void unsetBlockPointers();
+	//xm = eXternal member (not owned by this Node)
+	datapool_t *xmDataPool;///< Pointer to a DataPool object.
+	size_t mBlockLength,   ///< Length of the subcode.
+		   mVecCount;      ///< Number of AVX-vectors the data can be stored in.
 
 public:
 	Node();
@@ -68,25 +65,46 @@ public:
 
 };
 
+/*!
+ * \brief The Preparer may set unused bits in an AVX-vector to neutral values.
+ *
+ * This base class itself is a dummy object. The prepare()-function is empty.
+ * Derived classes can be specialized to set the value that is neutral to a
+ * specific decoder, at positions which are unused for subvector operation.
+ * Subvector operations happen, when the Polar Code subject to decoding is
+ * shorter than the AVX-vector size of 32 char-bits.
+ */
 class Preparer {
 public:
 	Preparer();
 	virtual ~Preparer();
+
+	/*!
+	 * \brief Prepare the given vector for correct decoding.
+	 * \param x Pointer to the char-bit vector.
+	 */
 	virtual void prepare(__m256i *x);
 };
 
+/*!
+ * \brief The preparer-class to neutralize values for repetition decoder.
+ */
 class RepetitionPrep : public Preparer {
 	unsigned mCodeLength;
 public:
-	RepetitionPrep(size_t codeLength);
+	RepetitionPrep(size_t codeLength);///< Create a repetition preparer for given subcode length.
 	~RepetitionPrep();
 	void prepare(__m256i *x);
 };
 
+/*!
+ * \brief The preparer-class to neutralize values for single parity check
+ *        decoder.
+ */
 class SpcPrep : public Preparer {
 	unsigned mCodeLength;
 public:
-	SpcPrep(size_t codeLength);
+	SpcPrep(size_t codeLength);///< Create an SPC preparer for given subcode length.
 	~SpcPrep();
 	void prepare(__m256i *x);
 };
@@ -118,36 +136,48 @@ public:
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 
+/*!
+ * \brief A rate-0 decoder simply sets all bits to zero. (Who would have thought?)
+ */
 class RateZeroNode : public Node {
 	Node *mParent;
 public:
-	RateZeroNode(Node* parent);
+	RateZeroNode(Node* parent);///< Initialize the rate-0 decoder.
 	~RateZeroNode();
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 
+/*!
+ * \brief Perform hard-decoding of the given LLR-vector.
+ */
 class RateOneNode : public Node {
 	Node *mParent;
 public:
-	RateOneNode(Node* parent);
+	RateOneNode(Node* parent);///< Initialize the rate-1 decoder.
 	~RateOneNode();
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 
+/*!
+ * \brief A specialized decoder for Polar Repetition Subcodes.
+ */
 class RepetitionNode : public Node {
 	Node *mParent;
 	Preparer *mPreparer;
 public:
-	RepetitionNode(Node* parent);
+	RepetitionNode(Node* parent);///< Initialize the repetition decoder.
 	~RepetitionNode();
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 
+/*!
+ * \brief A specialized decoder for Polar Single Parity Check Subcodes.
+ */
 class SpcNode : public Node {
 	Node *mParent;
 	Preparer *mPreparer;
 public:
-	SpcNode(Node* parent);
+	SpcNode(Node* parent);///< Initialize the SPC decoder.
 	~SpcNode();
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
@@ -180,6 +210,11 @@ class FastSscAvx2Char : public Decoder {
 	void clear();
 
 public:
+	/*!
+	 * \brief Create a Fast-SSC decoder with AVX char-bit decoding.
+	 * \param blockLength Length of the Polar Code.
+	 * \param frozenBits Set of frozen bits in the code word.
+	 */
 	FastSscAvx2Char(size_t blockLength, const std::set<unsigned> &frozenBits);
 	~FastSscAvx2Char();
 

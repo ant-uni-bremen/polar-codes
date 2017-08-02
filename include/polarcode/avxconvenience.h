@@ -98,6 +98,21 @@ static inline unsigned _mm256_minidx_ps(__m256 x, float *minVal) {
 		return b;
 }
 
+/*!
+ * \brief Expand 32 packed bits in _mask_ into 32 bytes.
+ * \param mask Packed 32-bit integer
+ * \return Vector, where bytes are set according to the respective bit in _mask_.
+ */
+static inline __m256i _mm256_get_mask_epi8(const unsigned int mask) {
+  __m256i vmask(_mm256_set1_epi32(mask));
+  const __m256i shuffle(_mm256_setr_epi64x(0x0000000000000000,
+	  0x0101010101010101, 0x0202020202020202, 0x0303030303030303));
+  vmask = _mm256_shuffle_epi8(vmask, shuffle);
+  const __m256i bit_mask(_mm256_set1_epi64x(0x7fbfdfeff7fbfdfe));
+  vmask = _mm256_or_si256(vmask, bit_mask);
+  return _mm256_cmpeq_epi8(vmask, _mm256_set1_epi64x(-1));
+}
+
 
 /** \brief Returns the index of the smallest element of x.
  * 

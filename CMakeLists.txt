@@ -10,7 +10,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-add_definitions(-std=c++11 -Wall)
+add_definitions(-std=c++11 -Wall -Wno-ignored-attributes)
+add_definitions(-mavx2 -mrdrnd -mbmi)
 
 add_subdirectory(src)
 add_subdirectory(test)

@@ -18,13 +18,18 @@ class BitContainer {
 
 protected:
 	size_t mElementCount;///< The fixed number of bits stored in this container.
-	std::set<unsigned> mFrozenBits;
-	unsigned mInformationBitCount;
-	unsigned *mLUT;
+	std::set<unsigned> mFrozenBits;///< The set of frozen bits.
+	unsigned mInformationBitCount; ///< Parameter K. The amount of information bits per code.
+	unsigned *mLUT; ///< A lookup table for fast information bit insertion.
 
 public:
 	BitContainer();
-	BitContainer(size_t size);
+	BitContainer(size_t size);///< Create a BitContainer with given bit count.
+	/*!
+	 * \brief Create a fully configured bit container.
+	 * \param size Length of the code word to be stored.
+	 * \param frozenBits Set of frozen bits.
+	 */
 	BitContainer(size_t size, std::set<unsigned> &frozenBits);
 
 	virtual ~BitContainer();
@@ -35,6 +40,14 @@ public:
 	 */
 	virtual void setSize(size_t newSize) = 0;
 
+	/*!
+	 * \brief Set a new set of frozen bits for this container.
+	 *
+	 * The information bit count and lookup table are updated according to the
+	 * new Polar Code when calling this function.
+	 *
+	 * \param frozenBits The new set of frozen bits.
+	 */
 	void setFrozenBits(std::set<unsigned> frozenBits);
 
 	/*!
@@ -122,7 +135,7 @@ class FloatContainer : public BitContainer {
 public:
 	FloatContainer();
 	FloatContainer(size_t size);///<Initialize the container to specified size.
-	FloatContainer(size_t size, std::set<unsigned> &frozenBits);
+	FloatContainer(size_t size, std::set<unsigned> &frozenBits);///<Configure this container to a given Polar Code.
 	~FloatContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
@@ -154,7 +167,7 @@ public:
 	CharContainer();
 	CharContainer(size_t size);///<Initialize the container to specified size.
 	CharContainer(char *external, size_t size);///<Assign an external storage to this container.
-	CharContainer(size_t size, std::set<unsigned> &frozenBits);
+	CharContainer(size_t size, std::set<unsigned> &frozenBits);///<Configure this container to a given Polar Code.
 	~CharContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
@@ -179,17 +192,20 @@ public:
 class PackedContainer : public BitContainer {
 	char *mData;
 	size_t mFakeSize;
+	bool mDataIsExternal;
 
 	void insertBit(unsigned int bit, char value);
 	void clearBit(unsigned int bit);
 
 	void byteWiseInjection(const void *pData);
 	void vectorWiseInjection(const void *pData);
+	void fullyVectorizedInjection(const void *pData);
 
 public:
 	PackedContainer();
 	PackedContainer(size_t size);///<Initialize the container to specified size.
-	PackedContainer(size_t size, std::set<unsigned> &frozenBits);
+	PackedContainer(size_t size, std::set<unsigned> &frozenBits);///<Configure this container to a given Polar Code.
+	PackedContainer(char *external, size_t size);///<Assign an external storage to this container.
 	~PackedContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);

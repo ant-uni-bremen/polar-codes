@@ -7,13 +7,6 @@
 namespace PolarCode {
 namespace Encoding {
 
-void ButterflyAvx2CharTransform(__m256i* bitVector, size_t blockLength, int stage);
-void ButterflyAvx2CharTransformSubVector(__m256i* bitVector, int stage, int blockCount);
-void ButterflyAvx2CharTransformCrossVector(__m256i* bitVectors, int stage, int blockCount);
-
-//void ButterflyAvx2CharTransformSubVector(__m256i* block, int stageBits);
-//void ButterflyAvx2CharTransformCrossVector(__m256i* leftout, __m256i *right)
-
 /*!
  * \brief Complete butterfly transformation with AVX2 char bits.
  *

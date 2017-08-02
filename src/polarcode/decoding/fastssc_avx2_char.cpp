@@ -59,21 +59,6 @@ void Node::clearBitBlock() {
 	}
 }
 
-void Node::setInput(Block<__m256i> *newInputBlock) {
-//	clearLlrBlock();
-	mLlr = newInputBlock;
-}
-
-void Node::setOutput(Block<__m256i> *newOutputBlock) {
-//	clearBitBlock();
-	mBit = newOutputBlock;
-}
-
-void Node::unsetBlockPointers() {
-	mLlr = nullptr;
-	mBit = nullptr;
-}
-
 size_t Node::blockLength() {
 	return mBlockLength;
 }
@@ -192,8 +177,6 @@ RateRNode::~RateRNode() {
 	xmDataPool->release(ChildLlr);
 	xmDataPool->release(LeftBits);
 	xmDataPool->release(RightBits);
-
-	unsetBlockPointers();
 }
 
 RateZeroNode::~RateZeroNode() {
@@ -272,7 +255,7 @@ void SpcNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 		parVec = _mm256_xor_si256(parVec, sign);
 
 		// Only search for minimum if there is a chance for smaller absolute value
-		if(minAbs > 0) {
+		if(minAbs/* > 0*/) {
 			__m256i abs = _mm256_abs_epi8(vecIn);
 			unsigned vecMin = _mm256_minpos_epu8(abs, &testAbs);
 			if(testAbs < minAbs) {
@@ -283,10 +266,10 @@ void SpcNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	}
 
 	// Flip least reliable bit, if neccessary
-	char parity = reduce_xor_si256(parVec);
-	if(parity) {
-		reinterpret_cast<char*>(BitsOut)[minIdx] ^= 1;
-	}
+/*	char parity = ;
+	if(parity) {*/
+		reinterpret_cast<char*>(BitsOut)[minIdx] ^= reduce_xor_si256(parVec);
+/*	}*/
 
 }
 
@@ -375,20 +358,21 @@ void RateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 
 Node* createDecoder(std::set<unsigned> frozenBits, Node* parent) {
 	size_t blockLength = parent->blockLength();
+	size_t frozenBitCount = frozenBits.size();
 
 	// Begin with the two most simple codes:
-	if(frozenBits.size() == blockLength) {
+	if(frozenBitCount == blockLength) {
 		return new RateZeroNode(parent);
 	}
-	if(frozenBits.empty()) {
+	if(frozenBitCount == 0) {
 		return new RateOneNode(parent);
 	}
 
 	// Following are "one bit unlike the others" codes:
-	if(frozenBits.size() == (blockLength-1)) {
+	if(frozenBitCount == (blockLength-1)) {
 		return new RepetitionNode(parent);
 	}
-	if(frozenBits.size() == 1) {
+	if(frozenBitCount == 1) {
 		return new SpcNode(parent);
 	}
 

@@ -1,5 +1,3 @@
-add_definitions(-mavx2 -mrdrnd -mbmi) 
-
 add_library(ErrorDetector OBJECT
         errordetection/errordetector
         errordetection/dummy
@@ -13,12 +11,16 @@ add_library(ErrorDetector OBJECT
 add_library(PolarEncoder OBJECT
         encoding/encoder
         encoding/butterfly_avx_float
+        encoding/butterfly_avx2
         encoding/butterfly_avx2_char
         encoding/butterfly_avx2_packed
+        encoding/recursive_avx2_packed
         ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/encoder.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx_float.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx2.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx2_char.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx2_packed.h)
+        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx2_packed.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/recursive_avx2_packed.h)
 
 add_library(PolarDecoder OBJECT
         decoding/decoder
