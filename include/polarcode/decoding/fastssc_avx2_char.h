@@ -114,16 +114,20 @@ void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out)
 
 void F_function(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength);
 void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBlockLength);
-void Combine(__m256i *Left, __m256i *Right, __m256i *Out, unsigned subBlockLength);
+
+void Combine(__m256i *Bits, const unsigned vecCount);
+void CombineShortBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
 
 /*!
  * \brief A Rate-R node redirects decoding to polar subcodes of lower complexity.
  */
 class RateRNode : public Node {
-	Node *mParent;
-	Node *mLeft, *mRight;
+protected:
+	Node *mParent;///< The parent node
+	Node *mLeft,///< Left child node
+		 *mRight;///< Right child node
 
-	Block<__m256i> *ChildLlr, *LeftBits, *RightBits;
+	Block<__m256i> *ChildLlr;///< Temporarily holds the LLRs child nodes have to decode.
 
 public:
 	/*!
@@ -133,6 +137,23 @@ public:
 	 */
 	RateRNode(std::set<unsigned> &frozenBits, Node *parent);
 	~RateRNode();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
+/*!
+ * \brief A rate-R node of subvector length needs child bits in separate blocks.
+ */
+class ShortRateRNode : public RateRNode {
+	Block<__m256i> *LeftBits, *RightBits;
+
+public:
+	/*!
+	 * \brief Using the set of frozen bits, specialized subcodes are selected.
+	 * \param frozenBits The set of frozen bits of this code.
+	 * \param parent The parent node, defining the length of this code.
+	 */
+	ShortRateRNode(std::set<unsigned> &frozenBits, Node *parent);
+	~ShortRateRNode();
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 

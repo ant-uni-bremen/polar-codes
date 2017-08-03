@@ -132,7 +132,7 @@ void EncodingTest::avxRecursiveTest() {
 	using namespace std::chrono;
 
 	const size_t blockLength = 4096;
-	const size_t infoLength = 2048;
+	const size_t infoLength = 2048+1024;
 
 	Constructor *constructor = new Bhattacharrya(blockLength, infoLength);
 	frozenBits = constructor->construct();

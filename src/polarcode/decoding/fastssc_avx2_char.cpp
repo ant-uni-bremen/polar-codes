@@ -125,9 +125,14 @@ RateRNode::RateRNode(std::set<unsigned> &frozenBits, Node *parent)
 	mVecCount = nBit2vecCount(mBlockLength);
 
 	ChildLlr = xmDataPool->allocate(mVecCount);
-	LeftBits = xmDataPool->allocate(mVecCount);
-	RightBits = xmDataPool->allocate(mVecCount);
 }
+
+ShortRateRNode::ShortRateRNode(std::set<unsigned> &frozenBits, Node *parent)
+	: RateRNode(frozenBits, parent),
+	  LeftBits(xmDataPool->allocate(mVecCount)),
+	  RightBits(xmDataPool->allocate(mVecCount)) {
+}
+
 
 RateZeroNode::RateZeroNode(Node *parent)
 	: mParent(parent) {
@@ -175,6 +180,9 @@ RateRNode::~RateRNode() {
 	delete mLeft;
 	delete mRight;
 	xmDataPool->release(ChildLlr);
+}
+
+ShortRateRNode::~ShortRateRNode() {
 	xmDataPool->release(LeftBits);
 	xmDataPool->release(RightBits);
 }
@@ -323,31 +331,41 @@ void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBl
 	}
 }
 
-void Combine(__m256i *Left, __m256i *Right, __m256i *Out, unsigned subBlockLength) {
-	if(subBlockLength < 32) {
-		*Left = _mm256_xor_si256(*Left, *Right);
-		*Right = _mm256_subVectorBackShift_epu8(*Right, subBlockLength*8);
-		_mm256_store_si256(Out, _mm256_or_si256(*Left, *Right));
-	} else {
-		unsigned vecCount = nBit2vecCount(subBlockLength);
-		for(unsigned i=0; i<vecCount; i++) {
-			__m256i tempL = _mm256_load_si256(Left+i);
-			__m256i tempR = _mm256_load_si256(Right+i);
-			tempL = _mm256_xor_si256(tempL, tempR);
-			_mm256_store_si256(Out+i, tempL);
-			_mm256_store_si256(Out+vecCount+i, tempR);
-		}
+void CombineShortBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
+	*Left = _mm256_xor_si256(*Left, *Right);
+	*Right = _mm256_subVectorBackShift_epu8(*Right, subBlockLength*8);
+	_mm256_store_si256(Out, _mm256_or_si256(*Left, *Right));
+}
+
+void Combine(__m256i *Bits, const unsigned vecCount) {
+	for(unsigned i=0; i<vecCount; i++) {
+		__m256i tempL = _mm256_load_si256(Bits+i);
+		__m256i tempR = _mm256_load_si256(Bits+vecCount+i);
+		tempL = _mm256_xor_si256(tempL, tempR);
+		_mm256_store_si256(Bits+i, tempL);
+//		_mm256_store_si256(Bits+vecCount+i, tempR);
 	}
 }
 
+
 void RateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
+	F_function(LlrIn, ChildLlr->data, mBlockLength);
+	mLeft->decode(ChildLlr->data, BitsOut);
+
+	G_function(LlrIn, ChildLlr->data, BitsOut, mBlockLength);
+	mRight->decode(ChildLlr->data, BitsOut+mVecCount);
+
+	Combine(BitsOut, mVecCount);
+}
+
+void ShortRateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	F_function(LlrIn, ChildLlr->data, mBlockLength);
 	mLeft->decode(ChildLlr->data, LeftBits->data);
 
 	G_function(LlrIn, ChildLlr->data, LeftBits->data, mBlockLength);
 	mRight->decode(ChildLlr->data, RightBits->data);
 
-	Combine(LeftBits->data, RightBits->data, BitsOut, mBlockLength);
+	CombineShortBits(LeftBits->data, RightBits->data, BitsOut, mBlockLength);
 }
 
 // End of mass defining
@@ -373,7 +391,11 @@ Node* createDecoder(std::set<unsigned> frozenBits, Node* parent) {
 	}
 
 	// Fallback: No special code available, split into smaller subcodes
-	return new RateRNode(frozenBits, parent);
+	if(blockLength <= 32) {
+		return new ShortRateRNode(frozenBits, parent);
+	} else {
+		return new RateRNode(frozenBits, parent);
+	}
 }
 
 size_t nBit2vecCount(size_t blockLength) {
