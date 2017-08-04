@@ -65,49 +65,16 @@ public:
 
 };
 
-/*!
- * \brief The Preparer may set unused bits in an AVX-vector to neutral values.
- *
- * This base class itself is a dummy object. The prepare()-function is empty.
- * Derived classes can be specialized to set the value that is neutral to a
- * specific decoder, at positions which are unused for subvector operation.
- * Subvector operations happen, when the Polar Code subject to decoding is
- * shorter than the AVX-vector size of 32 char-bits.
- */
-class Preparer {
-public:
-	Preparer();
-	virtual ~Preparer();
 
-	/*!
-	 * \brief Prepare the given vector for correct decoding.
-	 * \param x Pointer to the char-bit vector.
-	 */
-	virtual void prepare(__m256i *x);
-};
+void RepetitionPrepare(__m256i* x, const size_t codeLength);
+void SpcPrepare(__m256i* x, const size_t codeLength);
 
-/*!
- * \brief The preparer-class to neutralize values for repetition decoder.
- */
-class RepetitionPrep : public Preparer {
-	unsigned mCodeLength;
-public:
-	RepetitionPrep(size_t codeLength);///< Create a repetition preparer for given subcode length.
-	~RepetitionPrep();
-	void prepare(__m256i *x);
-};
 
-/*!
- * \brief The preparer-class to neutralize values for single parity check
- *        decoder.
- */
-class SpcPrep : public Preparer {
-	unsigned mCodeLength;
-public:
-	SpcPrep(size_t codeLength);///< Create an SPC preparer for given subcode length.
-	~SpcPrep();
-	void prepare(__m256i *x);
-};
+void   RateZeroDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+void    RateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+void RepetitionDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+void        SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+
 
 void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out);
 void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out);
@@ -126,8 +93,9 @@ protected:
 	Node *mParent;///< The parent node
 	Node *mLeft,///< Left child node
 		 *mRight;///< Right child node
-
 	Block<__m256i> *ChildLlr;///< Temporarily holds the LLRs child nodes have to decode.
+	void (*leftDecoder)(__m256i*, __m256i*, size_t);///< Pointer to special decoding function of left child.
+	void (*rightDecoder)(__m256i*, __m256i*, size_t);///< Pointer to special decoding function of right child.
 
 public:
 	/*!
@@ -158,58 +126,12 @@ public:
 };
 
 /*!
- * \brief A rate-0 decoder simply sets all bits to zero. (Who would have thought?)
- */
-class RateZeroNode : public Node {
-	Node *mParent;
-public:
-	RateZeroNode(Node* parent);///< Initialize the rate-0 decoder.
-	~RateZeroNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
-};
-
-/*!
- * \brief Perform hard-decoding of the given LLR-vector.
- */
-class RateOneNode : public Node {
-	Node *mParent;
-public:
-	RateOneNode(Node* parent);///< Initialize the rate-1 decoder.
-	~RateOneNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
-};
-
-/*!
- * \brief A specialized decoder for Polar Repetition Subcodes.
- */
-class RepetitionNode : public Node {
-	Node *mParent;
-	Preparer *mPreparer;
-public:
-	RepetitionNode(Node* parent);///< Initialize the repetition decoder.
-	~RepetitionNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
-};
-
-/*!
- * \brief A specialized decoder for Polar Single Parity Check Subcodes.
- */
-class SpcNode : public Node {
-	Node *mParent;
-	Preparer *mPreparer;
-public:
-	SpcNode(Node* parent);///< Initialize the SPC decoder.
-	~SpcNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
-};
-
-/*!
  * \brief Create a specialized decoder for the given set of frozen bits.
  * \param frozenBits The set of frozen bits.
  * \param parent The parent node from which the code length is fetched.
  * \return Pointer to a polymorphic decoder object.
  */
-Node* createDecoder(std::vector<unsigned> frozenBits, Node* parent);
+Node* createDecoder(std::vector<unsigned> frozenBits, Node* parent, void (**specialDecoder)(__m256i*, __m256i*, size_t));
 
 /*!
  * \brief Convert block length to minimum AVX-vector count.
@@ -227,6 +149,7 @@ class FastSscAvx2Char : public Decoder {
 	FastSscAvx2::Node *mNodeBase,///< General code information
 					  *mRootNode;///< Actual decoder
 	DataPool<__m256i, 32> *mDataPool;///< Lazy-copy data-block pool
+	void (*mSpecialDecoder)(__m256i*, __m256i*, size_t);
 
 	void clear();
 

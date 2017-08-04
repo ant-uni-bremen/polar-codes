@@ -75,37 +75,15 @@ __m256i* Node::output() {
 	return mBit->data;
 }
 
-// Preparers
 
-Preparer::Preparer() {
+void RepetitionPrepare(__m256i* x, const size_t codeLength) {
+	if(codeLength >= 32) return;
+	memset(reinterpret_cast<char*>(x)+codeLength, 0, 32-codeLength);
 }
 
-Preparer::~Preparer() {
-}
-
-RepetitionPrep::RepetitionPrep(size_t codeLength)
-	: mCodeLength(codeLength) {
-}
-
-RepetitionPrep::~RepetitionPrep() {
-}
-
-SpcPrep::SpcPrep(size_t codeLength)
-	: mCodeLength(codeLength) {
-}
-
-SpcPrep::~SpcPrep() {
-}
-
-void Preparer::prepare(__m256i *x) {
-}
-
-void RepetitionPrep::prepare(__m256i *x) {
-	memset(reinterpret_cast<char*>(x)+mCodeLength, 0, 32-mCodeLength);
-}
-
-void SpcPrep::prepare(__m256i *x) {
-	memset(reinterpret_cast<char*>(x)+mCodeLength, 127, 32-mCodeLength);
+void SpcPrepare(__m256i *x, const size_t codeLength) {
+	if(codeLength >= 32) return;
+	memset(reinterpret_cast<char*>(x)+codeLength, 127, 32-codeLength);
 }
 
 // Constructors of nodes
@@ -118,8 +96,8 @@ RateRNode::RateRNode(std::vector<unsigned> &frozenBits, Node *parent)
 	std::vector<unsigned> leftFrozenBits, rightFrozenBits;
 	splitFrozenBits(frozenBits, mBlockLength, leftFrozenBits, rightFrozenBits);
 
-	mLeft = createDecoder(leftFrozenBits, this);
-	mRight = createDecoder(rightFrozenBits, this);
+	mLeft = createDecoder(leftFrozenBits, this, &leftDecoder);
+	mRight = createDecoder(rightFrozenBits, this, &rightDecoder);
 
 //	mBlockLength *= 2;
 	mVecCount = nBit2vecCount(mBlockLength);
@@ -131,47 +109,6 @@ ShortRateRNode::ShortRateRNode(std::vector<unsigned> &frozenBits, Node *parent)
 	: RateRNode(frozenBits, parent),
 	  LeftBits(xmDataPool->allocate(mVecCount)),
 	  RightBits(xmDataPool->allocate(mVecCount)) {
-}
-
-
-RateZeroNode::RateZeroNode(Node *parent)
-	: mParent(parent) {
-	xmDataPool = parent->pool();
-	mBlockLength = parent->blockLength();
-	mVecCount = nBit2vecCount(mBlockLength);
-}
-
-RateOneNode::RateOneNode(Node *parent)
-	: mParent(parent) {
-	xmDataPool = parent->pool();
-	mBlockLength = parent->blockLength();
-	mVecCount = nBit2vecCount(mBlockLength);
-}
-
-RepetitionNode::RepetitionNode(Node *parent)
-	: mParent(parent) {
-	xmDataPool = parent->pool();
-	mBlockLength = parent->blockLength();
-	mVecCount = nBit2vecCount(mBlockLength);
-
-	if(mBlockLength<32) {
-		mPreparer = new RepetitionPrep(mBlockLength);
-	} else {
-		mPreparer = new Preparer();
-	}
-}
-
-SpcNode::SpcNode(Node *parent)
-	: mParent(parent) {
-	xmDataPool = parent->pool();
-	mBlockLength = parent->blockLength();
-	mVecCount = nBit2vecCount(mBlockLength);
-
-	if(mBlockLength<32) {
-		mPreparer = new SpcPrep(mBlockLength);
-	} else {
-		mPreparer = new Preparer();
-	}
 }
 
 // Destructors of nodes
@@ -187,33 +124,20 @@ ShortRateRNode::~ShortRateRNode() {
 	xmDataPool->release(RightBits);
 }
 
-RateZeroNode::~RateZeroNode() {
-}
-
-RateOneNode::~RateOneNode() {
-}
-
-RepetitionNode::~RepetitionNode() {
-	delete mPreparer;
-}
-
-SpcNode::~SpcNode() {
-	delete mPreparer;
-}
-
 // Decoders
 
-void RateZeroNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
-	memset(BitsOut, 0, mBlockLength);
+
+void RateZeroDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
+	memset(BitsOut, 0, blockLength);
 }
 
-void RateOneNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
-	for(unsigned i=0; i<mVecCount; i++) {
+void RateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
+	unsigned vecCount = (blockLength+31)/32;
+	for(unsigned i=0; i<vecCount; i++) {
 		__m256i vec = _mm256_load_si256(LlrIn+i);
 		vec = hardDecode(vec);
 		_mm256_store_si256(BitsOut+i, vec);//Save hard decision
 	}
-
 }
 
 
@@ -224,13 +148,14 @@ void RateOneNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 
 	Conversion to epi16 will reduce throughput but circumvents that problem.
 */
-void RepetitionNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
+void RepetitionDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
+	unsigned vecCount = (blockLength+31)/32;
 	__m256i LlrSum = _mm256_setzero_si256();
 
-	mPreparer->prepare(LlrIn);
+	RepetitionPrepare(LlrIn, blockLength);
 
 	// Accumulate vectors
-	for(unsigned i=0; i<mVecCount; i++) {
+	for(unsigned i=0; i<vecCount; i++) {
 		LlrSum = _mm256_adds_epi8(LlrSum, _mm256_load_si256(LlrIn+i));
 	}
 
@@ -239,22 +164,23 @@ void RepetitionNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	Bits = hardDecode(Bits);
 
 	// Prepare result
-	mPreparer->prepare(&Bits);
+	RepetitionPrepare(&Bits, blockLength);
 
 	// Save bits
-	for(unsigned i=0; i<mVecCount; i++) {
+	for(unsigned i=0; i<vecCount; i++) {
 		_mm256_store_si256(BitsOut+i, Bits);
 	}
 }
 
-void SpcNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
+void SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
+	unsigned vecCount = (blockLength+31)/32;
 	__m256i parVec = _mm256_setzero_si256();
 	unsigned minIdx = 0;
 	char testAbs, minAbs = 127;
 
-	mPreparer->prepare(LlrIn);
+	SpcPrepare(LlrIn, blockLength);
 
-	for(unsigned i=0; i<mVecCount; i++) {
+	for(unsigned i=0; i<vecCount; i++) {
 		__m256i vecIn = _mm256_load_si256(LlrIn+i);
 
 		__m256i sign = hardDecode(vecIn);
@@ -350,50 +276,76 @@ void Combine(__m256i *Bits, const unsigned vecCount) {
 
 void RateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	F_function(LlrIn, ChildLlr->data, mBlockLength);
-	mLeft->decode(ChildLlr->data, BitsOut);
+
+	if(mLeft) {
+		mLeft->decode(ChildLlr->data, BitsOut);
+	} else {
+		leftDecoder(ChildLlr->data, BitsOut, mBlockLength);
+	}
 
 	G_function(LlrIn, ChildLlr->data, BitsOut, mBlockLength);
-	mRight->decode(ChildLlr->data, BitsOut+mVecCount);
+
+	if(mRight) {
+		mRight->decode(ChildLlr->data, BitsOut+mVecCount);
+	} else {
+		rightDecoder(ChildLlr->data, BitsOut+mVecCount, mBlockLength);
+	}
 
 	Combine(BitsOut, mVecCount);
 }
 
 void ShortRateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	F_function(LlrIn, ChildLlr->data, mBlockLength);
-	mLeft->decode(ChildLlr->data, LeftBits->data);
+
+	if(mLeft) {
+		mLeft->decode(ChildLlr->data, LeftBits->data);
+	} else {
+		leftDecoder(ChildLlr->data, LeftBits->data, mBlockLength);
+	}
 
 	G_function(LlrIn, ChildLlr->data, LeftBits->data, mBlockLength);
-	mRight->decode(ChildLlr->data, RightBits->data);
+
+	if(mRight) {
+		mRight->decode(ChildLlr->data, RightBits->data);
+	} else {
+		rightDecoder(ChildLlr->data, RightBits->data, mBlockLength);
+	}
 
 	CombineShortBits(LeftBits->data, RightBits->data, BitsOut, mBlockLength);
 }
 
 // End of mass defining
 
-Node* createDecoder(std::vector<unsigned> frozenBits, Node* parent) {
+Node* createDecoder(std::vector<unsigned> frozenBits, Node* parent, void (**specialDecoder)(__m256i *, __m256i *, size_t)) {
 	size_t blockLength = parent->blockLength();
 	size_t frozenBitCount = frozenBits.size();
 
 	// Begin with the two most simple codes:
 	if(frozenBitCount == blockLength) {
-		return new RateZeroNode(parent);
+		*specialDecoder = &RateZeroDecode;
+		return nullptr;
 	}
 	if(frozenBitCount == 0) {
-		return new RateOneNode(parent);
+		*specialDecoder = &RateOneDecode;
+		return nullptr;
 	}
 
 	// Following are "one bit unlike the others" codes:
 	if(frozenBitCount == (blockLength-1)) {
-		return new RepetitionNode(parent);
+		*specialDecoder = &RepetitionDecode;
+		return nullptr;
 	}
 	if(frozenBitCount == 1) {
-		return new SpcNode(parent);
+		*specialDecoder = &SpcDecode;
+		return nullptr;
 	}
 
 	// Fallback: No special code available, split into smaller subcodes
 	if(blockLength <= 32) {
+		*specialDecoder = nullptr;
 		return new ShortRateRNode(frozenBits, parent);
 	} else {
+		*specialDecoder = nullptr;
 		return new RateRNode(frozenBits, parent);
 	}
 }
@@ -416,7 +368,7 @@ void FastSscAvx2Char::clear() {
 	delete mLlrContainer;
 	delete mBitContainer;
 	delete [] mOutputContainer;
-	delete mRootNode;
+	if(mRootNode) delete mRootNode;
 	delete mNodeBase;
 	delete mDataPool;
 }
@@ -433,7 +385,7 @@ void FastSscAvx2Char::initialize(size_t blockLength, const std::vector<unsigned>
 		mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 		mDataPool = new DataPool<__m256i, 32>();
 		mNodeBase = new FastSscAvx2::Node(blockLength, mDataPool);
-		mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase);
+		mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase, &mSpecialDecoder);
 		mLlrContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()),  mBlockLength);
 		mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);
 		mLlrContainer->setFrozenBits(mFrozenBits);
@@ -443,7 +395,11 @@ void FastSscAvx2Char::initialize(size_t blockLength, const std::vector<unsigned>
 }
 
 bool FastSscAvx2Char::decode() {
-	mRootNode->decode(mNodeBase->input(), mNodeBase->output());
+	if(mRootNode) {
+		mRootNode->decode(mNodeBase->input(), mNodeBase->output());
+	} else {
+		mSpecialDecoder(mNodeBase->input(), mNodeBase->output(), mBlockLength);
+	}
 	if(!mSystematic) {
 		Encoding::Encoder* encoder = new Encoding::ButterflyAvx2Packed(mBlockLength);
 		encoder->setCodeword(mBitContainer->data());
