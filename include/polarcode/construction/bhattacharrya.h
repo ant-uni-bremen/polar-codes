@@ -49,7 +49,7 @@ public:
 	 * \brief Executes the construction algorithm.
 	 * \return The set of frozen bits.
 	 */
-	std::set<unsigned> construct();
+	std::vector<unsigned> construct();
 
 	/*!
 	 * \brief Set the Bhattacharrya parameter of the desired channel.

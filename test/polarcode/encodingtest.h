@@ -14,7 +14,7 @@ class EncodingTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST_SUITE_END();
 
 	PolarCode::Encoding::Encoder *encoder;
-	std::set<unsigned> frozenBits;
+	std::vector<unsigned> frozenBits;
 
 	bool avx2supported();
 

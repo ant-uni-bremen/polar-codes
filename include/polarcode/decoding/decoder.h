@@ -22,7 +22,7 @@ protected:
 	CharContainer *mLlrContainer;///< Soft-input container
 	CharContainer *mBitContainer;///< Hard-output bit container
 	unsigned char *mOutputContainer;///< Final data container, gets filled for error detection
-	std::set<unsigned> mFrozenBits; ///< Indices for frozen bits
+	std::vector<unsigned> mFrozenBits; ///< Indices for frozen bits
 
 public:
 	Decoder();
@@ -40,7 +40,7 @@ public:
 	 * \param frozenBits A set of frozen channel indices.
 	 */
 	virtual void initialize(size_t blockLength,
-							const std::set<unsigned> &frozenBits) = 0;
+							const std::vector<unsigned> &frozenBits) = 0;
 	/*!
 	 * \brief Set an error detection scheme.
 	 * \param pDetector Pointer to an error detecting object. Ownership is taken.

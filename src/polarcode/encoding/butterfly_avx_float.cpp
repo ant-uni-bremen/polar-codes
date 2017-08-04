@@ -11,9 +11,8 @@ namespace Encoding {
 ButterflyAvxFloat::ButterflyAvxFloat() {
 }
 
-ButterflyAvxFloat::ButterflyAvxFloat(
-		size_t blockLength,
-		const std::set<unsigned> &frozenBits) {
+ButterflyAvxFloat::ButterflyAvxFloat(size_t blockLength,
+		const std::vector<unsigned> &frozenBits) {
 	initialize(blockLength, frozenBits);
 }
 
@@ -22,7 +21,7 @@ ButterflyAvxFloat::~ButterflyAvxFloat() {
 
 void ButterflyAvxFloat::initialize(
 		size_t blockLength,
-		const std::set<unsigned> &frozenBits) {
+		const std::vector<unsigned> &frozenBits) {
 	mBlockLength = blockLength;
 	mFrozenBits = frozenBits;
 

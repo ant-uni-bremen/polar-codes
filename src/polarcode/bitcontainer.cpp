@@ -44,7 +44,7 @@ BitContainer::BitContainer(size_t size)
 	  mLUT(nullptr) {
 }
 
-BitContainer::BitContainer(size_t size, std::set<unsigned> &frozenBits)
+BitContainer::BitContainer(size_t size, std::vector<unsigned> &frozenBits)
 	: mElementCount(size),
 	  mFrozenBits(frozenBits),
 	  mInformationBitCount(size-frozenBits.size()),
@@ -67,17 +67,25 @@ void BitContainer::clear() {
 
 void BitContainer::calculateLUT() {
 	mLUT = new unsigned[mInformationBitCount];
-	unsigned *lutPtr = mLUT;
+	unsigned lutCounter = 0;
+	unsigned frozenCounter = 0, countMax = mFrozenBits.size();
 	for(unsigned i=0; i<mElementCount; ++i) {
-		if(mFrozenBits.find(i) == mFrozenBits.end())  {
-			*(lutPtr++) = i;
+		if(frozenCounter == countMax) {
+			mLUT[lutCounter++] = i;
+		} else {
+			if(mFrozenBits[frozenCounter] > i)  {
+				mLUT[lutCounter++] = i;
+			} else {
+				frozenCounter++;
+			}
 		}
 	}
 }
 
-void BitContainer::setFrozenBits(std::set<unsigned> frozenBits) {
+void BitContainer::setFrozenBits(const std::vector<unsigned> &frozenBits) {
 	clear();
-	mFrozenBits = frozenBits;
+	//mFrozenBits = frozenBits;
+	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 	mInformationBitCount = mElementCount - mFrozenBits.size();
 	calculateLUT();
 }
@@ -93,7 +101,7 @@ FloatContainer::FloatContainer(size_t size)
 	setSize(size);
 }
 
-FloatContainer::FloatContainer(size_t size, std::set<unsigned> &frozenBits)
+FloatContainer::FloatContainer(size_t size, std::vector<unsigned> &frozenBits)
 	: BitContainer(size, frozenBits),
 	  mData(nullptr) {
 	setSize(size);
@@ -235,7 +243,7 @@ CharContainer::CharContainer(size_t size)
 	setSize(size);
 }
 
-CharContainer::CharContainer(size_t size, std::set<unsigned> &frozenBits)
+CharContainer::CharContainer(size_t size, std::vector<unsigned> &frozenBits)
 	: BitContainer(size, frozenBits), mData(nullptr), mDataIsExternal(false) {
 	setSize(size);
 }
@@ -376,7 +384,7 @@ PackedContainer::PackedContainer(size_t size)
 	setSize(size);
 }
 
-PackedContainer::PackedContainer(size_t size, std::set<unsigned> &frozenBits)
+PackedContainer::PackedContainer(size_t size, std::vector<unsigned> &frozenBits)
 	: BitContainer(size, frozenBits),
 	  mData(nullptr),
 	  mDataIsExternal(false) {

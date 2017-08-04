@@ -5,7 +5,7 @@ namespace Encoding {
 
 Encoder::Encoder()
 	: mBlockLength(0), mSystematic(true), mBitContainer(nullptr),
-	  mFrozenBits(std::set<unsigned>()){
+	  mFrozenBits(std::vector<unsigned>()){
 }
 
 Encoder::~Encoder() {

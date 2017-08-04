@@ -13,11 +13,10 @@ namespace PolarCode {
  * \param left Indices of frozen bits in left subcode.
  * \param right Indices of frozen bits in right subcode.
  */
-void splitFrozenBits(
-		const std::set<unsigned> &source,
+void splitFrozenBits(const std::vector<unsigned> &source,
 		size_t subBlockLength,
-		std::set<unsigned> &left,
-		std::set<unsigned> &right);
+		std::vector<unsigned> &left,
+		std::vector<unsigned> &right);
 
 /**
  * @brief The PolarCoder class ultimately merges all algorithms

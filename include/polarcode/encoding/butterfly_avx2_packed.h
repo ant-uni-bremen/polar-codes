@@ -38,13 +38,13 @@ public:
 	 * \param frozenBits Set of frozen channel indices.
 	 */
 	ButterflyAvx2Packed(size_t blockLength,
-					  const std::set<unsigned> &frozenBits);
+					  const std::vector<unsigned> &frozenBits);
 
 	~ButterflyAvx2Packed();
 
 	void encode();///< Perform the butterfly transformation.
 	void initialize(size_t blockLength,
-					const std::set<unsigned> &frozenBits);
+					const std::vector<unsigned> &frozenBits);
 };
 
 

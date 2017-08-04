@@ -22,7 +22,7 @@ void DecodingTest::testAvx2() {
 	float TimeUsed;
 
 	size_t blockLength = 8;
-	std::set<unsigned> frozenBits({0,1,2,4});
+	std::vector<unsigned> frozenBits({0,1,2,4});
 
 	float signal[]={-5, -6, -4, 1, -4, -5, -7, 2};
 	unsigned char output = 0;
@@ -48,7 +48,7 @@ void DecodingTest::testAvx2Performance() {
 	using namespace std::chrono;
 	high_resolution_clock::time_point TimeDecode, TimeInject, TimeEnd;
 	float TimeUsed, TimeDecoder;
-	std::set<unsigned> frozenBits;
+	std::vector<unsigned> frozenBits;
 
 	const size_t blockLength = 1<<12;
 

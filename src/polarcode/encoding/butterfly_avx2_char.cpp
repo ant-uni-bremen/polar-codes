@@ -15,7 +15,7 @@ ButterflyAvx2Char::ButterflyAvx2Char() {
 
 ButterflyAvx2Char::ButterflyAvx2Char(
 		size_t blockLength,
-		const std::set<unsigned> &frozenBits) {
+		const std::vector<unsigned> &frozenBits) {
 	featureCheck();
 	initialize(blockLength, frozenBits);
 }
@@ -25,11 +25,9 @@ ButterflyAvx2Char::~ButterflyAvx2Char() {
 
 void ButterflyAvx2Char::initialize(
 		size_t blockLength,
-		const std::set<unsigned> &frozenBits) {
+		const std::vector<unsigned> &frozenBits) {
 	mBlockLength = blockLength;
-	//mFrozenBits = frozenBits;
-	mFrozenBits.clear();
-	mFrozenBits.insert(frozenBits.begin(), frozenBits.end());
+	mFrozenBits = frozenBits;
 
 	if(mBitContainer != nullptr) delete mBitContainer;
 	mBitContainer = new CharContainer(mBlockLength, mFrozenBits);

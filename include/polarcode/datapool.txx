@@ -31,6 +31,7 @@ public:
 		for(auto &stack : freeBlocks) {
 			while(!stack.second.empty()) {
 				_mm_free(stack.second.top()->data);
+				delete stack.second.top();
 				stack.second.pop();
 			}
 		}

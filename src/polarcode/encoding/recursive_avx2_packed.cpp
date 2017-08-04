@@ -71,20 +71,20 @@ SpcNode::SpcNode(Node *parent)
 	mVecCount = nBit2vecCount(mBlockLength);
 }
 
-ShortButterflyNode::ShortButterflyNode(std::set<unsigned> &frozenBits, Node *parent)
+ShortButterflyNode::ShortButterflyNode(std::vector<unsigned> &frozenBits, Node *parent)
 	: mParent(parent) {
 	mBlockLength = parent->blockLength();
 	mVecCount = nBit2vecCount(mBlockLength);
 	mButterflyEncoder = new ButterflyAvx2Packed(mBlockLength, frozenBits);
 }
 
-RateRNode::RateRNode(std::set<unsigned> &frozenBits, Node *parent)
+RateRNode::RateRNode(std::vector<unsigned> &frozenBits, Node *parent)
 	: mParent(parent) {
 	mBlockLength = parent->blockLength()/2;
 	mVecCount = nBit2vecCount(mBlockLength);
 	mStage = __builtin_ctz(mBlockLength);
 
-	std::set<unsigned> leftFrozenBits, rightFrozenBits;
+	std::vector<unsigned> leftFrozenBits, rightFrozenBits;
 	splitFrozenBits(frozenBits, mBlockLength, leftFrozenBits, rightFrozenBits);
 
 	mLeft = createEncoder(leftFrozenBits, this);
@@ -172,7 +172,7 @@ void RateRNode::encode(__m256i *Bits) {
 
 // End of nodes
 
-Node* createEncoder(std::set<unsigned> &frozenBits, Node *parent) {
+Node* createEncoder(std::vector<unsigned> &frozenBits, Node *parent) {
 	size_t blockLength = parent->blockLength();
 	size_t frozenBitCount = frozenBits.size();
 
@@ -208,7 +208,7 @@ size_t nBit2vecCount(size_t blockLength) {
 
 }// namespace RecursiveAvx2
 
-RecursiveAvx2Packed::RecursiveAvx2Packed(size_t blockLength, const std::set<unsigned> &frozenBits) {
+RecursiveAvx2Packed::RecursiveAvx2Packed(size_t blockLength, const std::vector<unsigned> &frozenBits) {
 	mBlockLength = 0;
 	initialize(blockLength, frozenBits);
 }
@@ -222,7 +222,7 @@ void RecursiveAvx2Packed::clear() {
 	delete mNodeBase;
 }
 
-void RecursiveAvx2Packed::initialize(size_t blockLength, const std::set<unsigned> &frozenBits) {
+void RecursiveAvx2Packed::initialize(size_t blockLength, const std::vector<unsigned> &frozenBits) {
 	if(blockLength == mBlockLength && frozenBits == mFrozenBits) {
 		return;
 	} else {

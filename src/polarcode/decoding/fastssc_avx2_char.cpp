@@ -110,12 +110,12 @@ void SpcPrep::prepare(__m256i *x) {
 
 // Constructors of nodes
 
-RateRNode::RateRNode(std::set<unsigned> &frozenBits, Node *parent)
+RateRNode::RateRNode(std::vector<unsigned> &frozenBits, Node *parent)
 	: mParent(parent){
 	xmDataPool = parent->pool();
 	mBlockLength = parent->blockLength() / 2;
 
-	std::set<unsigned> leftFrozenBits, rightFrozenBits;
+	std::vector<unsigned> leftFrozenBits, rightFrozenBits;
 	splitFrozenBits(frozenBits, mBlockLength, leftFrozenBits, rightFrozenBits);
 
 	mLeft = createDecoder(leftFrozenBits, this);
@@ -127,7 +127,7 @@ RateRNode::RateRNode(std::set<unsigned> &frozenBits, Node *parent)
 	ChildLlr = xmDataPool->allocate(mVecCount);
 }
 
-ShortRateRNode::ShortRateRNode(std::set<unsigned> &frozenBits, Node *parent)
+ShortRateRNode::ShortRateRNode(std::vector<unsigned> &frozenBits, Node *parent)
 	: RateRNode(frozenBits, parent),
 	  LeftBits(xmDataPool->allocate(mVecCount)),
 	  RightBits(xmDataPool->allocate(mVecCount)) {
@@ -370,7 +370,7 @@ void ShortRateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 
 // End of mass defining
 
-Node* createDecoder(std::set<unsigned> frozenBits, Node* parent) {
+Node* createDecoder(std::vector<unsigned> frozenBits, Node* parent) {
 	size_t blockLength = parent->blockLength();
 	size_t frozenBitCount = frozenBits.size();
 
@@ -403,7 +403,7 @@ size_t nBit2vecCount(size_t blockLength) {
 }
 }// namespace FastSscAvx2
 
-FastSscAvx2Char::FastSscAvx2Char(size_t blockLength, const std::set<unsigned> &frozenBits) {
+FastSscAvx2Char::FastSscAvx2Char(size_t blockLength, const std::vector<unsigned> &frozenBits) {
 	mBlockLength = 0;// Hint in order to not delete objects that don't exist yet.
 	initialize(blockLength, frozenBits);
 }
@@ -421,7 +421,7 @@ void FastSscAvx2Char::clear() {
 	delete mDataPool;
 }
 
-void FastSscAvx2Char::initialize(size_t blockLength, const std::set<unsigned> &frozenBits) {
+void FastSscAvx2Char::initialize(size_t blockLength, const std::vector<unsigned> &frozenBits) {
 	if(blockLength == mBlockLength && frozenBits == mFrozenBits) {
 		return;
 	} else {
@@ -429,7 +429,8 @@ void FastSscAvx2Char::initialize(size_t blockLength, const std::set<unsigned> &f
 			clear();
 		}
 		mBlockLength = blockLength;
-		mFrozenBits = frozenBits;
+		//mFrozenBits = frozenBits;
+		mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 		mDataPool = new DataPool<__m256i, 32>();
 		mNodeBase = new FastSscAvx2::Node(blockLength, mDataPool);
 		mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase);

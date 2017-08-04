@@ -2,7 +2,7 @@
 #define PC_CON_CONSTRUCTOR_H
 
 #include <cstddef>
-#include <set>
+#include <vector>
 
 namespace PolarCode {
 namespace Construction {
@@ -25,7 +25,7 @@ public:
 	 * \brief Executes the construction algorithm.
 	 * \return The set of frozen bits.
 	 */
-	virtual std::set<unsigned> construct() = 0;
+	virtual std::vector<unsigned> construct() = 0;
 
 	/*!
 	 * \brief Set the block length of the code to construct.

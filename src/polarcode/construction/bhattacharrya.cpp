@@ -34,9 +34,9 @@ void Bhattacharrya::setParameterByDesignSNR(float designSNR) {
 
 }
 
-std::set<unsigned> Bhattacharrya::construct() {
-	std::set<unsigned> frozenBits;
-	frozenBits.clear();
+std::vector<unsigned> Bhattacharrya::construct() {
+	std::vector<unsigned> frozenBits;
+	frozenBits.resize(mBlockLength-mInformationLength);
 
 	//Generate and sort parameters
 	calculateChannelParameters();
@@ -47,7 +47,7 @@ std::set<unsigned> Bhattacharrya::construct() {
 	for(unsigned channel=0;
 			channel < (mBlockLength-mInformationLength);
 			++channel) {
-		frozenBits.insert(mSorter.permuted[channel]);
+		frozenBits[channel] = mSorter.permuted[channel];
 	}
 
 	return frozenBits;

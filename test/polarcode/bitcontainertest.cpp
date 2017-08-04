@@ -5,7 +5,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(BitContainerTest);
 
 void BitContainerTest::setUp() {
 	mTestData = "TestData";
-	mFrozenBits.insert({0,1,2,3,4,5,6,7});//Freeze first byte
+	mFrozenBits = {0,1,2,3,4,5,6,7};//Freeze first byte
 
 	floatContainer = new PolarCode::FloatContainer(mTestData.size()*8, mFrozenBits);
 	 charContainer = new PolarCode::CharContainer(mTestData.size()*8, mFrozenBits);

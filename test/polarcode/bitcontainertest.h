@@ -16,7 +16,7 @@ class BitContainerTest : public CppUnit::TestFixture {
 	PolarCode::BitContainer  *charContainer;
 	unsigned char *control;
 	std::string mTestData;
-	std::set<unsigned> mFrozenBits;
+	std::vector<unsigned> mFrozenBits;
 
 public:
 	void setUp();

@@ -57,9 +57,9 @@ void EncodingTest::avxCharTest() {
 		size_t testBits = testBytes*8;
 //		std::cout << "Test length: " << testBytes << " Bytes, " << testBits << " Bits" << std::endl;
 
-		frozenBits.clear();
+		frozenBits.resize(testBits-1);
 		for(unsigned i=0; i<testBits-1; ++i) {
-			frozenBits.insert(i);
+			frozenBits[i] = i;
 		}
 		memset(output, 0, testBytes);
 
@@ -95,9 +95,9 @@ void EncodingTest::avxPackedTest() {
 		size_t testBits = testBytes*8;
 //		std::cout << "Test length: " << testBytes << " Bytes, " << testBits << " Bits" << std::endl;
 
-		frozenBits.clear();
+		frozenBits.resize(testBits-1);
 		for(unsigned i=0; i<testBits-1; ++i) {
-			frozenBits.insert(i);
+			frozenBits[i] = i;
 		}
 		memset(output, 0, testBytes);
 
@@ -174,6 +174,9 @@ void EncodingTest::avxRecursiveTest() {
 	delete constructor;
 	delete recursiveEncoder;
 	delete butterflyEncoder;
+	delete [] input;
+	delete [] recursiveOutput;
+	delete [] butterflyOutput;
 }
 
 void EncodingTest::performanceComparison() {
@@ -185,9 +188,9 @@ void EncodingTest::performanceComparison() {
 
 	unsigned char input = 0x80;
 
-	frozenBits.clear();
+	frozenBits.resize(testBits-1);
 	for(unsigned i=0; i<testBits-1; ++i) {
-		frozenBits.insert(i);
+		frozenBits[i] = i;
 	}
 
 	std::cout << "Encoding blocks of " << testBits << " bits:" << std::endl;

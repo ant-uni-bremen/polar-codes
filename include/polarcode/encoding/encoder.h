@@ -2,7 +2,7 @@
 #define PC_ENC_ENCODER_H
 
 #include <cstddef>
-#include <set>
+#include <vector>
 
 #include <polarcode/bitcontainer.h>
 
@@ -17,7 +17,7 @@ protected:
 	size_t mBlockLength;           ///< Block length of the Polar Code
 	bool mSystematic;              ///< Whether to use systematic coding
 	BitContainer *mBitContainer;   ///< Internal bit memory
-	std::set<unsigned> mFrozenBits; ///< Indices for frozen bits
+	std::vector<unsigned> mFrozenBits; ///< Indices for frozen bits
 
 public:
 	Encoder();
@@ -30,7 +30,7 @@ public:
 	 * \param frozenBits A set of frozen channel indices.
 	 */
 	virtual void initialize(size_t blockLength,
-							const std::set<unsigned> &frozenBits) = 0;
+							const std::vector<unsigned> &frozenBits) = 0;
 
 	/*!
 	 * \brief Explicitly call setSystematic(false); to use

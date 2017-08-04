@@ -101,7 +101,7 @@ class ShortButterflyNode : public Node {
 	Node *mParent;
 	Encoder *mButterflyEncoder;
 public:
-	ShortButterflyNode(std::set<unsigned> &frozenBits, Node* parent);///< Initialize the butterfly encoder.
+	ShortButterflyNode(std::vector<unsigned> &frozenBits, Node* parent);///< Initialize the butterfly encoder.
 	~ShortButterflyNode();
 	void encode(__m256i *Bits);///< Perform butterfly encoding.
 };
@@ -114,12 +114,12 @@ class RateRNode : public Node {
 	Node *mLeft, *mRight;
 	int mStage;
 public:
-	RateRNode(std::set<unsigned> &frozenBits, Node* parent);///< Initialize the general recursive encoder.
+	RateRNode(std::vector<unsigned> &frozenBits, Node* parent);///< Initialize the general recursive encoder.
 	~RateRNode();
 	void encode(__m256i *Bits);///< Recursively invoke simpler decoders.
 };
 
-Node* createEncoder(std::set<unsigned> &frozenBits, Node* parent);
+Node* createEncoder(std::vector<unsigned> &frozenBits, Node* parent);
 
 size_t nBit2vecCount(size_t blockLength);
 
@@ -146,13 +146,13 @@ public:
 	 * \param frozenBits Set of frozen channel indices.
 	 */
 	RecursiveAvx2Packed(size_t blockLength,
-					  const std::set<unsigned> &frozenBits);
+					  const std::vector<unsigned> &frozenBits);
 
 	~RecursiveAvx2Packed();
 
 	void encode();
 	void initialize(size_t blockLength,
-					const std::set<unsigned> &frozenBits);
+					const std::vector<unsigned> &frozenBits);
 };
 
 

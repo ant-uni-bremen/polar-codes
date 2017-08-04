@@ -27,13 +27,13 @@ public:
 	 * \param frozenBits Set of frozen channel indices.
 	 */
 	ButterflyAvxFloat(size_t blockLength,
-					  const std::set<unsigned> &frozenBits);
+					  const std::vector<unsigned> &frozenBits);
 
 	~ButterflyAvxFloat();
 
 	void encode();
 	void initialize(size_t blockLength,
-					const std::set<unsigned> &frozenBits);
+					const std::vector<unsigned> &frozenBits);
 };
 
 

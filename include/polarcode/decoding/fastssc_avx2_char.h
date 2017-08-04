@@ -135,7 +135,7 @@ public:
 	 * \param frozenBits The set of frozen bits of this code.
 	 * \param parent The parent node, defining the length of this code.
 	 */
-	RateRNode(std::set<unsigned> &frozenBits, Node *parent);
+	RateRNode(std::vector<unsigned> &frozenBits, Node *parent);
 	~RateRNode();
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
@@ -152,7 +152,7 @@ public:
 	 * \param frozenBits The set of frozen bits of this code.
 	 * \param parent The parent node, defining the length of this code.
 	 */
-	ShortRateRNode(std::set<unsigned> &frozenBits, Node *parent);
+	ShortRateRNode(std::vector<unsigned> &frozenBits, Node *parent);
 	~ShortRateRNode();
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
@@ -209,7 +209,7 @@ public:
  * \param parent The parent node from which the code length is fetched.
  * \return Pointer to a polymorphic decoder object.
  */
-Node* createDecoder(std::set<unsigned> frozenBits, Node* parent);
+Node* createDecoder(std::vector<unsigned> frozenBits, Node* parent);
 
 /*!
  * \brief Convert block length to minimum AVX-vector count.
@@ -236,11 +236,11 @@ public:
 	 * \param blockLength Length of the Polar Code.
 	 * \param frozenBits Set of frozen bits in the code word.
 	 */
-	FastSscAvx2Char(size_t blockLength, const std::set<unsigned> &frozenBits);
+	FastSscAvx2Char(size_t blockLength, const std::vector<unsigned> &frozenBits);
 	~FastSscAvx2Char();
 
 	bool decode();
-	void initialize(size_t blockLength, const std::set<unsigned> &frozenBits);
+	void initialize(size_t blockLength, const std::vector<unsigned> &frozenBits);
 };
 
 }//namespace Decoding
