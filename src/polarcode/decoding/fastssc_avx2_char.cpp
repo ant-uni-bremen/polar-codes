@@ -209,6 +209,7 @@ void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out)
 	__m256i absR = _mm256_abs_epi8(Right);
 	__m256i minV = _mm256_min_epi8(absL, absR);//minimum of absolute values
 	__m256i xorV = _mm256_xor_si256(Left, Right);//multiply signs
+	xorV = _mm256_or_si256(xorV, _mm256_set1_epi8(1));//prevent zero as sign value
 	__m256i outV = _mm256_sign_epi8(minV, xorV);//merge sign and value
 	_mm256_store_si256(Out, outV);//save
 }
@@ -402,14 +403,14 @@ bool FastSscAvx2Char::decode() {
 	}
 	if(!mSystematic) {
 		Encoding::Encoder* encoder = new Encoding::ButterflyAvx2Packed(mBlockLength);
+		encoder->setSystematic(false);
 		encoder->setCodeword(mBitContainer->data());
 		encoder->encode();
 		encoder->getEncodedData(mBitContainer->data());
 		delete encoder;
 	}
 	mBitContainer->getPackedInformationBits(mOutputContainer);
-	bool result = mErrorDetector->check(mOutputContainer, mBlockLength/8);
-	_mm256_zeroall();
+	bool result = mErrorDetector->check(mOutputContainer, (mBlockLength-mFrozenBits.size()+7)/8);
 	return result;
 }
 

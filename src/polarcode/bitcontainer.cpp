@@ -611,7 +611,39 @@ char* PackedContainer::data() {
 //Dummy
 void PackedContainer::insertLlr(const float *pLlr){}
 void PackedContainer::insertLlr(const char  *pLlr){}
-void PackedContainer::getPackedInformationBits(void* pData){}
+
+
+void PackedContainer::getPackedInformationBits(void* pData) {
+	const unsigned int *inputPtr = reinterpret_cast<const unsigned int*>(mData);
+	__m256i inputVector = _mm256_get_mask_epi8(inputPtr[0]);
+	char* inputChar = reinterpret_cast<char*>(&inputVector);
+	int currentInfoChunk = 0;
+
+	int *outputPtr = reinterpret_cast<int*>(pData);
+	__m256i outputVector = _mm256_get_mask_epi8(outputPtr[0]);
+	char* outputChar = reinterpret_cast<char*>(&outputVector);
+	int currentOutputChunk = 0;
+
+	for(unsigned infoBit = 0; infoBit < mInformationBitCount; ++infoBit) {
+		int infoChunk = mLUT[infoBit]/32;
+		if(infoChunk != currentInfoChunk) {
+			inputVector = _mm256_get_mask_epi8(inputPtr[infoChunk]);
+			currentInfoChunk = infoChunk;
+		}
+		int outputChunk = infoBit/32;
+		if(outputChunk != currentOutputChunk) {
+			outputPtr[currentOutputChunk] = _mm256_movemask_epi8(outputVector);
+			outputVector = _mm256_setzero_si256();//loading not needed
+			currentOutputChunk = outputChunk;
+		}
+
+		int inputAddress = bitVecAddress(mLUT[infoBit]%32);
+		int outputAddress = bitVecAddress(infoBit%32);
+
+		outputChar[outputAddress] = inputChar[inputAddress];
+	}
+	outputPtr[currentOutputChunk] = _mm256_movemask_epi8(outputVector);
+}
 
 
 void PackedContainer::insertBit(unsigned int bit, char value) {

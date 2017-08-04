@@ -193,7 +193,7 @@ void EncodingTest::performanceComparison() {
 		frozenBits[i] = i;
 	}
 
-	std::cout << "Encoding blocks of " << testBits << " bits:" << std::endl;
+	std::cout << std::endl << "Encoding blocks of " << testBits << " bits:" << std::endl;
 
 	encoder = new PolarCode::Encoding::ButterflyAvxFloat(testBits, frozenBits);
 	encoder->setSystematic(false);
