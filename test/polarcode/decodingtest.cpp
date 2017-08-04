@@ -141,11 +141,13 @@ void DecodingTest::testAvx2() {
 	PolarCode::Decoding::FastSscAvx2Char* decoder
 			= new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits);
 
+	memset(input, 0xF0, infoLength/8);
+
 	encoder->setInformation(input);
 	encoder->encode();
 	encoder->getEncodedData(inputBlock);
 
-	{
+	{// Test if encoded bits are still recoverable from systematic codeword
 		PolarCode::PackedContainer *cont = new PolarCode::PackedContainer(blockLength, frozenBits);
 		cont->insertPackedBits(inputBlock);
 		cont->getPackedInformationBits(output);

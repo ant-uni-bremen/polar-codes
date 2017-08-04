@@ -20,7 +20,7 @@ void trackingSorter::set(std::vector<float> &arr) {
 	unset();
 	size = arr.size();
 	data = arr.data();
-	permuted.reserve(size);
+	permuted.resize(size);
 	for(int i=0; i<size; ++i) {
 		permuted[i] = i;
 	}
@@ -30,7 +30,7 @@ void trackingSorter::set(std::vector<float> &arr, int size) {
 	unset();
 	this->size = size;
 	data = arr.data();
-	permuted.reserve(size);
+	permuted.resize(size);
 	for(int i=0; i<size; ++i) {
 		permuted[i] = i;
 	}

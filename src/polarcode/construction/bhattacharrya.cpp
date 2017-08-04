@@ -1,5 +1,6 @@
 #include <polarcode/construction/bhattacharrya.h>
 #include <cmath>
+#include <algorithm>
 
 namespace PolarCode {
 namespace Construction {
@@ -49,6 +50,8 @@ std::vector<unsigned> Bhattacharrya::construct() {
 			++channel) {
 		frozenBits[channel] = mSorter.permuted[channel];
 	}
+
+	std::sort(frozenBits.begin(), frozenBits.end());
 
 	return frozenBits;
 }
