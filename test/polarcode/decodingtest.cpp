@@ -3,6 +3,7 @@
 #include <polarcode/decoding/fastssc_avx2_char.h>
 #include <polarcode/encoding/butterfly_avx2_packed.h>
 #include <polarcode/construction/bhattacharrya.h>
+#include <polarcode/datapool.txx>
 #include <chrono>
 #include <iostream>
 #include <random>
@@ -50,6 +51,32 @@ void DecodingTest::testSpecialDecoders() {
 	expectedResult = _mm256_set_epi8(1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1);
 	PolarCode::Decoding::FastSscAvx2::SpcDecode(&llr, &bits, 32);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
+
+/*
+	std::vector<unsigned> frozenBits;
+	frozenBits.resize(1,0);
+	PolarCode::DataPool<__m256i, 32> pool;
+	PolarCode::Decoding::FastSscAvx2::Node *base =
+			new PolarCode::Decoding::FastSscAvx2::Node(2,&pool);
+	PolarCode::Decoding::FastSscAvx2::RateRNode *node
+			= new PolarCode::Decoding::FastSscAvx2::ShortRateRNode(frozenBits, base);
+	__m256i* input = base->input();char*ci=reinterpret_cast<char*>(input);
+	__m256i* output = base->output();
+	__m256i spcoutput;
+	int a=1;int b=-1;
+//	for(int a=-127;a<128;++a) {
+//		for(int b=-127;b<128;++b) {
+			*input = _mm256_setzero_si256();
+			ci[0] = a;
+			ci[1] = b;
+			node->decode(input, output);
+			PolarCode::Decoding::FastSscAvx2::SpcDecode(input, &spcoutput, 2);
+			if(0!=memcmp(output, &spcoutput, 2)) {
+				std::cout << "Problem here." << std::endl;
+			}
+//		}
+//	}
+*/
 }
 
 void DecodingTest::testGeneralDecodingFunctions() {

@@ -8,6 +8,8 @@
 
 #include <polarcode/avxconvenience.h>
 
+namespace PolarCode {
+
 template <typename mT>
 struct Block {
 	size_t useCount;
@@ -112,4 +114,5 @@ public:
 	}
 };
 
+}// namespace PolarCode
 #endif
