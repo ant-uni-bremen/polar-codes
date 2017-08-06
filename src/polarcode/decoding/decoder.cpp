@@ -8,12 +8,19 @@ namespace Decoding {
 
 Decoder::Decoder()
 	: mErrorDetector(new ErrorDetection::Dummy()),
-	  mSystematic(true) {
-
+	  mBlockLength(0),
+	  mSystematic(true),
+	  mLlrContainer(nullptr),
+	  mBitContainer(nullptr),
+	  mOutputContainer(nullptr),
+	  mFrozenBits({}) {
 }
 
 Decoder::~Decoder() {
 	delete mErrorDetector;
+	if(mLlrContainer) delete mLlrContainer;
+	if(mBitContainer) delete mBitContainer;
+	if(mOutputContainer) delete [] mOutputContainer;
 }
 
 void Decoder::setErrorDetection(ErrorDetection::Detector *pDetector) {

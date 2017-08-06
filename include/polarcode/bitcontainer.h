@@ -30,7 +30,7 @@ public:
 	 * \param size Length of the code word to be stored.
 	 * \param frozenBits Set of frozen bits.
 	 */
-	BitContainer(size_t size, std::vector<unsigned> &frozenBits);
+	BitContainer(size_t size, const std::vector<unsigned> &frozenBits);
 
 	virtual ~BitContainer();
 
@@ -72,7 +72,7 @@ public:
 	 * \brief Insert byte-wise defined bits, for example after decoding.
 	 * \param pData Pointer to char-bits.
 	 */
-	virtual void insertCharBits(const char* pData) = 0;
+	virtual void insertCharBits(const void* pData) = 0;
 
 	/*!
 	 * \brief Insert single precision floating point soft-bits of received code word.
@@ -140,7 +140,7 @@ public:
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
 	void insertPackedInformationBits(const void *pData);
-	void insertCharBits(const char* pData);
+	void insertCharBits(const void* pData);
 	void insertLlr(const float *pLlr);
 	void insertLlr(const char  *pLlr);
 	void getPackedBits(void* pData);
@@ -167,12 +167,12 @@ public:
 	CharContainer();
 	CharContainer(size_t size);///<Initialize the container to specified size.
 	CharContainer(char *external, size_t size);///<Assign an external storage to this container.
-	CharContainer(size_t size, std::vector<unsigned> &frozenBits);///<Configure this container to a given Polar Code.
+	CharContainer(size_t size, const std::vector<unsigned> &frozenBits);///<Configure this container to a given Polar Code.
 	~CharContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
 	void insertPackedInformationBits(const void *pData);
-	void insertCharBits(const char* pData);
+	void insertCharBits(const void *pData);
 	void insertLlr(const float *pLlr);
 	void insertLlr(const char  *pLlr);
 	void getPackedBits(void* pData);
@@ -213,7 +213,7 @@ public:
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);
 	void insertPackedInformationBits(const void *pData);
-	void insertCharBits(const char* pData);
+	void insertCharBits(const void* pData);
 	void getPackedBits(void* pData);
 	void resetFrozenBits();
 

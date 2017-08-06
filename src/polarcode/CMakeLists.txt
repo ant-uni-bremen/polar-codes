@@ -25,8 +25,10 @@ add_library(PolarEncoder OBJECT
 add_library(PolarDecoder OBJECT
         decoding/decoder
         decoding/fastssc_avx2_char
+        decoding/scl_avx2_char
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/decoder.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fastssc_avx2_char.h)
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fastssc_avx2_char.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/scl_avx2_char.h)
 
 add_library(PolarConstructor OBJECT
         construction/constructor

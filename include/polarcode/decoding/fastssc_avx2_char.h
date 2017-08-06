@@ -2,7 +2,6 @@
 #define PC_DEC_FASTSSC_AVX2_H
 
 #include <polarcode/decoding/decoder.h>
-#include <polarcode/encoding/butterfly_avx2_char.h>
 #include <polarcode/datapool.txx>
 
 namespace PolarCode {

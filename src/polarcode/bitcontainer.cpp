@@ -44,7 +44,7 @@ BitContainer::BitContainer(size_t size)
 	  mLUT(nullptr) {
 }
 
-BitContainer::BitContainer(size_t size, std::vector<unsigned> &frozenBits)
+BitContainer::BitContainer(size_t size, const std::vector<unsigned> &frozenBits)
 	: mElementCount(size),
 	  mFrozenBits(frozenBits),
 	  mInformationBitCount(size-frozenBits.size()),
@@ -169,7 +169,8 @@ void FloatContainer::insertPackedInformationBits(const void *pData) {
 	}
 }
 
-void FloatContainer::insertCharBits(const char *pData) {
+void FloatContainer::insertCharBits(const void *apData) {
+	const char *pData = static_cast<const char*>(apData);
 	unsigned int *iPtr = reinterpret_cast<unsigned int*>(mData);
 	unsigned int temp;
 	for(unsigned int bit = 0; bit < mElementCount; ++bit) {
@@ -243,7 +244,7 @@ CharContainer::CharContainer(size_t size)
 	setSize(size);
 }
 
-CharContainer::CharContainer(size_t size, std::vector<unsigned> &frozenBits)
+CharContainer::CharContainer(size_t size, const std::vector<unsigned> &frozenBits)
 	: BitContainer(size, frozenBits), mData(nullptr), mDataIsExternal(false) {
 	setSize(size);
 }
@@ -313,7 +314,7 @@ void CharContainer::insertPackedInformationBits(const void *pData) {
 	}
 }
 
-void CharContainer::insertCharBits(const char *pData) {
+void CharContainer::insertCharBits(const void *pData) {
 	memcpy(mData, pData, mElementCount);
 }
 
@@ -545,10 +546,10 @@ void PackedContainer::insertPackedInformationBits(const void *pData) {
 	}
 }
 
-void PackedContainer::insertCharBits(const char *pData) {
+void PackedContainer::insertCharBits(const void *pData) {
 	unsigned int nBytes = mElementCount/8;
 	unsigned char *outPtr = reinterpret_cast<unsigned char*>(mData);
-	const unsigned char *inPtr  = reinterpret_cast<const unsigned char*>(pData);
+	const unsigned char *inPtr  = static_cast<const unsigned char*>(pData);
 	unsigned char currentByte;
 
 	for(unsigned int byte=0; byte<nBytes; ++byte) {

@@ -362,7 +362,6 @@ size_t nBit2vecCount(size_t blockLength) {
 }// namespace FastSscAvx2
 
 FastSscAvx2Char::FastSscAvx2Char(size_t blockLength, const std::vector<unsigned> &frozenBits) {
-	mBlockLength = 0;// Hint in order to not delete objects that don't exist yet.
 	initialize(blockLength, frozenBits);
 }
 
@@ -371,9 +370,6 @@ FastSscAvx2Char::~FastSscAvx2Char() {
 }
 
 void FastSscAvx2Char::clear() {
-	delete mLlrContainer;
-	delete mBitContainer;
-	delete [] mOutputContainer;
 	if(mRootNode) delete mRootNode;
 	delete mNodeBase;
 	delete mDataPool;
@@ -382,22 +378,21 @@ void FastSscAvx2Char::clear() {
 void FastSscAvx2Char::initialize(size_t blockLength, const std::vector<unsigned> &frozenBits) {
 	if(blockLength == mBlockLength && frozenBits == mFrozenBits) {
 		return;
-	} else {
-		if(mBlockLength != 0) {
-			clear();
-		}
-		mBlockLength = blockLength;
-		//mFrozenBits = frozenBits;
-		mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
-		mDataPool = new DataPool<__m256i, 32>();
-		mNodeBase = new FastSscAvx2::Node(blockLength, mDataPool);
-		mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase, &mSpecialDecoder);
-		mLlrContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()),  mBlockLength);
-		mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);
-		mLlrContainer->setFrozenBits(mFrozenBits);
-		mBitContainer->setFrozenBits(mFrozenBits);
-		mOutputContainer = new unsigned char[(mBlockLength-frozenBits.size()+7)/8];
 	}
+	if(mBlockLength != 0) {
+		clear();
+	}
+	mBlockLength = blockLength;
+	//mFrozenBits = frozenBits;
+	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+	mDataPool = new DataPool<__m256i, 32>();
+	mNodeBase = new FastSscAvx2::Node(blockLength, mDataPool);
+	mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase, &mSpecialDecoder);
+	mLlrContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()),  mBlockLength);
+	mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);
+	mLlrContainer->setFrozenBits(mFrozenBits);
+	mBitContainer->setFrozenBits(mFrozenBits);
+	mOutputContainer = new unsigned char[(mBlockLength-frozenBits.size()+7)/8];
 }
 
 bool FastSscAvx2Char::decode() {
