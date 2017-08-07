@@ -14,13 +14,36 @@ namespace SclAvx2 {
 typedef DataPool<__m256i, 32> datapool_t;
 typedef Block<__m256i> block_t;
 
-struct PathItem {
-	std::vector<block_t*> Llr;
-	std::vector<block_t*> Bits;
-	long Metric;
-};
+class PathList {
+	std::vector<std::vector<block_t*>> mLlrTree;
+	std::vector<std::vector<block_t*>> mBitTree;
+	std::vector<long> mMetric;
+	std::vector<std::vector<block_t*>> mNextLlrTree;
+	std::vector<std::vector<block_t*>> mNextBitTree;
+	std::vector<long> mNextMetric;
+	size_t mPathLimit, mPathCount, mNextPathCount;
+	size_t mStageCount;
+	datapool_t *xmDataPool;
+public:
 
-typedef std::multimap<long, PathItem> PathList;
+	PathList();
+	PathList(size_t listSize, size_t stageCount, datapool_t* dataPool);
+	~PathList();
+	void clear();
+	void duplicatePath(unsigned destination, unsigned source, unsigned stage);
+	void clearOldPath(unsigned path, unsigned stage);
+	void switchToNext();
+	void setFirstPath(void* pLlr, unsigned vecCount);
+	void allocateStage(unsigned stage, unsigned vecCount);
+	void clearStage(unsigned stage);
+
+	__m256i* Llr(unsigned path, unsigned stage);
+	__m256i* Bit(unsigned path, unsigned stage);
+	__m256i* NextLlr(unsigned path, unsigned stage);
+	__m256i* NextBit(unsigned path, unsigned stage);
+	long& Metric(unsigned path);
+	long& NextMetric(unsigned path);
+};
 
 class Node {
 protected:
@@ -56,7 +79,6 @@ class SclAvx2Char : public Decoder {
 	SclAvx2::PathList *mPathList;
 
 	void clear();
-	void clearPathList();
 	void makeInitialPathList();
 	bool extractBestPath();
 

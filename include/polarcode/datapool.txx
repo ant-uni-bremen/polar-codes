@@ -107,10 +107,14 @@ public:
 	 * \brief Decrease the reference counter, eventually marking it as _unused_.
 	 * \param block The block that is no longer in use by the caller.
 	 */
-	void release(Block<T>* block) {
+	void release(Block<T>* &block) {
+		if(block == nullptr) {
+			return;
+		}
 		if(--block->useCount == 0) {
 			freeBlocks[block->size].push(block);
 		}
+		block = nullptr;
 	}
 };
 
