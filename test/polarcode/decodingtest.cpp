@@ -1,6 +1,7 @@
 #include "decodingtest.h"
 
 #include <polarcode/decoding/fastssc_avx2_char.h>
+#include <polarcode/decoding/scl_avx2_char.h>
 #include <polarcode/encoding/butterfly_avx2_packed.h>
 #include <polarcode/construction/bhattacharrya.h>
 #include <polarcode/datapool.txx>
@@ -87,7 +88,7 @@ void DecodingTest::testGeneralDecodingFunctions() {
 	llr[0]   = _mm256_set_epi8( 0, 1, 2, 3, 4, 5, 6,-7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1);
 	llr[1]   = _mm256_set_epi8(-1, 2, 3,-4, 5, 6,-7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2);
 	expected = _mm256_set_epi8( 0, 1, 2,-3, 4, 5,-6,-7, 8, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 1);
-	PolarCode::Decoding::FastSscAvx2::F_function(llr, &child, 32);
+	PolarCode::Decoding::F_function(llr, &child, 32);
 	CPPUNIT_ASSERT(testVectors(child, expected));
 
 	// G-function
@@ -95,14 +96,14 @@ void DecodingTest::testGeneralDecodingFunctions() {
 	llr[0]   = _mm256_set_epi8( 0, 1, 2, 3, 4, 5,  6, -7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1);
 	bits     = _mm256_set_epi8( 0, 0, 0, 1, 0, 0,  1,  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	expected = _mm256_set_epi8(-1, 3, 5,-7, 9,11,-13, 15,17, 9, 1, 3, 5, 7, 9,11,13,15,17, 9, 1, 3, 5, 7, 9,11,13,15,17, 9, 1, 3);
-	PolarCode::Decoding::FastSscAvx2::G_function(llr, &child, &bits, 32);
+	PolarCode::Decoding::G_function(llr, &child, &bits, 32);
 	CPPUNIT_ASSERT(testVectors(child, expected));
 
 	// Combine-function
 	llr[0]   = _mm256_setr_epi8( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	llr[1]   = _mm256_setr_epi8( 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	expected = _mm256_setr_epi8( 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	PolarCode::Decoding::FastSscAvx2::CombineShortBits(llr, llr+1, &bits, 8);
+	PolarCode::Decoding::CombineShortBits(llr, llr+1, &bits, 8);
 	CPPUNIT_ASSERT(testVectors(bits, expected));
 }
 
@@ -244,4 +245,32 @@ void DecodingTest::testAvx2Performance() {
 
 	delete decoder;
 
+}
+
+void DecodingTest::testListDecoder() {
+	using namespace std::chrono;
+	high_resolution_clock::time_point TimeStart, TimeEnd;
+	float TimeUsed;
+
+	size_t blockLength = 8;
+	size_t listSizeLimit = 4;
+	std::vector<unsigned> frozenBits({0,1,2,4});
+
+	float signal[]={-5, -6, -4, 1, -4, -5, -7, 2};
+	unsigned char output = 0;
+
+	PolarCode::Decoding::Decoder *decoder = new PolarCode::Decoding::SclAvx2Char(blockLength, listSizeLimit, frozenBits);
+
+	TimeStart = high_resolution_clock::now();
+	decoder->setSignal(signal);
+	decoder->decode();
+	TimeEnd = high_resolution_clock::now();
+	decoder->getDecodedInformationBits(&output);
+	CPPUNIT_ASSERT(output == 0xF0);
+
+	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart).count();
+
+	std::cout << "Decoder speed for 8-bit block: " << (blockLength/1e6/TimeUsed) << " Mbps (" << (TimeUsed*1e9) << " ns per block)" << std::endl;
+
+	delete decoder;
 }

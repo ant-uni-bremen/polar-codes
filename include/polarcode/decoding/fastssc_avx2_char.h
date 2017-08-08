@@ -3,6 +3,7 @@
 
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/datapool.txx>
+#include <polarcode/decoding/avx2_char.h>
 
 namespace PolarCode {
 namespace Decoding {
@@ -65,24 +66,12 @@ public:
 };
 
 
-void RepetitionPrepare(__m256i* x, const size_t codeLength);
-void SpcPrepare(__m256i* x, const size_t codeLength);
-
-
 void   RateZeroDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 void    RateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 void RepetitionDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 void        SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 
 
-void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out);
-void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out);
-
-void F_function(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength);
-void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBlockLength);
-
-void Combine(__m256i *Bits, const unsigned vecCount);
-void CombineShortBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
 
 /*!
  * \brief A Rate-R node redirects decoding to polar subcodes of lower complexity.
@@ -131,13 +120,6 @@ public:
  * \return Pointer to a polymorphic decoder object.
  */
 Node* createDecoder(std::vector<unsigned> frozenBits, Node* parent, void (**specialDecoder)(__m256i*, __m256i*, size_t));
-
-/*!
- * \brief Convert block length to minimum AVX-vector count.
- * \param blockLength Bits to store
- * \return The number of AVX-vectors required to store _blockLength_ char bits.
- */
-size_t nBit2vecCount(size_t blockLength);
 
 }// namespace FastSscAvx2
 

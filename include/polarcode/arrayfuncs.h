@@ -97,6 +97,31 @@ public:
 	void simplePartialSortDescending(float *data, int size, int n);
 };
 
+template<typename IdxType, typename ValueType>
+void simplePartialSortDescending(
+		std::vector<IdxType> &Indices,
+		std::vector<ValueType> &Values,
+		const unsigned int n) {
+	const unsigned size = Values.size();
+	Indices.resize(size);
+	for(unsigned i=0; i<size; ++i) {
+		Indices[i] = i;
+	}
+
+	const unsigned lim = std::min(size-1, n);
+
+	for(unsigned i=0; i<lim; ++i) {
+		unsigned index = i;
+		for(unsigned j=i+1; j<size; ++j) {
+			if(Values[j] > Values[index]) {
+				index = j;
+			}
+		}
+		std::swap(Values[i], Values[index]);
+		std::swap(Indices[i], Indices[index]);
+	}
+}
+
 void Bits2Bytes(std::vector<float> &bits, unsigned char *bytes, int nBytes);
 void Bits2Bytes(float* fbits, unsigned char *bytes, int nBytes);
 
