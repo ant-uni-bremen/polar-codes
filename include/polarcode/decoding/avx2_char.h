@@ -21,6 +21,7 @@ void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBl
 
 void Combine(__m256i *Bits, const unsigned vecCount);
 void CombineShortBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
+void CombineBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
 
 void RepetitionPrepare(__m256i* x, const size_t codeLength);
 void SpcPrepare(__m256i* x, const size_t codeLength);

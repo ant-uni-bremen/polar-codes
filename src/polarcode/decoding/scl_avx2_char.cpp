@@ -172,7 +172,7 @@ SclAvx2::PathList* Node::pathList() {
 DecoderNode::DecoderNode() {
 }
 
-DecoderNode::DecoderNode(std::vector<unsigned> &frozenBits, Node *parent)
+DecoderNode::DecoderNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	: Node(parent),
 	  mParent(parent),
 	  mStage(__builtin_ctz(mBlockLength)-1) {
@@ -187,7 +187,7 @@ DecoderNode::DecoderNode(std::vector<unsigned> &frozenBits, Node *parent)
 
 	childBits.resize(mListSize);
 	for(unsigned i=0; i<mListSize; ++i) {
-		childBits[i] = xmDataPool->allocate(nBit2vecCount(1<<i));
+		childBits[i] = xmDataPool->allocate(nBit2vecCount(1<<mStage));
 	}
 }
 
@@ -228,13 +228,13 @@ void DecoderNode::decode() {
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
 		xmPathList->getWriteAccessToBit(path, mStage+1);
-		CombineShortBits(childBits[path]->data, xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
+		CombineBits(childBits[path]->data, xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
 	}
 
 	xmPathList->clearStage(mStage);
 }
 
-Node* createDecoder(std::vector<unsigned> frozenBits, Node *parent, void (**specialDecoder)(PathList *, unsigned)) {
+Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent, void (**specialDecoder)(PathList *, unsigned)) {
 	size_t blockLength = parent->blockLength();
 	size_t frozenBitCount = frozenBits.size();
 
@@ -255,6 +255,8 @@ Node* createDecoder(std::vector<unsigned> frozenBits, Node *parent, void (**spec
 		*specialDecoder = &RateOneDecode;
 		return nullptr;
 	}*/
+
+	*specialDecoder = nullptr;
 
 	return new DecoderNode(frozenBits, parent);
 }

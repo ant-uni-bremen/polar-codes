@@ -8,6 +8,7 @@
 #include <chrono>
 #include <iostream>
 #include <random>
+#include <exception>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DecodingTest);
 
@@ -220,7 +221,7 @@ void DecodingTest::testAvx2Performance() {
 
 	/* Generate random signal, regardless if it is a valid codeword or not */ {
 		std::mt19937_64 generator;
-		std::normal_distribution<float> dist(0, 10);
+		std::normal_distribution<float> dist(0, 20);
 		for(unsigned i=0; i<blockLength; ++i) {
 			signal[i] = dist(generator);
 		}
@@ -245,6 +246,24 @@ void DecodingTest::testAvx2Performance() {
 
 	delete decoder;
 
+	decoder = new PolarCode::Decoding::SclAvx2Char(blockLength, 4, frozenBits);
+
+	TimeInject = high_resolution_clock::now();
+	decoder->setSignal(signal);
+	TimeDecode = high_resolution_clock::now();
+	decoder->decode();
+	TimeEnd = high_resolution_clock::now();
+
+	//decoder->getDecodedInformationBits(&output);
+	//CPPUNIT_ASSERT(output == 0xF0);
+
+	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeInject).count();
+	TimeDecoder = duration_cast<duration<float>>(TimeEnd-TimeDecode).count();
+
+	std::cout << "List decoder speed for " << blockLength << "-bit block: " << (blockLength*1e-6/TimeUsed) << " Mbps (" << (TimeUsed*1e9) << " ns per block)"
+			  << " [Decoder without bit injection: " << (blockLength*1e-6/TimeDecoder) << " Mbps, " << (TimeDecoder*1e9) << " ns/block]" << std::endl;
+
+	delete decoder;
 }
 
 void DecodingTest::testListDecoder() {
@@ -270,7 +289,7 @@ void DecodingTest::testListDecoder() {
 
 	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart).count();
 
-	std::cout << "Decoder speed for 8-bit block: " << (blockLength/1e6/TimeUsed) << " Mbps (" << (TimeUsed*1e9) << " ns per block)" << std::endl;
+	std::cout << "List decoder speed for 8-bit block: " << (blockLength/1e6/TimeUsed) << " Mbps (" << (TimeUsed*1e9) << " ns per block)" << std::endl;
 
 	delete decoder;
 }

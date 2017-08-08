@@ -87,7 +87,21 @@ void Combine(__m256i *Bits, const unsigned vecCount) {
 		__m256i tempR = _mm256_load_si256(Bits+vecCount+i);
 		tempL = _mm256_xor_si256(tempL, tempR);
 		_mm256_store_si256(Bits+i, tempL);
-//		_mm256_store_si256(Bits+vecCount+i, tempR);
+	}
+}
+
+void CombineBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
+	if(subBlockLength < 32) {
+		return CombineShortBits(Left, Right, Out, subBlockLength);
+	} else {
+		const unsigned vecCount = nBit2vecCount(subBlockLength);
+		for(unsigned i=0; i<vecCount; ++i) {
+			__m256i tempL = _mm256_load_si256(Left+i);
+			__m256i tempR = _mm256_load_si256(Right+i);
+			tempL = _mm256_xor_si256(tempL, tempR);
+			_mm256_store_si256(Out+i, tempL);
+			_mm256_store_si256(Out+vecCount+i, tempR);
+		}
 	}
 }
 

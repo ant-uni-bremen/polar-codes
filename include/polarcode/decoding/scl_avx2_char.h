@@ -112,12 +112,12 @@ public:
 	 * \param frozenBits The set of frozen bits for this code.
 	 * \param parent The parent node to copy all information from.
 	 */
-	DecoderNode(std::vector<unsigned> &frozenBits, Node *parent);
+	DecoderNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~DecoderNode();
 	void decode();
 };
 
-Node* createDecoder(std::vector<unsigned> frozenBits, Node* parent, void (**specialDecoder)(PathList*, unsigned));
+Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(PathList*, unsigned));
 
 void RateZeroDecode(PathList* pathList, unsigned stage);
 void RateOneDecode(PathList* pathList, unsigned stage);
