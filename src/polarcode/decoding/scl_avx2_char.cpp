@@ -27,9 +27,11 @@ PathList::PathList(size_t listSize, size_t stageCount, datapool_t *dataPool)
 		mNextLlrTree[i].resize(stageCount);
 		mNextBitTree[i].resize(stageCount);
 	}
+	tempBlock = xmDataPool->allocate(nBit2vecCount(1<<stageCount));
 }
 
 PathList::~PathList() {
+	xmDataPool->release(tempBlock);
 	clear();
 }
 
@@ -247,14 +249,14 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent, void 
 		return nullptr;
 	}
 
-/*	if(frozenBitCount == blockLength) {
+	if(frozenBitCount == blockLength) {
 		*specialDecoder = &RateZeroDecode;
 		return nullptr;
 	}
 	if(frozenBitCount == 0) {
 		*specialDecoder = &RateOneDecode;
 		return nullptr;
-	}*/
+	}
 
 	*specialDecoder = nullptr;
 
@@ -285,7 +287,66 @@ void RateZeroDecode(PathList *pathList, unsigned stage) {
 }
 
 void RateOneDecode(PathList *pathList, unsigned stage) {
-#warning TODO
+	std::vector<unsigned> indices;
+	std::vector<long> metrics;
+	std::vector<std::vector<unsigned>> bitFlipHints;
+	unsigned pathCount = pathList->PathCount();
+	unsigned vecCount = nBit2vecCount(1<<stage);
+	__m256i* vTempBlock = pathList->tempBlock->data;
+	char *cTempBlock = reinterpret_cast<char*>(vTempBlock);
+
+	metrics.resize(pathCount*4);
+	bitFlipHints.resize(pathCount*4);
+
+	for(unsigned path = 0; path < pathCount; ++path) {
+		long metric = pathList->Metric(path);
+		__m256i* LlrSource = pathList->Llr(path, stage);
+		for(unsigned i=0; i<vecCount; ++ i) {
+			__m256i Llr = _mm256_load_si256(LlrSource+i);
+			Llr = _mm256_abs_epi8(Llr);
+			_mm256_store_si256(vTempBlock+i, Llr);
+		}
+		simplePartialSortDescending<unsigned,char>(indices, cTempBlock, 1<<stage, 2);
+		metrics[path*4] = metric;
+		metrics[path*4+1] = metric-cTempBlock[0];
+		metrics[path*4+2] = metric-cTempBlock[1];
+		metrics[path*4+3] = metric-cTempBlock[0]-cTempBlock[1];
+
+		bitFlipHints[path*4] = {};
+		bitFlipHints[path*4+1] = {indices[0]};
+		bitFlipHints[path*4+2] = {indices[1]};
+		bitFlipHints[path*4+3] = {indices[0],indices[1]};
+	}
+	unsigned newPathCount = std::min(pathCount*4, pathList->PathLimit());
+	pathList->setNextPathCount(newPathCount);
+	simplePartialSortDescending<unsigned,long>(indices, metrics, newPathCount);
+
+	for(unsigned path = 0; path < newPathCount; ++path) {
+		pathList->duplicatePath(path, indices[path]/4, stage);
+	}
+
+	for(unsigned path = 0; path < pathCount; ++path) {
+		pathList->clearOldPath(path, stage);
+	}
+
+	for(unsigned path = 0; path < newPathCount; ++path) {
+		pathList->getWriteAccessToNextBit(path, stage);
+		pathList->NextMetric(path) = metrics[path];
+		__m256i* LlrSource = pathList->NextLlr(path, stage);
+		__m256i* BitDestination = pathList->NextBit(path, stage);
+		unsigned char *cBitDestination = reinterpret_cast<unsigned char*>(BitDestination);
+		for(unsigned i=0; i<vecCount; ++i) {
+			__m256i Llr = _mm256_load_si256(LlrSource+i);
+			__m256i Bit = hardDecode(Llr);
+			_mm256_store_si256(BitDestination+i, Bit);
+		}
+
+		for(unsigned index : bitFlipHints[indices[path]]) {
+			cBitDestination[index] ^= 0x80;
+		}
+	}
+
+	pathList->switchToNext();
 }
 
 char readSingleLlr(PathList *pl, unsigned path, unsigned stage) {

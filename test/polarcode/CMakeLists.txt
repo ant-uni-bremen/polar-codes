@@ -1,4 +1,5 @@
 add_library(PolarTest OBJECT
+        siformat
         polarcodetest
         bitcontainertest
         errordetectiontest

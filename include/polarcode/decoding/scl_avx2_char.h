@@ -33,6 +33,7 @@ class PathList {
 	unsigned mStageCount;
 	datapool_t *xmDataPool;
 public:
+	block_t* tempBlock;
 
 	PathList();
 

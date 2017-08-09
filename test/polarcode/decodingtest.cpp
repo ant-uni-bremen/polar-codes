@@ -1,4 +1,5 @@
 #include "decodingtest.h"
+#include "siformat.h"
 
 #include <polarcode/decoding/fastssc_avx2_char.h>
 #include <polarcode/decoding/scl_avx2_char.h>
@@ -130,7 +131,7 @@ void DecodingTest::testAvx2Short() {
 
 	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart).count();
 
-	std::cout << "Decoder speed for 8-bit block: " << (blockLength/1e6/TimeUsed) << " Mbps (" << (TimeUsed*1e9) << " ns per block)" << std::endl;
+	std::cout << "Decoder speed for 8-bit block: " << siFormat(blockLength/TimeUsed) << "bps (" << siFormat(TimeUsed) << "s per block)" << std::endl;
 
 	delete decoder;
 }
@@ -241,8 +242,8 @@ void DecodingTest::testAvx2Performance() {
 	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeInject).count();
 	TimeDecoder = duration_cast<duration<float>>(TimeEnd-TimeDecode).count();
 
-	std::cout << "Decoder speed for " << blockLength << "-bit block: " << (blockLength*1e-6/TimeUsed) << " Mbps (" << (TimeUsed*1e9) << " ns per block)"
-			  << " [Decoder without bit injection: " << (blockLength*1e-6/TimeDecoder) << " Mbps, " << (TimeDecoder*1e9) << " ns/block]" << std::endl;
+	std::cout << "Decoder speed for " << blockLength << "-bit block: " << siFormat(blockLength/TimeUsed) << "bps (" << siFormat(TimeUsed) << "s per block)"
+			  << " [Decoder without bit injection: " << siFormat(blockLength/TimeDecoder) << "bps, " << siFormat(TimeDecoder) << "s/block]" << std::endl;
 
 	delete decoder;
 
@@ -260,8 +261,8 @@ void DecodingTest::testAvx2Performance() {
 	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeInject).count();
 	TimeDecoder = duration_cast<duration<float>>(TimeEnd-TimeDecode).count();
 
-	std::cout << "List decoder speed for " << blockLength << "-bit block: " << (blockLength*1e-6/TimeUsed) << " Mbps (" << (TimeUsed*1e9) << " ns per block)"
-			  << " [Decoder without bit injection: " << (blockLength*1e-6/TimeDecoder) << " Mbps, " << (TimeDecoder*1e9) << " ns/block]" << std::endl;
+	std::cout << "List decoder speed for " << blockLength << "-bit block: " << siFormat(blockLength/TimeUsed) << "bps (" << siFormat(TimeUsed) << "s per block)"
+			  << " [Decoder without bit injection: " << siFormat(blockLength/TimeDecoder) << "bps, " << siFormat(TimeDecoder) << "s/block]" << std::endl;
 
 	delete decoder;
 }
@@ -289,7 +290,7 @@ void DecodingTest::testListDecoder() {
 
 	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart).count();
 
-	std::cout << "List decoder speed for 8-bit block: " << (blockLength/1e6/TimeUsed) << " Mbps (" << (TimeUsed*1e9) << " ns per block)" << std::endl;
+	std::cout << "List decoder speed for 8-bit block: " << siFormat(blockLength/TimeUsed) << "bps (" << siFormat(TimeUsed) << "s per block)" << std::endl;
 
 	delete decoder;
 }
