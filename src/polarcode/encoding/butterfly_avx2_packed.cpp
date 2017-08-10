@@ -1,6 +1,5 @@
 #include <polarcode/encoding/butterfly_avx2_packed.h>
 #include <polarcode/encoding/butterfly_avx2.h>
-#include <polarcode/bitcontainer.h>
 #include <cmath>
 #include <iostream>
 
@@ -57,8 +56,7 @@ void ButterflyAvx2Packed::transform() {
 	}
 }
 
-void ButterflyAvx2Packed::featureCheck()
-		throw (Avx2NotSupportedException) {
+void ButterflyAvx2Packed::featureCheck() {
 
 	if(!featureCheckAvx2()) {
 		throw Avx2NotSupportedException();

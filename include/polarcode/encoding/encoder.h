@@ -32,6 +32,11 @@ public:
 	virtual void initialize(size_t blockLength,
 							const std::vector<unsigned> &frozenBits) = 0;
 
+  /*!
+   * \brief Query codeword block Length
+   */
+  size_t blockLength(){ return mBlockLength;}
+
 	/*!
 	 * \brief Explicitly call setSystematic(false); to use
 	 *        non-systematic coding.
@@ -42,6 +47,13 @@ public:
 	 * \param sys Whether coding should be systematic.
 	 */
 	void setSystematic(bool sys);
+
+  /*!
+   * \brief Query if Encoder produces systematic codeword.
+   *
+   * Check if the code is systematic.
+   */
+  bool isSystematic(){ return mSystematic;};
 
 	/*!
 	 * \brief Copies packed information bits into encoder's memory.

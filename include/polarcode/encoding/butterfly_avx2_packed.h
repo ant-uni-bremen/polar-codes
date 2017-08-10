@@ -2,14 +2,13 @@
 #define PC_ENC_BUTTERFLY_AVX2_PACKED_H
 
 #include <polarcode/encoding/encoder.h>
-#include <polarcode/avxconvenience.h>
 
 namespace PolarCode {
 namespace Encoding {
 
-void ButterflyAvx2PackedTransform(__m256i* bitVector, size_t blockLength, int stage);
-void ButterflyAvx2PackedTransformSubVector(__m256i* bitVector, int stage, int blockCount);
-void ButterflyAvx2PackedTransformCrossVector(__m256i* bitVectors, int stage, int blockCount);
+//void ButterflyAvx2PackedTransform(__m256i* bitVector, size_t blockLength, int stage);
+//void ButterflyAvx2PackedTransformSubVector(__m256i* bitVector, int stage, int blockCount);
+//void ButterflyAvx2PackedTransformCrossVector(__m256i* bitVectors, int stage, int blockCount);
 
 /*!
  * \brief Complete butterfly transformation with AVX2 operations.
@@ -21,10 +20,13 @@ void ButterflyAvx2PackedTransformCrossVector(__m256i* bitVectors, int stage, int
  */
 class ButterflyAvx2Packed : public Encoder {
 	void transform();
-	void featureCheck() throw (Avx2NotSupportedException);
+	void featureCheck();
 
 public:
 	ButterflyAvx2Packed();
+
+//    size_t blockLength(){ return mBlockLength;}
+//    bool isSystematic(){ return mSystematic;}
 
 	/*!
 	 * \brief Create the butterfly encoder without frozen bits.

@@ -55,8 +55,7 @@ void ButterflyAvx2Char::transform() {
 	}
 }
 
-void ButterflyAvx2Char::featureCheck()
-		throw (Avx2NotSupportedException) {
+void ButterflyAvx2Char::featureCheck() {
 
 	if(!featureCheckAvx2()) {
 		throw Avx2NotSupportedException();

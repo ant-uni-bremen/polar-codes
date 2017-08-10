@@ -1,4 +1,5 @@
 #include <polarcode/encoding/recursive_avx2_packed.h>
+#include <polarcode/encoding/butterfly_avx2.h>
 #include <polarcode/polarcode.h>
 
 namespace PolarCode {

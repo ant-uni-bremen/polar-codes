@@ -2,7 +2,7 @@
 #define PC_ENC_BUTTERFLY_AVX2_CHAR_H
 
 #include <polarcode/encoding/encoder.h>
-#include <polarcode/avxconvenience.h>
+//#include <polarcode/avxconvenience.h>
 
 namespace PolarCode {
 namespace Encoding {
@@ -17,7 +17,7 @@ namespace Encoding {
  */
 class ButterflyAvx2Char : public Encoder {
 	void transform();
-	void featureCheck() throw (Avx2NotSupportedException);
+	void featureCheck();
 
 public:
 	ButterflyAvx2Char();
