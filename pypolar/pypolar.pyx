@@ -65,7 +65,7 @@ cdef class EncoderUnpacked:
         return self.kernel.isSystematic()
 
     def getEncodedData(self):
-        cdef np.ndarray[np.uint8_t, ndim=1] codeword = np.zeros((self.kernel.blockLength(), ), dtype=np.uint8)
+        cdef np.ndarray[np.uint8_t, ndim=1] codeword = np.zeros((self.kernel.blockLength() // 8, ), dtype=np.uint8)
         self.kernel.getEncodedData(<void*> codeword.data)
         return codeword
 
@@ -73,3 +73,4 @@ cdef class EncoderUnpacked:
         self.kernel.setInformation(<void*> info_bytes.data)
         self.kernel.encode()
         return self.getEncodedData()
+

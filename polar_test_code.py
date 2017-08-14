@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import sys
-sys.path.append('/home/demel/src/polar-codes/build/lib')
-sys.path.append('/home/demel/src/polar-codes/build/lib.linux-x86_64-2.7')
+sys.path.append('./build/lib')
+sys.path.append('./build/lib.linux-x86_64-2.7')
 import pypolar
 
 
@@ -222,9 +222,19 @@ def get_bitreversed_vector(bitwidth):
     return v
 
 
+def matrix_row_weight(G):
+    w = np.sum(G, axis=1)
+    print(w)
+    w = np.sum(G, axis=0)
+    print(w)
+
+
 def main():
     verify_encode_systematic()
-
+    G = get_polar_generator_matrix(3)
+    print(G)
+    matrix_row_weight(G)
+    # return
     N = 2 ** 3
     # n = int(np.log2(N))
     K = 4
@@ -241,7 +251,7 @@ def main():
     print('')
     print(xm)
 
-    N = 2 ** 3
+    N = 2 ** 6
     n = int(np.log2(N))
     rv = get_bitreversed_vector(n)
     K = N // 2
@@ -261,15 +271,15 @@ def main():
     print()
     xm = encode_systematic_matrix(u, N, frozenBitMap)
     print(np.packbits(xm))
-    print(xm[rv])
+    print(xm)
 
+    # print('unpacked')
+    # pu.setInformation(u)
+    # pu.encode()
+    # c = pu.getEncodedData()
+    # print(c)
     print('unpacked')
-    pu.setInformation(u)
-    pu.encode()
-    c = pu.getEncodedData()
-    print(c)
-    print('unpacked')
-    cu = pu.encode_vector(u)
+    cu = pu.encode_vector(d)
     print(cu)
     # p.setInformation(d)
     # p.encode()
@@ -278,6 +288,12 @@ def main():
     cw = p.encode_vector(d)
 
     cwu = np.unpackbits(cw)
+    print(np.packbits(xm))
+    print(cu)
+    print(cw)
+
+    print(xm)
+
     print(cwu)
 
     print(np.sum(cwu), np.sum(xm))
