@@ -41,6 +41,12 @@ public:
 	 */
 	virtual void initialize(size_t blockLength,
 							const std::vector<unsigned> &frozenBits) = 0;
+
+	/*!
+	 * \brief Query codeword block Length
+	 */
+	size_t blockLength(){ return mBlockLength;}
+
 	/*!
 	 * \brief Set an error detection scheme.
 	 * \param pDetector Pointer to an error detecting object. Ownership is taken.

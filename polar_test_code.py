@@ -3,7 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import sys
+import sys, time
 sys.path.append('./build/lib')
 sys.path.append('./build/lib.linux-x86_64-2.7')
 import pypolar
@@ -150,7 +150,7 @@ def verify_encode_systematic():
     eta = design_snr_to_bec_eta(-1.59, 1.0)
     polar_capacities = calculate_bec_channel_capacities(eta, N)
     frozenBitMap = get_frozenBitMap(polar_capacities, N - K)
-    print(frozenBitMap)
+    # print(frozenBitMap)
 
     for i in range(100):
         u = np.random.randint(0, 2, K)
@@ -229,11 +229,51 @@ def matrix_row_weight(G):
     print(w)
 
 
+def verify_cpp_impl():
+    N = 2 ** 8
+    K = N // 2
+    eta = design_snr_to_bec_eta(2, 1.0)
+    polar_capacities = calculate_bec_channel_capacities(eta, N)
+    f = get_frozenBitPositions(polar_capacities, N - K)
+    frozenBitMap = get_frozenBitMap(polar_capacities, N - K)
+
+    p = pypolar.PolarEncoder(N, f)
+    pu = pypolar.PolarEncoder(N, f, 'Unpacked')
+
+    ctr = 0
+    md = 0
+    mu = 0
+    mp = 0
+    for i in np.arange(100):
+        u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
+        d = np.packbits(u)
+
+        sm = time.time()
+        xm = encode_systematic_matrix(u, N, frozenBitMap)
+        um = time.time()
+        cw_char = pu.encode_vector(d)
+        pm = time.time()
+        cw_pack = p.encode_vector(d)
+        em = time.time()
+        md += um - sm
+        mu += pm - um
+        mp += em - pm
+
+        assert np.all(cw_char == cw_pack)
+        assert np.all(np.packbits(xm) == cw_pack)
+        ctr += 1
+
+    m = np.array([md, mu, mp]) / ctr
+    m *= 1e6
+    print('N={}, matrix: {:.2f}us, unpacked: {:.2f}us, packed: {:.2f}us'.format(N, m[0], m[1], m[2]))
+
+
 def main():
     verify_encode_systematic()
+    verify_cpp_impl()
     G = get_polar_generator_matrix(3)
     print(G)
-    matrix_row_weight(G)
+    # matrix_row_weight(G)
     # return
     N = 2 ** 3
     # n = int(np.log2(N))
@@ -245,58 +285,38 @@ def main():
     u = np.random.randint(0, 2, K)
     u = np.ones(K)
     xm = encode_systematic_matrix(u, 8, frozenBitMap)
-    x = spc_most_efficient(u, N, frozenBitMap)
-    print(x)
+    # x = spc_most_efficient(u, N, frozenBitMap)
+    # print(x)
 
     print('')
     print(xm)
 
-    N = 2 ** 6
+    N = 2 ** 5
     n = int(np.log2(N))
     rv = get_bitreversed_vector(n)
     K = N // 2
+    # K = 1
     eta = design_snr_to_bec_eta(2, 1.0)
     polar_capacities = calculate_bec_channel_capacities(eta, N)
     f = get_frozenBitPositions(polar_capacities, N - K)
+    # f = np.sort(f)
     frozenBitMap = get_frozenBitMap(polar_capacities, N - K)
+    print(f)
 
-    p = pypolar.EncoderPacked(N, f)
-    pu = pypolar.EncoderUnpacked(N, f)
+    p = pypolar.PolarEncoder(N, f)
+    pu = pypolar.PolarEncoder(N, f, 'Unpacked')
 
+    ctr = 0
 
-    d = np.random.randint(0, 256, K / 8).astype(dtype=np.uint8)
-    print(d)
-    u = np.unpackbits(d)
-    print(u)
-    print()
-    xm = encode_systematic_matrix(u, N, frozenBitMap)
-    print(np.packbits(xm))
-    print(xm)
+    for i in np.arange(100):
+        u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
+        d = np.packbits(u)
 
-    # print('unpacked')
-    # pu.setInformation(u)
-    # pu.encode()
-    # c = pu.getEncodedData()
-    # print(c)
-    print('unpacked')
-    cu = pu.encode_vector(d)
-    print(cu)
-    # p.setInformation(d)
-    # p.encode()
-    # cw = p.getEncodedData()
-    print('packed')
-    cw = p.encode_vector(d)
+        xm = encode_systematic_matrix(u, N, frozenBitMap)
+        cw_pack = p.encode_vector(d)
 
-    cwu = np.unpackbits(cw)
-    print(np.packbits(xm))
-    print(cu)
-    print(cw)
-
-    print(xm)
-
-    print(cwu)
-
-    print(np.sum(cwu), np.sum(xm))
+        assert np.all(np.packbits(xm) == cw_pack)
+        ctr += 1
 
 
 
