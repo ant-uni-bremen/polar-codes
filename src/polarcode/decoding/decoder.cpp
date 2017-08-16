@@ -1,10 +1,22 @@
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/errordetection/dummy.h>
 #include <cstring>
+#include <polarcode/decoding/fastssc_avx2_char.h>
+#include <polarcode/decoding/scl_avx2_char.h>
 
 namespace PolarCode {
 namespace Decoding {
 
+Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits){
+  Decoder* dec;
+  if(listSize == 1){
+    dec = new FastSscAvx2Char(blockLength, frozenBits);
+  }
+  else{
+    dec = new SclAvx2Char(blockLength, listSize, frozenBits);
+  }
+  return dec;
+}
 
 Decoder::Decoder()
 	: mErrorDetector(new ErrorDetection::Dummy()),

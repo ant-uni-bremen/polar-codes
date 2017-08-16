@@ -47,9 +47,9 @@ cdef class PolarEncoder:
 cdef class PolarDecoder:
     cdef polar_interface.Decoder* kernel
 
-    def __cinit__(self, block_size, np.ndarray frozen_bit_positions):
+    def __cinit__(self, block_size, list_size, np.ndarray frozen_bit_positions):
         frozen_bit_positions = np.sort(frozen_bit_positions)
-        #self.kernel = polar_interface.Decoder.make(block_size, 1, frozen_bit_positions)
+        self.kernel = polar_interface.makeDecoder(block_size, list_size, frozen_bit_positions)
 
     def __del__(self):
         del self.kernel
@@ -60,9 +60,12 @@ cdef class PolarDecoder:
     def blockLength(self):
         return self.kernel.blockLength()
 
+    def infoLength(self):
+        return self.kernel.infoLength()
+
     def decode_vector(self, np.ndarray[np.float32_t, ndim=1] llrs):
         self.kernel.setSignal(<float*> llrs.data)
-        #self.kernel.decode()
-        cdef np.ndarray[np.uint8_t, ndim=1] infoword = np.zeros((self.kernel.blockLength() // 8, ), dtype=np.uint8)
+        self.kernel.decode()
+        cdef np.ndarray[np.uint8_t, ndim=1] infoword = np.zeros((self.kernel.infoLength() // 8, ), dtype=np.uint8)
+        self.kernel.getDecodedInformationBits(<void*> infoword.data)
         return infoword
-

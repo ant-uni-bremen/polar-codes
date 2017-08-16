@@ -47,6 +47,11 @@ public:
 	 */
 	size_t blockLength(){ return mBlockLength;}
 
+  /*!
+   * \brief Query infoword Length
+   */
+  size_t infoLength(){ return mBlockLength - mFrozenBits.size();}
+
 	/*!
 	 * \brief Set an error detection scheme.
 	 * \param pDetector Pointer to an error detecting object. Ownership is taken.
@@ -72,6 +77,13 @@ public:
 	void getDecodedInformationBits(void *pData);
 };
 
+/*!
+ * \brief Get Pointer to newly created PolarDecoder impl. Fast or List Decoders.
+ * \param blockLength size of a polar codeword
+ * \param listSize if '1' FastSSC Decoder is returned. Else: SCL Decoder
+ * \param frozenBits positions of frozen bits ordered in ascending order.
+ */
+  Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits);
 }//namespace Decoding
 }//namespace PolarCode
 

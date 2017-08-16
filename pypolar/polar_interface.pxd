@@ -29,12 +29,10 @@ cdef extern from "polarcode/decoding/decoder.h" namespace "PolarCode::Decoding":
         bool decode()
         #void setErrorDetection(ErrorDetection::Detector* pDetector)
         size_t blockLength()
+        size_t infoLength()
         void setSignal(const float*)
         void setSignal(const char*)
         void getDecodedInformationBits(void*)
 
-'''
-cdef extern from "polarcode/decoding/fastssc_avx2_char.h" namespace "PolarCode::Decoding":
-    cdef cppclass FastSscAvx2Char(Decoder):
-        FastSscAvx2Char(size_t, vector[unsigned int]) except +
-'''
+    Decoder* makeDecoder(size_t, size_t, vector[unsigned int])
+
