@@ -1,6 +1,7 @@
 #include <polarcode/decoding/scl_avx2_char.h>
 #include <polarcode/polarcode.h>
 #include <polarcode/arrayfuncs.h>
+#include <polarcode/encoding/butterfly_avx2_packed.h>
 
 namespace PolarCode {
 namespace Decoding {
@@ -467,8 +468,7 @@ bool SclAvx2Char::extractBestPath() {
 	unsigned pathCount = mPathList->PathCount();
 	bool decoderSuccess = false;
 	if(mSystematic) {
-		unsigned path;
-		for(path = 0; path < pathCount; ++path) {
+		for(unsigned path = 0; path < pathCount; ++path) {
 			mBitContainer->insertCharBits(mPathList->Bit(path, dataStage));
 			mBitContainer->getPackedInformationBits(mOutputContainer);
 			if(mErrorDetector->check(mOutputContainer, byteLength)) {
@@ -482,7 +482,29 @@ bool SclAvx2Char::extractBestPath() {
 			mBitContainer->getPackedInformationBits(mOutputContainer);
 		}
 	} else {
-#warning TODO
+		PolarCode::Encoding::Encoder *encoder
+				= new PolarCode::Encoding::ButterflyAvx2Packed(mBlockLength, mFrozenBits);
+		PolarCode::PackedContainer *container
+				= new PolarCode::PackedContainer(mBlockLength, mFrozenBits);
+		for(unsigned path = 0; path < pathCount; ++path) {
+			container->insertCharBits(mPathList->Bit(path, dataStage));
+			encoder->setCodeword(container->data());
+			encoder->encode();
+			encoder->getInformation(mOutputContainer);
+			if(mErrorDetector->check(mOutputContainer, byteLength)) {
+				decoderSuccess = true;
+				break;
+			}
+		}
+		// Fall back to ML path, if none of the candidates was free of errors
+		if(!decoderSuccess) {
+			container->insertCharBits(mPathList->Bit(0, dataStage));
+			encoder->setCodeword(container->data());
+			encoder->encode();
+			encoder->getInformation(mOutputContainer);
+		}
+		delete container;
+		delete encoder;
 	}
 	mPathList->clear();// Clean up
 	return decoderSuccess;

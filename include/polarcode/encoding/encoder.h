@@ -32,10 +32,10 @@ public:
 	virtual void initialize(size_t blockLength,
 							const std::vector<unsigned> &frozenBits) = 0;
 
-  /*!
-   * \brief Query codeword block Length
-   */
-  size_t blockLength(){ return mBlockLength;}
+	/*!
+	* \brief Query codeword block Length
+	*/
+	size_t blockLength();
 
 	/*!
 	 * \brief Explicitly call setSystematic(false); to use
@@ -48,18 +48,24 @@ public:
 	 */
 	void setSystematic(bool sys);
 
-  /*!
-   * \brief Query if Encoder produces systematic codeword.
-   *
-   * Check if the code is systematic.
-   */
-  bool isSystematic(){ return mSystematic;};
+	/*!
+	* \brief Query if Encoder produces systematic codeword.
+	*
+	* Check if the code is systematic.
+	*/
+	bool isSystematic();
 
 	/*!
 	 * \brief Copies packed information bits into encoder's memory.
 	 * \param pData Pointer to memory location of information bytes.
 	 */
 	void setInformation(void *pData);
+
+	/*!
+	 * \brief Copy packed information bits from encoder.
+	 * \param pData Pointer to memory location for information bits.
+	 */
+	void getInformation(void *pData);
 
 	/*!
 	 * \brief Insert packed bits.

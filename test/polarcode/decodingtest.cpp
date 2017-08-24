@@ -3,13 +3,9 @@
 
 #include <polarcode/decoding/fastssc_avx2_char.h>
 #include <polarcode/decoding/scl_avx2_char.h>
-#include <polarcode/encoding/butterfly_avx2_packed.h>
 #include <polarcode/construction/bhattacharrya.h>
-#include <polarcode/datapool.txx>
 #include <chrono>
-#include <iostream>
 #include <random>
-#include <exception>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DecodingTest);
 
@@ -21,8 +17,12 @@ void DecodingTest::tearDown() {
 
 }
 
+bool testShortVectors(const __m256i &one, const __m256i &two, const size_t length) {
+	return 0==memcmp(&one, &two, length);
+}
+
 bool testVectors(const __m256i &one, const __m256i &two) {
-	return 0==memcmp(&one, &two, 32);
+	return testShortVectors(one, two, 32);
 }
 
 void DecodingTest::testSpecialDecoders() {
@@ -55,7 +55,19 @@ void DecodingTest::testSpecialDecoders() {
 	PolarCode::Decoding::FastSscAvx2::SpcDecode(&llr, &bits, 32);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
-/*
+	llr            = _mm256_set_epi8(-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+	bits           = _mm256_set1_epi8(-1);
+	expectedResult = _mm256_set_epi8(0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+	PolarCode::Decoding::FastSscAvx2::SpcDecode(&llr, &bits, 2);
+	CPPUNIT_ASSERT(testShortVectors(bits, expectedResult, 2));
+
+	llr            = _mm256_set_epi8(1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+	bits           = _mm256_set1_epi8(-1);
+	expectedResult = _mm256_set_epi8(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+	PolarCode::Decoding::FastSscAvx2::SpcDecode(&llr, &bits, 2);
+	CPPUNIT_ASSERT(testShortVectors(bits, expectedResult, 2));
+
+	/*
 	std::vector<unsigned> frozenBits;
 	frozenBits.resize(1,0);
 	PolarCode::DataPool<__m256i, 32> pool;
@@ -136,71 +148,6 @@ void DecodingTest::testAvx2Short() {
 	delete decoder;
 }
 
-void bpskModulate(unsigned char *input, char *output, size_t blockLength) {
-	unsigned char currentByte = 0;// Initialize to suppress false warning
-	for(unsigned i=0; i<blockLength; ++i) {
-		if(i%8==0) {
-			currentByte = *(input++);
-		}
-		if(currentByte&0x80) {
-			*output = -1;
-		} else {
-			*output = 1;
-		}
-		currentByte <<= 1;
-		output++;
-	}
-}
-
-void DecodingTest::testAvx2() {
-	const size_t blockLength = 1<<12;
-	const size_t infoLength = blockLength*3/4;
-
-	unsigned char *input = new unsigned char[infoLength/8];
-	unsigned char *inputBlock = new unsigned char[blockLength/8];
-	char *inputSignal = new char[blockLength];
-	unsigned char *output = new unsigned char[infoLength/8];
-
-	PolarCode::Construction::Constructor* constructor
-			= new PolarCode::Construction::Bhattacharrya(blockLength, infoLength);
-	std::vector<unsigned> frozenBits = constructor->construct();
-
-	PolarCode::Encoding::ButterflyAvx2Packed* encoder
-			= new PolarCode::Encoding::ButterflyAvx2Packed(blockLength, frozenBits);
-
-	PolarCode::Decoding::FastSscAvx2Char* decoder
-			= new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits);
-
-	memset(input, 0xF0, infoLength/8);
-
-	encoder->setInformation(input);
-	encoder->encode();
-	encoder->getEncodedData(inputBlock);
-
-	{// Test if encoded bits are still recoverable from systematic codeword
-		PolarCode::PackedContainer *cont = new PolarCode::PackedContainer(blockLength, frozenBits);
-		cont->insertPackedBits(inputBlock);
-		cont->getPackedInformationBits(output);
-		delete cont;
-		CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength/8));
-	}
-
-	bpskModulate(inputBlock, inputSignal, blockLength);
-
-	decoder->setSignal(inputSignal);
-	CPPUNIT_ASSERT(decoder->decode());
-	decoder->getDecodedInformationBits(output);
-
-	CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength/8));
-
-
-
-	delete encoder;
-	delete constructor;
-	delete [] input;
-	delete [] inputSignal;
-	delete [] output;
-}
 
 void DecodingTest::testAvx2Performance() {
 	using namespace std::chrono;

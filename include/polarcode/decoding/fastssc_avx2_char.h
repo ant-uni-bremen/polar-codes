@@ -79,8 +79,8 @@ void        SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength
 class RateRNode : public Node {
 protected:
 	Node *mParent;///< The parent node
-	Node *mLeft,///< Left child node
-		 *mRight;///< Right child node
+	Node *mLeft,  ///< Left child node
+		 *mRight; ///< Right child node
 	Block<__m256i> *ChildLlr;///< Temporarily holds the LLRs child nodes have to decode.
 	void (*leftDecoder)(__m256i*, __m256i*, size_t);///< Pointer to special decoding function of left child.
 	void (*rightDecoder)(__m256i*, __m256i*, size_t);///< Pointer to special decoding function of right child.
