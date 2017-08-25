@@ -104,6 +104,7 @@ void EncodingTest::avxPackedTest() {
 
 		encoder = new PolarCode::Encoding::ButterflyAvx2Packed(testBits, frozenBits);
 		encoder->setInformation(&input);
+		encoder->setSystematic(false);
 		encoder->encode();
 		encoder->getEncodedData(output);
 		delete encoder;

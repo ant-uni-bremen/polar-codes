@@ -80,7 +80,7 @@ ShortButterflyNode::ShortButterflyNode(std::vector<unsigned> &frozenBits, Node *
 }
 
 RateRNode::RateRNode(std::vector<unsigned> &frozenBits, Node *parent)
-	: mParent(parent) {
+	: Node(), mParent(parent) {
 	mBlockLength = parent->blockLength()/2;
 	mVecCount = nBit2vecCount(mBlockLength);
 	mStage = __builtin_ctz(mBlockLength);
@@ -210,6 +210,10 @@ size_t nBit2vecCount(size_t blockLength) {
 }// namespace RecursiveAvx2
 
 RecursiveAvx2Packed::RecursiveAvx2Packed(size_t blockLength, const std::vector<unsigned> &frozenBits) {
+	if(blockLength < 256) {
+		throw "AVX-2 recursive encoder does not exist for block length < 256 bits!";
+		return;
+	}
 	mBlockLength = 0;
 	initialize(blockLength, frozenBits);
 }
@@ -219,8 +223,9 @@ RecursiveAvx2Packed::~RecursiveAvx2Packed() {
 }
 
 void RecursiveAvx2Packed::clear() {
-	delete mRootNode;
-	delete mNodeBase;
+	delete mBitContainer; mBitContainer = nullptr;
+	delete mRootNode; mRootNode = nullptr;
+	delete mNodeBase; mNodeBase = nullptr;
 }
 
 void RecursiveAvx2Packed::initialize(size_t blockLength, const std::vector<unsigned> &frozenBits) {

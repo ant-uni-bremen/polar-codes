@@ -72,7 +72,7 @@ __m256i* Node::output() {
 
 // Constructors of nodes
 
-RateRNode::RateRNode(std::vector<unsigned> &frozenBits, Node *parent)
+RateRNode::RateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	: mParent(parent){
 	xmDataPool = parent->pool();
 	mBlockLength = parent->blockLength() / 2;
@@ -88,7 +88,7 @@ RateRNode::RateRNode(std::vector<unsigned> &frozenBits, Node *parent)
 	ChildLlr = xmDataPool->allocate(mVecCount);
 }
 
-ShortRateRNode::ShortRateRNode(std::vector<unsigned> &frozenBits, Node *parent)
+ShortRateRNode::ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	: RateRNode(frozenBits, parent),
 	  LeftBits(xmDataPool->allocate(mVecCount)),
 	  RightBits(xmDataPool->allocate(mVecCount)) {
@@ -231,7 +231,7 @@ void ShortRateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 
 // End of mass defining
 
-Node* createDecoder(std::vector<unsigned> frozenBits, Node* parent, void (**specialDecoder)(__m256i *, __m256i *, size_t)) {
+Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(__m256i *, __m256i *, size_t)) {
 	size_t blockLength = parent->blockLength();
 	size_t frozenBitCount = frozenBits.size();
 

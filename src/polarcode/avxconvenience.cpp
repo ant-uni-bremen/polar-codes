@@ -93,7 +93,7 @@ __m256i _mm256_subVectorBackShift_epu8(__m256i x, int shift) {
 	case 64:
 		return _mm256_slli_si256(x, 8);
 	case 128:
-		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b00010010);
+		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b01001110);
 	default:
 		throw "Subvector shift of undefined size.";
 	}

@@ -7,6 +7,8 @@
 #include <polarcode/decoding/scl_avx2_char.h>
 
 #include <random>
+#include <iostream>
+#include <iomanip>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(PolarCodeTest);
 
@@ -106,7 +108,7 @@ void PolarCodeTest::testAvx2List() {
 			= new PolarCode::Construction::Bhattacharrya(blockLength, infoLength);
 	std::vector<unsigned> frozenBits = constructor->construct();
 
-	PolarCode::Encoding::ButterflyAvx2Packed* encoder
+	PolarCode::Encoding::Encoder* encoder
 			= new PolarCode::Encoding::ButterflyAvx2Packed(blockLength, frozenBits);
 
 	PolarCode::ErrorDetection::Detector* errorDetector
@@ -134,26 +136,42 @@ void PolarCodeTest::testAvx2List() {
 	encoder->getEncodedData(inputBlock);
 
 	{// Test if encoded bits are still recoverable from systematic codeword
-		PolarCode::PackedContainer *cont = new PolarCode::PackedContainer(blockLength, frozenBits);
+		PolarCode::BitContainer *cont = new PolarCode::PackedContainer(blockLength, frozenBits);
 		cont->insertPackedBits(inputBlock);
 		cont->getPackedInformationBits(output);
 		delete cont;
-		CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength/8));
+		CPPUNIT_ASSERT_ASSERTION_PASS_MESSAGE("Encoder or BitContainer failed",
+		CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength/8)));
 	}
 
 	bpskModulate(inputBlock, inputSignal, blockLength);
 
 	decoder->setSignal(inputSignal);
-	CPPUNIT_ASSERT(decoder->decode());
+	/*CPPUNIT_ASSERT(*/decoder->decode()/*)*/;
 	decoder->getDecodedInformationBits(output);
 
-	CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength/8));
+/*	{
+		uint8_t* inputPtr = reinterpret_cast<uint8_t*>(input);
+		uint8_t* outputPtr = reinterpret_cast<uint8_t*>(output);
+		std::cout << std::endl << "[";
+		for(unsigned i=0; i<infoLength/8; ++i) {
+			std::cout << std::setw(3) << (unsigned)inputPtr[i] << std::setw(0) << " ";
+		}
+		std::cout << "\b]" << std::endl << "[";
+		for(unsigned i=0; i<infoLength/8; ++i) {
+			std::cout << std::setw(3) << (unsigned)outputPtr[i] << std::setw(0) << " ";
+		}
+		std::cout << "\b]" << std::endl;
+	}*/
 
-
+	bool decoderSuccess = (0==memcmp(input, output, infoLength/8));
 
 	delete encoder;
 	delete constructor;
 	delete [] input;
 	delete [] inputSignal;
 	delete [] output;
+
+	CPPUNIT_ASSERT_ASSERTION_PASS_MESSAGE("Decoder failed",
+	CPPUNIT_ASSERT(decoderSuccess));
 }

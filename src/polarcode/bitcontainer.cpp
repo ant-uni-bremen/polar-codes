@@ -455,7 +455,7 @@ void PackedContainer::byteWiseInjection(const void *pData) {
 			currentDestinationByte = infoDestination/8;
 		}
 		currentByte |= (bitPool&0x80)>>(infoDestination%8);
-		if((infoBit+1)%8 == 0) {
+		if(infoBit%8 == 7 && infoBit+1 != mInformationBitCount) {
 			bitPool = *(charPtr++);
 		} else {
 			bitPool <<= 1;
@@ -615,20 +615,21 @@ void PackedContainer::insertLlr(const char  *pLlr){}
 
 
 void PackedContainer::getPackedInformationBits(void* pData) {
+	const unsigned offset = mFakeSize-mElementCount;
 	const unsigned int *inputPtr = reinterpret_cast<const unsigned int*>(mData);
-	__m256i inputVector = _mm256_get_mask_epi8(inputPtr[0]);
+	__m256i inputVector = _mm256_get_mask_epi8(inputPtr[offset/32]);
 	char* inputChar = reinterpret_cast<char*>(&inputVector);
 	int currentInfoChunk = 0;
 
 	int *outputPtr = reinterpret_cast<int*>(pData);
-	__m256i outputVector = _mm256_get_mask_epi8(outputPtr[0]);
+	__m256i outputVector = _mm256_setzero_si256();
 	char* outputChar = reinterpret_cast<char*>(&outputVector);
 	int currentOutputChunk = 0;
 
 	for(unsigned infoBit = 0; infoBit < mInformationBitCount; ++infoBit) {
 		int infoChunk = mLUT[infoBit]/32;
 		if(infoChunk != currentInfoChunk) {
-			inputVector = _mm256_get_mask_epi8(inputPtr[infoChunk]);
+			inputVector = _mm256_get_mask_epi8(inputPtr[infoChunk+offset/32]);
 			currentInfoChunk = infoChunk;
 		}
 		int outputChunk = infoBit/32;
@@ -638,7 +639,7 @@ void PackedContainer::getPackedInformationBits(void* pData) {
 			currentOutputChunk = outputChunk;
 		}
 
-		int inputAddress = bitVecAddress(mLUT[infoBit]%32);
+		int inputAddress = bitVecAddress((mLUT[infoBit]+offset)%32);
 		int outputAddress = bitVecAddress(infoBit%32);
 
 		outputChar[outputAddress] = inputChar[inputAddress];

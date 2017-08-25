@@ -91,7 +91,7 @@ public:
 	 * \param frozenBits The set of frozen bits of this code.
 	 * \param parent The parent node, defining the length of this code.
 	 */
-	RateRNode(std::vector<unsigned> &frozenBits, Node *parent);
+	RateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~RateRNode();
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
@@ -108,7 +108,7 @@ public:
 	 * \param frozenBits The set of frozen bits of this code.
 	 * \param parent The parent node, defining the length of this code.
 	 */
-	ShortRateRNode(std::vector<unsigned> &frozenBits, Node *parent);
+	ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ShortRateRNode();
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
@@ -119,7 +119,7 @@ public:
  * \param parent The parent node from which the code length is fetched.
  * \return Pointer to a polymorphic decoder object.
  */
-Node* createDecoder(std::vector<unsigned> frozenBits, Node* parent, void (**specialDecoder)(__m256i*, __m256i*, size_t));
+Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(__m256i*, __m256i*, size_t));
 
 }// namespace FastSscAvx2
 
