@@ -19,8 +19,9 @@ protected:
 	ErrorDetection::Detector* mErrorDetector;///< Error detecting object
 	size_t mBlockLength;///< Length of the Polar Code
 	bool mSystematic;///< Whether to use systematic coding
+	bool mSoftOutput;///< Whether to calculate soft output bits
 	CharContainer *mLlrContainer;///< Soft-input container
-	CharContainer *mBitContainer;///< Hard-output bit container
+	CharContainer *mBitContainer;///< Output bit container
 	unsigned char *mOutputContainer;///< Final data container, gets filled for error detection
 	std::vector<unsigned> mFrozenBits; ///< Indices for frozen bits
 
@@ -45,12 +46,42 @@ public:
 	/*!
 	 * \brief Query codeword block Length
 	 */
-	size_t blockLength(){ return mBlockLength;}
+	size_t blockLength();
 
-  /*!
-   * \brief Query infoword Length
-   */
-  size_t infoLength(){ return mBlockLength - mFrozenBits.size();}
+	/*!
+	* \brief Query infoword Length
+	*/
+	size_t infoLength();
+
+	/*!
+	* \brief Explicitly call setSystematic(false); to use
+	*        non-systematic coding.
+	*
+	* This function serves the purpose of explicitly deactivating the
+	* default systematic coding setting via setSystematic(false),
+	* or re-activating it lateron.
+	* \param sys Whether coding should be systematic.
+	*/
+	void setSystematic(bool sys);
+
+	/*!
+	* \brief Query if Decoder produces systematic codeword.
+	*
+	* Check if the code is systematic.
+	*/
+	bool isSystematic();
+
+	/*!
+	 * \brief Activate soft output decoding. This slows down the bit combination
+	 *       step.
+	 */
+	void enableSoftOutput(bool);
+
+	/*!
+	 * \brief Query if the decoder will provide soft output bits.
+	 * \return True, if soft output was enabled.
+	 */
+	bool hasSoftOutput();
 
 	/*!
 	 * \brief Set an error detection scheme.
@@ -75,6 +106,18 @@ public:
 	 * \param pData Pointer to destination memory of decoded information.
 	 */
 	void getDecodedInformationBits(void *pData);
+
+	/*!
+	 * \brief Copy corrected LLR-values into pData.
+	 * \param pData Signed 8-bit memory with at least blockLength() bytes allocated.
+	 */
+	void getSoftCodeword(void *pData);
+
+	/*!
+	 * \brief Copy corrected LLR-values of information bits into pData.
+	 * \param pData Signed 8-bit memory with at least infoLength() bytes allocated.
+	 */
+	void getSoftInformation(void *pData);
 };
 
 /*!

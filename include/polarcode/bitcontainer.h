@@ -112,6 +112,20 @@ public:
 	virtual void getPackedInformationBits(void* pData) = 0;
 
 	/*!
+	 * \brief Copy the contents of the container into pData in container's
+	 *        native LLR representation type.
+	 * \param pData Memory location for container data.
+	 */
+	virtual void getSoftBits(void *pData) = 0;
+
+	/*!
+	 * \brief Extract LLRs of information bits into pData in container's
+	 *        native LLR representation type.
+	 * \param pData Memory location for information LLRs.
+	 */
+	virtual void getSoftInformation(void *pData) = 0;
+
+	/*!
 	 * \brief Set all frozen bits to zero.
 	 */
 	virtual void resetFrozenBits() = 0;
@@ -145,6 +159,8 @@ public:
 	void insertLlr(const char  *pLlr);
 	void getPackedBits(void* pData);
 	void getPackedInformationBits(void* pData);
+	void getSoftBits(void* pData);
+	void getSoftInformation(void* pData);
 	void resetFrozenBits();
 
 	float* data();///< Get a pointer to the container's memory.
@@ -177,6 +193,8 @@ public:
 	void insertLlr(const char  *pLlr);
 	void getPackedBits(void* pData);
 	void getPackedInformationBits(void* pData);
+	void getSoftBits(void* pData);
+	void getSoftInformation(void* pData);
 	void resetFrozenBits();
 
 	char* data();///< Get a pointer to the container's memory.
@@ -215,12 +233,14 @@ public:
 	void insertPackedInformationBits(const void *pData);
 	void insertCharBits(const void* pData);
 	void getPackedBits(void* pData);
+	void getPackedInformationBits(void* pData);
 	void resetFrozenBits();
 
 	/* The following functions are dummies */
 	void insertLlr(const float *pLlr);
 	void insertLlr(const char  *pLlr);
-	void getPackedInformationBits(void* pData);
+	void getSoftBits(void* pData);
+	void getSoftInformation(void* pData);
 
 	char* data();///< Get a pointer to the container's memory.
 };

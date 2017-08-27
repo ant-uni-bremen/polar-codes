@@ -115,7 +115,7 @@ void PolarCodeTest::testAvx2List() {
 			= new PolarCode::ErrorDetection::CRC32();
 
 	PolarCode::Decoding::Decoder* decoder
-			= new PolarCode::Decoding::SclAvx2Char(blockLength, pathLimit, frozenBits);
+			= new PolarCode::Decoding::SclAvx2Char(blockLength, pathLimit, frozenBits, true);
 	decoder->setErrorDetection(errorDetector);
 
 	{
@@ -149,22 +149,19 @@ void PolarCodeTest::testAvx2List() {
 	decoder->setSignal(inputSignal);
 	/*CPPUNIT_ASSERT(*/decoder->decode()/*)*/;
 	decoder->getDecodedInformationBits(output);
+	bool decoderSuccess = (0==memcmp(input, output, infoLength/8));
 
-/*	{
-		uint8_t* inputPtr = reinterpret_cast<uint8_t*>(input);
-		uint8_t* outputPtr = reinterpret_cast<uint8_t*>(output);
+	{
+		char *outputLlr = new char[infoLength];
+		decoder->getSoftInformation(outputLlr);
 		std::cout << std::endl << "[";
 		for(unsigned i=0; i<infoLength/8; ++i) {
-			std::cout << std::setw(3) << (unsigned)inputPtr[i] << std::setw(0) << " ";
-		}
-		std::cout << "\b]" << std::endl << "[";
-		for(unsigned i=0; i<infoLength/8; ++i) {
-			std::cout << std::setw(3) << (unsigned)outputPtr[i] << std::setw(0) << " ";
+			std::cout << std::setw(3) << static_cast<signed>(outputLlr[i]) << std::setw(0) << " ";
 		}
 		std::cout << "\b]" << std::endl;
-	}*/
+		delete [] outputLlr;
+	}
 
-	bool decoderSuccess = (0==memcmp(input, output, infoLength/8));
 
 	delete encoder;
 	delete constructor;

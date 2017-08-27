@@ -22,6 +22,7 @@ Decoder::Decoder()
 	: mErrorDetector(new ErrorDetection::Dummy()),
 	  mBlockLength(0),
 	  mSystematic(true),
+	  mSoftOutput(false),
 	  mLlrContainer(nullptr),
 	  mBitContainer(nullptr),
 	  mOutputContainer(nullptr),
@@ -33,6 +34,30 @@ Decoder::~Decoder() {
 	if(mLlrContainer) delete mLlrContainer;
 	if(mBitContainer) delete mBitContainer;
 	if(mOutputContainer) delete [] mOutputContainer;
+}
+
+size_t Decoder::blockLength() {
+	return mBlockLength;
+}
+
+size_t Decoder::infoLength() {
+	return mBlockLength - mFrozenBits.size();
+}
+
+void Decoder::setSystematic(bool sys) {
+	mSystematic = sys;
+}
+
+bool Decoder::isSystematic() {
+	return mSystematic;
+}
+
+void Decoder::enableSoftOutput(bool so) {
+	mSoftOutput = so;
+}
+
+bool Decoder::hasSoftOutput() {
+	return mSoftOutput;
 }
 
 void Decoder::setErrorDetection(ErrorDetection::Detector *pDetector) {
@@ -50,6 +75,14 @@ void Decoder::setSignal(const char *pLlr) {
 
 void Decoder::getDecodedInformationBits(void *pData) {
 	memcpy(pData, mOutputContainer, (mBlockLength-mFrozenBits.size()+7)/8);
+}
+
+void Decoder::getSoftCodeword(void *pData) {
+	mBitContainer->getSoftBits(pData);
+}
+
+void Decoder::getSoftInformation(void *pData) {
+	mBitContainer->getSoftInformation(pData);
 }
 
 }//namespace Decoding

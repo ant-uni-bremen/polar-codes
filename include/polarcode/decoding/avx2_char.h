@@ -23,6 +23,10 @@ void Combine(__m256i *Bits, const unsigned vecCount);
 void CombineShortBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
 void CombineBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
 
+void CombineSoftBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
+void CombineSoftBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
+void CombineSoftBitsLong(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
+
 void RepetitionPrepare(__m256i* x, const size_t codeLength);
 void SpcPrepare(__m256i* x, const size_t codeLength);
 

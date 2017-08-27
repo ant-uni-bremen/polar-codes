@@ -37,7 +37,7 @@ void DecodingTest::testSpecialDecoders() {
 	// Rate-1
 	llr            = _mm256_set_epi8(-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1);
 	bits           = _mm256_set1_epi8(-1);
-	expectedResult = _mm256_set_epi8(1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+	expectedResult = _mm256_set_epi8(-128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 	PolarCode::Decoding::FastSscAvx2::RateOneDecode(&llr, &bits, 32);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
@@ -51,13 +51,13 @@ void DecodingTest::testSpecialDecoders() {
 	// SPC
 	llr            = _mm256_set_epi8(-1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1);
 	bits           = _mm256_set1_epi8(-1);
-	expectedResult = _mm256_set_epi8(1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1);
+	expectedResult = _mm256_set_epi8(-128,0,-128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-128,-128);
 	PolarCode::Decoding::FastSscAvx2::SpcDecode(&llr, &bits, 32);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
 	llr            = _mm256_set_epi8(-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 	bits           = _mm256_set1_epi8(-1);
-	expectedResult = _mm256_set_epi8(0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+	expectedResult = _mm256_set_epi8(0,-128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 	PolarCode::Decoding::FastSscAvx2::SpcDecode(&llr, &bits, 2);
 	CPPUNIT_ASSERT(testShortVectors(bits, expectedResult, 2));
 
@@ -106,10 +106,10 @@ void DecodingTest::testGeneralDecodingFunctions() {
 	CPPUNIT_ASSERT(testVectors(child, expected));
 
 	// G-function
-	llr[1]   = _mm256_set_epi8(-1, 2, 3,-4, 5, 6, -7,  8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2);
-	llr[0]   = _mm256_set_epi8( 0, 1, 2, 3, 4, 5,  6, -7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1);
-	bits     = _mm256_set_epi8( 0, 0, 0, 1, 0, 0,  1,  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	expected = _mm256_set_epi8(-1, 3, 5,-7, 9,11,-13, 15,17, 9, 1, 3, 5, 7, 9,11,13,15,17, 9, 1, 3, 5, 7, 9,11,13,15,17, 9, 1, 3);
+	llr[1]   = _mm256_set_epi8(-1, 2, 3,   -4, 5, 6,   -7,    8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2);
+	llr[0]   = _mm256_set_epi8( 0, 1, 2,    3, 4, 5,    6,   -7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1);
+	bits     = _mm256_set_epi8( 0, 0, 0, -128, 0, 0, -128, -128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	expected = _mm256_set_epi8(-1, 3, 5,   -7, 9,11,  -13,   15,17, 9, 1, 3, 5, 7, 9,11,13,15,17, 9, 1, 3, 5, 7, 9,11,13,15,17, 9, 1, 3);
 	PolarCode::Decoding::G_function(llr, &child, &bits, 32);
 	CPPUNIT_ASSERT(testVectors(child, expected));
 

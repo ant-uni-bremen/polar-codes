@@ -1,18 +1,23 @@
 #include <polarcode/decoding/avx2_char.h>
 #include <cstring>
+#include <cassert>
 
 namespace PolarCode {
 namespace Decoding {
 
 __m256i hardDecode(__m256i x) {
 	static const __m256i mask = _mm256_set1_epi8(-128);
-	const __m256i sign = _mm256_and_si256(x, mask);// Get signs of LLRs
-	const __m256i result = _mm256_srli_epi16(sign, 7);//Move them to LSB
+	const __m256i result = _mm256_and_si256(x, mask);// Get signs of LLRs
+//	const __m256i result = _mm256_srli_epi16(sign, 7);//Move them to LSB
 	return result;
 }
 
 char hardDecode(char llr) {
-	return llr<0?1:0;
+	//return llr<0?-128:127;
+	assert((-128>>7) == -1);
+	assert((-1>>7) == -1);
+	assert(((-1>>7)<<7) == -128);
+	return (llr>>7)<<7;
 }
 
 const __m256i absCorrector = _mm256_set1_epi8(-127);
@@ -32,8 +37,8 @@ void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out)
 {
 	__m256i sum  = _mm256_adds_epi8(Right, Left);
 	__m256i diff = _mm256_subs_epi8(Right, Left);
-	__m256i bitmask = _mm256_slli_epi16(Bits, 7);
-	__m256i result = _mm256_blendv_epi8(sum, diff, bitmask);
+//	__m256i bitmask = _mm256_slli_epi16(Bits, 7);
+	__m256i result = _mm256_blendv_epi8(sum, diff, Bits);
 //	result = _mm256_max_epi8(result, absCorrector);
 	_mm256_store_si256(Out, result);
 }
@@ -73,10 +78,18 @@ void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBl
 	}
 }
 
+void PrepareForShortOperation(__m256i* Left, const unsigned subBlockLength) {
+	memset(reinterpret_cast<char*>(Left)+subBlockLength, 0, subBlockLength);
+}
+
+void MoveRightBits(__m256i* Right, const unsigned subBlockLength) {
+	*Right = _mm256_subVectorBackShift_epu8(*Right, subBlockLength*8);
+}
+
 void CombineShortBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
 	*Left = _mm256_xor_si256(*Left, *Right);
-	memset(reinterpret_cast<char*>(Left)+subBlockLength, 0, subBlockLength);
-	*Right = _mm256_subVectorBackShift_epu8(*Right, subBlockLength*8);
+	PrepareForShortOperation(Left, subBlockLength);
+	MoveRightBits(Right, subBlockLength);
 	__m256i result = _mm256_or_si256(*Left, *Right);
 	_mm256_store_si256(Out, result);
 }
@@ -102,6 +115,47 @@ void CombineBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned sub
 			_mm256_store_si256(Out+i, tempL);
 			_mm256_store_si256(Out+vecCount+i, tempR);
 		}
+	}
+}
+
+
+void CombineSoftBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
+	PrepareForShortOperation(Left, subBlockLength);
+
+	__m256i LeftV = _mm256_loadu_si256(Left);
+	__m256i RightV = _mm256_loadu_si256(Right);
+	__m256i OutV;
+
+	//Boxplus operation for upper bits
+	F_function_calc(LeftV, RightV, &OutV);
+
+	// Copy operation for lower bits
+	MoveRightBits(&RightV, subBlockLength);
+	OutV = _mm256_or_si256(RightV, OutV);
+	_mm256_store_si256(Out, OutV);
+}
+
+void CombineSoftBitsLong(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
+	const unsigned vecCount = nBit2vecCount(subBlockLength);
+	__m256i LeftV;
+	__m256i RightV;
+	for(unsigned i=0; i<vecCount; ++i) {
+		LeftV = _mm256_load_si256(Left+i);
+		RightV = _mm256_load_si256(Right+i);
+
+		//Boxplus for upper bits
+		F_function_calc(LeftV, RightV, Out+i);
+
+		//Copy lower bits
+		_mm256_store_si256(Out+vecCount+i, RightV);
+	}
+}
+
+void CombineSoftBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
+	if(subBlockLength < 32) {
+		return CombineSoftBitsShort(Left, Right, Out, subBlockLength);
+	} else {
+		return CombineSoftBitsLong(Left, Right, Out, subBlockLength);
 	}
 }
 

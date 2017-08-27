@@ -172,11 +172,8 @@ void FloatContainer::insertPackedInformationBits(const void *pData) {
 void FloatContainer::insertCharBits(const void *apData) {
 	const char *pData = static_cast<const char*>(apData);
 	unsigned int *iPtr = reinterpret_cast<unsigned int*>(mData);
-	unsigned int temp;
 	for(unsigned int bit = 0; bit < mElementCount; ++bit) {
-		temp = pData[bit];
-		temp <<= 31;//Move bit to MSB
-		iPtr[bit] = temp;
+		iPtr[bit] = convertFtoC(pData[bit]);
 	}
 }
 
@@ -219,6 +216,19 @@ void FloatContainer::getPackedInformationBits(void* pData) {
 			currentBit = 0;
 			++charPtr;
 		}
+	}
+}
+
+void FloatContainer::getSoftBits(void *pData) {
+	memcpy(pData, mData, mElementCount*sizeof(float));
+}
+
+void FloatContainer::getSoftInformation(void *pData) {
+	float *fData = static_cast<float*>(pData);
+	unsigned *lutPtr = mLUT;
+
+	for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {
+		*(fData++) = mData[*(lutPtr++)];
 	}
 }
 
@@ -282,7 +292,13 @@ void CharContainer::setSize(size_t newSize) {
 }
 
 void CharContainer::insertPackedBits(const void* pData) {
-	// Char bits are mapped as follows: 0 => 0, 1 => 1
+	// Char bits are mapped as follows: 0 => 127, 1 => 128 (-128 when signed)
+/*	{
+		unsigned char x = 0x80;
+		char y;
+		y = 127+(x>>7);
+		assert(y == -128);
+	}*/
 	unsigned int nBytes = mElementCount/8;
 	const unsigned char *charPtr = static_cast<const unsigned char*>(pData);
 	unsigned char bitPool;
@@ -290,7 +306,7 @@ void CharContainer::insertPackedBits(const void* pData) {
 	for(unsigned int byte=0; byte < nBytes; ++byte) {
 		bitPool = charPtr[byte];
 		for(unsigned int bit=0; bit < 8; ++bit) {
-			mData[byte*8+bit] = (bitPool&0x80)>>7;
+			mData[byte*8+bit] = 127+(bitPool>>7);
 			bitPool <<= 1;
 		}
 	}
@@ -305,7 +321,7 @@ void CharContainer::insertPackedInformationBits(const void *pData) {
 	memset(mData, 0, mElementCount);
 
 	for(unsigned int bit=0; bit<mInformationBitCount; ++bit) {
-		mData[*(lutPtr++)] = (bitPool&0x80)>>7;
+		mData[*(lutPtr++)] = 127+(bitPool>>7);
 		bitPool <<= 1;
 		if(++bitCounter == 8 && bit+1 != mElementCount) {
 			bitPool = *(charPtr++);
@@ -330,13 +346,14 @@ void CharContainer::insertLlr(const char *pLlr) {
 
 void CharContainer::getPackedBits(void* pData) {
 	unsigned int nBytes = mElementCount/8;
+	unsigned char *uData = reinterpret_cast<unsigned char *>(mData);
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char currentByte;
 
 	for(unsigned int byte=0; byte<nBytes; ++byte) {
 		currentByte = 0;
 		for(unsigned int bit=0; bit<8; ++bit) {
-			currentByte |= (mData[byte*8+bit]<<(7-bit));
+			currentByte |= (uData[byte*8+bit] & 0x80) >> bit;
 		}
 		charPtr[byte] = currentByte;
 	}
@@ -344,11 +361,12 @@ void CharContainer::getPackedBits(void* pData) {
 
 void CharContainer::getPackedInformationBits(void* pData) {
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
+	unsigned char *uData = reinterpret_cast<unsigned char *>(mData);
 	unsigned char currentByte = 0, currentBit = 0;
 	unsigned *lutPtr = mLUT;
 
 	for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {
-		currentByte |= mData[*(lutPtr++)]<<(7-(currentBit++));
+		currentByte |= (uData[*(lutPtr++)] & 0x80) >> (currentBit++);
 		if(currentBit == 8) {
 			*charPtr = currentByte;
 			currentByte = 0;
@@ -359,6 +377,19 @@ void CharContainer::getPackedInformationBits(void* pData) {
 
 	if(mFrozenBits.size()%8 != 0) {
 		*charPtr = currentByte;
+	}
+}
+
+void CharContainer::getSoftBits(void *pData) {
+	memcpy(pData, mData, mElementCount*sizeof(char));
+}
+
+void CharContainer::getSoftInformation(void *pData) {
+	char *cData = static_cast<char*>(pData);
+	unsigned *lutPtr = mLUT;
+
+	for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {
+		*(cData++) = mData[*(lutPtr++)];
 	}
 }
 
@@ -555,7 +586,7 @@ void PackedContainer::insertCharBits(const void *pData) {
 	for(unsigned int byte=0; byte<nBytes; ++byte) {
 		currentByte = 0;
 		for(unsigned int bit=0; bit<8; ++bit) {
-			currentByte |= (inPtr[byte*8+bit]<<(7-bit));
+			currentByte |= (inPtr[byte*8+bit] & 0x80) >> bit;
 		}
 		outPtr[byte] = currentByte;
 	}
@@ -610,8 +641,10 @@ char* PackedContainer::data() {
 }
 
 //Dummy
-void PackedContainer::insertLlr(const float *pLlr){}
-void PackedContainer::insertLlr(const char  *pLlr){}
+void PackedContainer::insertLlr(const float*){}
+void PackedContainer::insertLlr(const char*){}
+void PackedContainer::getSoftBits(void*){}
+void PackedContainer::getSoftInformation(void*){}
 
 
 void PackedContainer::getPackedInformationBits(void* pData) {

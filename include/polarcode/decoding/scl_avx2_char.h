@@ -220,6 +220,7 @@ protected:
 		   mVecCount,      ///< Number of AVX-vectors the data can be stored in.
 		   mListSize;      ///< Limit for number of concurrently active paths.
 	PathList *xmPathList;  ///< Pointer to PathList object.
+	bool mSoftOutput;      ///< Whether to use XOR or Boxplus for bit combination.
 
 public:
 	Node();
@@ -236,8 +237,9 @@ public:
 	 * \param listSize Limit for number of concurrently active paths.
 	 * \param pool Pointer to a DataPool.
 	 * \param pathList Pointer to the PathList to use.
+	 * \param softOutput Whether XOR or Boxplus will be used for bit combination.
 	 */
-	Node(size_t blockLength, size_t listSize, datapool_t *pool, PathList *pathList);
+	Node(size_t blockLength, size_t listSize, datapool_t *pool, PathList *pathList, bool softOutput);
 
 	virtual ~Node();
 
@@ -269,6 +271,12 @@ public:
 	 * \return A pointer to the PathList object.
 	 */
 	SclAvx2::PathList* pathList();
+
+	/*!
+	 * \brief Is soft output enabled?
+	 * \return True, if soft output is enabled.
+	 */
+	bool softOutput();
 };
 
 /*!
@@ -285,6 +293,9 @@ protected:
 
 	void (*leftDecoder)(PathList*, unsigned);///< Pointer to a specialized decoder for left child.
 	void (*rightDecoder)(PathList*, unsigned);///< Pointer to a specialized decoder for right child.
+
+	/*! Pointer to fast XOR or slow Boxplus combination function */
+	void (*combineFunction)(__m256i*, __m256i*, __m256i*, const unsigned);
 
 public:
 	DecoderNode();
@@ -332,8 +343,9 @@ public:
 	 * \param blockLength Number of bits sent over a channel.
 	 * \param listSize Number of paths to examine while decoding.
 	 * \param frozenBits The set of frozen bits.
+	 * \param softOutput If true, soft output bits are calculated (slower).
 	 */
-	SclAvx2Char(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits);
+	SclAvx2Char(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits, bool softOutput = false);
 	~SclAvx2Char();
 
 	bool decode();
