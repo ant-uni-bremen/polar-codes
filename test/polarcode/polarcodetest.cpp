@@ -151,16 +151,16 @@ void PolarCodeTest::testAvx2List() {
 	decoder->getDecodedInformationBits(output);
 	bool decoderSuccess = (0==memcmp(input, output, infoLength/8));
 
-	{
+/*	{
 		char *outputLlr = new char[infoLength];
 		decoder->getSoftInformation(outputLlr);
 		std::cout << std::endl << "[";
-		for(unsigned i=0; i<infoLength/8; ++i) {
+		for(unsigned i=0; i<infoLength; ++i) {
 			std::cout << std::setw(3) << static_cast<signed>(outputLlr[i]) << std::setw(0) << " ";
 		}
 		std::cout << "\b]" << std::endl;
 		delete [] outputLlr;
-	}
+	}*/
 
 
 	delete encoder;

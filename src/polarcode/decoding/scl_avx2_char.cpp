@@ -259,10 +259,10 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent, void 
 			*specialDecoder = &RateZeroDecode;
 			return nullptr;
 		}
-		if(frozenBitCount == 0) {
+/*		if(frozenBitCount == 0) {
 			*specialDecoder = &RateOneDecode;
 			return nullptr;
-		}
+		}*/
 	}
 
 	*specialDecoder = nullptr;
