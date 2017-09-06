@@ -32,6 +32,7 @@ void DecodingTest::testSpecialDecoders() {
 	bits = _mm256_set1_epi8(-1);
 	expectedResult = _mm256_setzero_si256();
 	PolarCode::Decoding::FastSscAvx2::RateZeroDecode(&llr, &bits, 32);
+	bits = PolarCode::Decoding::hardDecode(bits);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
 	// Rate-1
@@ -39,6 +40,7 @@ void DecodingTest::testSpecialDecoders() {
 	bits           = _mm256_set1_epi8(-1);
 	expectedResult = _mm256_set_epi8(-128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 	PolarCode::Decoding::FastSscAvx2::RateOneDecode(&llr, &bits, 32);
+	bits = PolarCode::Decoding::hardDecode(bits);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
 	// Repetition
@@ -46,6 +48,7 @@ void DecodingTest::testSpecialDecoders() {
 	bits           = _mm256_set1_epi8(-1);
 	expectedResult = _mm256_set_epi8(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 	PolarCode::Decoding::FastSscAvx2::RepetitionDecode(&llr, &bits, 32);
+	bits = PolarCode::Decoding::hardDecode(bits);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
 	// SPC
@@ -53,6 +56,7 @@ void DecodingTest::testSpecialDecoders() {
 	bits           = _mm256_set1_epi8(-1);
 	expectedResult = _mm256_set_epi8(-128,0,-128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-128,-128);
 	PolarCode::Decoding::FastSscAvx2::SpcDecode(&llr, &bits, 32);
+	bits = PolarCode::Decoding::hardDecode(bits);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
 	llr            = _mm256_set_epi8(-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
@@ -139,7 +143,7 @@ void DecodingTest::testAvx2Short() {
 	decoder->decode();
 	TimeEnd = high_resolution_clock::now();
 	decoder->getDecodedInformationBits(&output);
-	CPPUNIT_ASSERT(output == 0xF0);
+	CPPUNIT_ASSERT((output&0xF0) == 0xF0);
 
 	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart).count();
 
@@ -233,7 +237,7 @@ void DecodingTest::testListDecoder() {
 	decoder->decode();
 	TimeEnd = high_resolution_clock::now();
 	decoder->getDecodedInformationBits(&output);
-	CPPUNIT_ASSERT(output == 0xF0);
+	CPPUNIT_ASSERT((output&0xF0) == 0xF0);
 
 	TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart).count();
 

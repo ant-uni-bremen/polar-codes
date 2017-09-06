@@ -467,7 +467,7 @@ bool SclAvx2Char::decode() {
 
 void SclAvx2Char::makeInitialPathList() {
 	mPathList->clear();
-	mPathList->setFirstPath(mLlrContainer->data(), nBit2vecCount(mBlockLength));
+	mPathList->setFirstPath(dynamic_cast<CharContainer*>(mLlrContainer)->data(), nBit2vecCount(mBlockLength));
 }
 
 bool SclAvx2Char::extractBestPath() {

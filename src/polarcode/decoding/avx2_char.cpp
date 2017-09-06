@@ -8,7 +8,6 @@ namespace Decoding {
 __m256i hardDecode(__m256i x) {
 	static const __m256i mask = _mm256_set1_epi8(-128);
 	const __m256i result = _mm256_and_si256(x, mask);// Get signs of LLRs
-//	const __m256i result = _mm256_srli_epi16(sign, 7);//Move them to LSB
 	return result;
 }
 
@@ -78,6 +77,18 @@ void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBl
 	}
 }
 
+void G_function_0R(__m256i *LLRin, __m256i *LLRout, __m256i*, unsigned subBlockLength) {
+	unsigned vecCount = nBit2vecCount(subBlockLength);
+	__m256i Left, Right, Sum;
+	for(unsigned i=0; i<vecCount; i++) {
+		Left = _mm256_load_si256(LLRin+i);
+		Right = _mm256_load_si256(LLRin+i+vecCount);
+		Sum = _mm256_adds_epi8(Left, Right);
+		_mm256_store_si256(LLRout+i, Sum);
+	}
+}
+
+
 void PrepareForShortOperation(__m256i* Left, const unsigned subBlockLength) {
 	memset(reinterpret_cast<char*>(Left)+subBlockLength, 0, subBlockLength);
 }
@@ -101,6 +112,10 @@ void Combine(__m256i *Bits, const unsigned vecCount) {
 		tempL = _mm256_xor_si256(tempL, tempR);
 		_mm256_store_si256(Bits+i, tempL);
 	}
+}
+
+void Combine_0R(__m256i *Bits, const unsigned vecCount) {
+	memcpy(Bits, Bits+vecCount, vecCount*32);
 }
 
 void CombineBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
