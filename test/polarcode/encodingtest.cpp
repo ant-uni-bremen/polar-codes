@@ -14,7 +14,9 @@
 CPPUNIT_TEST_SUITE_REGISTRATION(EncodingTest);
 
 void EncodingTest::setUp() {
-
+	if(!avx2supported()) {
+		std::cout << "Decoding tests using AVX2-instructions will be skipped." << std::endl;
+	}
 }
 
 void EncodingTest::tearDown() {
@@ -46,13 +48,7 @@ void EncodingTest::avxCharTest() {
 
 	memset(expectedOutput, 0xFF, maxBytes);
 
-	//At first, check if AVX2 is supported
-	if(!avx2supported()) {
-		std::cerr << std::endl
-				  << "PolarCode::Encoding::ButterflyAvx2Char can't be testet." << std::endl
-				  << "AVX2 is not supported on this system." << std::endl;
-		return;
-	}
+	if(!avx2supported()) return;
 
 	for(size_t testBytes = 1; testBytes<=maxBytes; testBytes<<=1) {
 		size_t testBits = testBytes*8;
@@ -84,13 +80,7 @@ void EncodingTest::avxPackedTest() {
 
 	memset(expectedOutput, 0xFF, maxBytes);
 
-	//At first, check if AVX2 is supported
-	if(!avx2supported()) {
-		std::cerr << std::endl
-				  << "PolarCode::Encoding::ButterflyAvx2Packed can't be testet." << std::endl
-				  << "AVX2 is not supported on this system." << std::endl;
-		return;
-	}
+	if(!avx2supported()) return;
 
 	for(size_t testBytes = 1; testBytes<=maxBytes; testBytes<<=1) {
 		size_t testBits = testBytes*8;
@@ -135,6 +125,8 @@ void EncodingTest::avxRecursiveTest() {
 
 	const size_t blockLength = 4096;
 	const size_t infoLength = 2048+1024;
+
+	if(!avx2supported()) return;
 
 	Constructor *constructor = new Bhattacharrya(blockLength, infoLength);
 	frozenBits = constructor->construct();
@@ -230,8 +222,6 @@ void EncodingTest::performanceComparison() {
 		TimeUsed = duration_cast<duration<float>>(TimeEnd-TimeStart);
 		speed = (testBits/TimeUsed.count());
 		std::cout << "AVX2-Packed Speed: " << siFormat(speed) << "bps (" << siFormat(speed/8) << "B/s)" << std::endl;
-	} else {
-		std::cout << "AVX2 can't be tested on this system, sorry." << std::endl;
 	}
 }
 

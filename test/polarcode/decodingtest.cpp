@@ -10,7 +10,9 @@
 CPPUNIT_TEST_SUITE_REGISTRATION(DecodingTest);
 
 void DecodingTest::setUp() {
-
+	if(!__builtin_cpu_supports("avx2")) {
+		std::cout << "Decoding tests using AVX2-instructions will be skipped." << std::endl;
+	}
 }
 
 void DecodingTest::tearDown() {
@@ -27,6 +29,8 @@ bool testVectors(const __m256i &one, const __m256i &two) {
 
 void DecodingTest::testSpecialDecoders() {
 	__m256i llr, bits, expectedResult;
+
+	if(!__builtin_cpu_supports("avx2")) return;
 
 	// Rate-0
 	bits = _mm256_set1_epi8(-1);
@@ -98,6 +102,8 @@ void DecodingTest::testGeneralDecodingFunctions() {
 	__m256i llr[2], bits, child;
 	__m256i expected;
 
+	if(!__builtin_cpu_supports("avx2")) return;
+
 	// F-function
 	llr[0]   = _mm256_set_epi8( 0, 1, 2, 3, 4, 5, 6,-7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1);
 	llr[1]   = _mm256_set_epi8(-1, 2, 3,-4, 5, 6,-7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2);
@@ -126,6 +132,8 @@ void DecodingTest::testAvx2Short() {
 	high_resolution_clock::time_point TimeStart, TimeEnd;
 	float TimeUsed;
 
+	if(!__builtin_cpu_supports("avx2")) return;
+
 	size_t blockLength = 8;
 	std::vector<unsigned> frozenBits({0,1,2,4});
 
@@ -148,6 +156,8 @@ void DecodingTest::testAvx2Short() {
 	delete decoder;
 }
 
+	if(!__builtin_cpu_supports("avx2")) return;
+
 
 void DecodingTest::testAvx2Performance() {
 	using namespace std::chrono;
@@ -156,6 +166,8 @@ void DecodingTest::testAvx2Performance() {
 	std::vector<unsigned> frozenBits;
 
 	const size_t blockLength = 1<<16;
+
+	if(!__builtin_cpu_supports("avx2")) return;
 
 	/* Get a set of frozen bits */ {
 		PolarCode::Construction::Constructor *constructor
@@ -218,6 +230,8 @@ void DecodingTest::testListDecoder() {
 	using namespace std::chrono;
 	high_resolution_clock::time_point TimeStart, TimeEnd;
 	float TimeUsed;
+
+	if(!__builtin_cpu_supports("avx2")) return;
 
 	size_t blockLength = 8;
 	size_t listSizeLimit = 4;
