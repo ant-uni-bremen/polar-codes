@@ -19,9 +19,9 @@ char hardDecode(char llr) {
 	return (llr>>7)<<7;
 }
 
-const __m256i absCorrector = _mm256_set1_epi8(-127);
 void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out)
 {
+	static const __m256i absCorrector = _mm256_set1_epi8(-127);
 	__m256i absL = _mm256_abs_epi8(_mm256_max_epi8(Left, absCorrector));
 	__m256i absR = _mm256_abs_epi8(_mm256_max_epi8(Right, absCorrector));
 	__m256i minV = _mm256_min_epi8(absL, absR);//minimum of absolute values

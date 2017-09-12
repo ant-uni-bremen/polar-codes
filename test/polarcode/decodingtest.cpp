@@ -161,9 +161,6 @@ void DecodingTest::testAvx2Short() {
 	delete decoder;
 }
 
-	if(!__builtin_cpu_supports("avx2")) return;
-
-
 void DecodingTest::testAvx2Performance() {
 	using namespace std::chrono;
 	high_resolution_clock::time_point TimeDecode, TimeInject, TimeEnd;

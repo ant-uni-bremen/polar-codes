@@ -41,6 +41,8 @@ void PolarCodeTest::testAvx2() {
 	const size_t blockLength = 1<<12;
 	const size_t infoLength = blockLength*3/4;
 
+	if(!__builtin_cpu_supports("avx2")) return;
+
 	unsigned char *input = new unsigned char[infoLength/8];
 	unsigned char *inputBlock = new unsigned char[blockLength/8];
 	char *inputSignal = new char[blockLength];
@@ -98,6 +100,8 @@ void PolarCodeTest::testAvx2List() {
 	const size_t blockLength = 1<<12;
 	const size_t infoLength = blockLength*3/4;
 	const size_t pathLimit = 4;
+
+	if(!__builtin_cpu_supports("avx2")) return;
 
 	unsigned char *input = new unsigned char[infoLength/8];
 	unsigned char *inputBlock = new unsigned char[blockLength/8];
