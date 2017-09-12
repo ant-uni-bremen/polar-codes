@@ -2,6 +2,7 @@
 #include "siformat.h"
 
 #include <polarcode/decoding/fastssc_avx2_char.h>
+#include <polarcode/decoding/fastssc_avx_float.h>
 #include <polarcode/decoding/scl_avx2_char.h>
 #include <polarcode/construction/bhattacharrya.h>
 #include <chrono>
@@ -179,7 +180,7 @@ void DecodingTest::testAvx2Performance() {
 		}
 	}
 
-	PolarCode::Decoding::Decoder *decoder = new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits);
+	PolarCode::Decoding::Decoder *decoder = new PolarCode::Decoding::FastSscAvxFloat(blockLength, frozenBits);
 
 	TimeInject = high_resolution_clock::now();
 	decoder->setSignal(signal);

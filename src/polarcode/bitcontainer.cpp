@@ -66,7 +66,7 @@ void BitContainer::clear() {
 }
 
 void BitContainer::calculateLUT() {
-	mLUT = new unsigned[mInformationBitCount];
+	mLUT = new unsigned[std::max(mInformationBitCount, 8U)];
 	unsigned lutCounter = 0;
 	unsigned frozenCounter = 0, countMax = mFrozenBits.size();
 	for(unsigned i=0; i<mElementCount; ++i) {
@@ -91,24 +91,32 @@ void BitContainer::setFrozenBits(const std::vector<unsigned> &frozenBits) {
 }
 
 FloatContainer::FloatContainer()
-	: mData(nullptr) {
+	: mData(nullptr),
+	  mDataIsExternal(false) {
 	static_assert(sizeof(float) == 4, "sizeof(float) must be 4 bytes!");
 }
 
 FloatContainer::FloatContainer(size_t size)
 	: BitContainer(size),
-	  mData(nullptr) {
+	  mData(nullptr),
+	  mDataIsExternal(false) {
 	setSize(size);
+}
+
+FloatContainer::FloatContainer(float *external, size_t size)
+	: BitContainer(size), mData(external), mDataIsExternal(true) {
+	mElementCount = size;
 }
 
 FloatContainer::FloatContainer(size_t size, std::vector<unsigned> &frozenBits)
 	: BitContainer(size, frozenBits),
-	  mData(nullptr) {
+	  mData(nullptr),
+	  mDataIsExternal(false) {
 	setSize(size);
 }
 
 FloatContainer::~FloatContainer() {
-	if(mData != nullptr) {
+	if(mData != nullptr && !mDataIsExternal) {
 		_mm_free(mData);
 	}
 }
@@ -386,11 +394,10 @@ void CharContainer::getPackedInformationBits(void* pData) {
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char *uData = reinterpret_cast<unsigned char *>(mData);
 	unsigned char currentByte = 0;
-	unsigned *lutPtr = mLUT;
 
 	for(unsigned bit = 0; bit < mInformationBitCount; bit+=8) {
 		for(int j=0; j<8; ++j) {
-			currentByte |= (uData[*(lutPtr++)] & 0x80) >> j;
+			currentByte |= (uData[mLUT[bit+j]] & 0x80) >> j;
 		}
 		*(charPtr++) = currentByte;
 		currentByte = 0;

@@ -145,10 +145,12 @@ public:
  */
 class FloatContainer : public BitContainer {
 	float *mData;
+	bool mDataIsExternal;
 
 public:
 	FloatContainer();
 	FloatContainer(size_t size);///<Initialize the container to specified size.
+	FloatContainer(float *external, size_t size);///<Assign an external storage to this container.
 	FloatContainer(size_t size, std::vector<unsigned> &frozenBits);///<Configure this container to a given Polar Code.
 	~FloatContainer();
 	void setSize(size_t newSize);

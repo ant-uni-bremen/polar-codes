@@ -1,4 +1,4 @@
-#include <polarcode/decoding/fastssc_avx2_char.h>
+#include <polarcode/decoding/fastssc_avx_float.h>
 #include <polarcode/encoding/butterfly_avx2_packed.h>
 #include <polarcode/polarcode.h>
 
@@ -11,30 +11,28 @@
 namespace PolarCode {
 namespace Decoding {
 
-namespace FastSscAvx2 {
+namespace FastSscAvx {
 
 
 Node::Node()
 	: mLlr(nullptr),
 	  mBit(nullptr),
 	  xmDataPool(nullptr),
-	  mBlockLength(0),
-	  mVecCount(0) {
+	  mBlockLength(0) {
 }
 
 Node::Node(size_t blockLength, datapool_t *pool)
-	: mLlr(pool->allocate(nBit2vecCount(blockLength))),
-	  mBit(pool->allocate(nBit2vecCount(blockLength))),
+	: mLlr(pool->allocate(blockLength)),
+	  mBit(pool->allocate(blockLength)),
 	  xmDataPool(pool),
-	  mBlockLength(blockLength),
-	  mVecCount(nBit2vecCount(blockLength)){
+	  mBlockLength(blockLength) {
 }
 
 Node::~Node() {
 	clearBlocks();
 }
 
-void Node::decode(__m256i *LlrIn, __m256i *BitsOut) {
+void Node::decode(float *LlrIn, float *BitsOut) {
 }
 
 void Node::clearBlocks() {
@@ -64,18 +62,18 @@ Node::datapool_t* Node::pool() {
 	return xmDataPool;
 }
 
-__m256i* Node::input() {
+float* Node::input() {
 	return mLlr->data;
 }
 
-__m256i* Node::output() {
+float* Node::output() {
 	return mBit->data;
 }
 
 
 // Constructors of nodes
 
-std::string decoderName(void (*specialDecoder)(__m256i*, __m256i*, size_t)) {
+std::string decoderName(void (*specialDecoder)(float*, float*, size_t)) {
 	if(specialDecoder == &RateZeroDecode)
 		return std::string("Zero");
 	if(specialDecoder == &RateOneDecode)
@@ -87,7 +85,7 @@ std::string decoderName(void (*specialDecoder)(__m256i*, __m256i*, size_t)) {
 	return std::string("R");
 }
 
-RateRNode::RateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
+RateRNode::RateRNode(const std::vector<unsigned> &frozenBits, Node *parent, ChildCreationFlags flags)
 	: mParent(parent){
 	xmDataPool = parent->pool();
 	mBlockLength = parent->blockLength() / 2;
@@ -95,37 +93,40 @@ RateRNode::RateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	std::vector<unsigned> leftFrozenBits, rightFrozenBits;
 	splitFrozenBits(frozenBits, mBlockLength, leftFrozenBits, rightFrozenBits);
 
-	mLeft = createDecoder(leftFrozenBits, this, &leftDecoder);
-	mRight = createDecoder(rightFrozenBits, this, &rightDecoder);
-
-	if((!mLeft || !mRight) && mBlockLength >= 32) {
-//		std::cout << decoderName(leftDecoder) << " " << decoderName(rightDecoder) << ": " << mBlockLength << std::endl;
+	if(flags & NO_LEFT) {
+		mLeft = nullptr;
+	} else {
+		mLeft = createDecoder(leftFrozenBits, this, &leftDecoder);
 	}
 
-	mVecCount = nBit2vecCount(mBlockLength);
+	if(flags & NO_RIGHT) {
+		mRight = nullptr;
+	} else {
+		mRight = createDecoder(rightFrozenBits, this, &rightDecoder);
+	}
 
-	ChildLlr = xmDataPool->allocate(mVecCount);
+	ChildLlr = xmDataPool->allocate(mBlockLength);
 }
 
 ShortRateRNode::ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	: RateRNode(frozenBits, parent),
-	  LeftBits(xmDataPool->allocate(mVecCount)),
-	  RightBits(xmDataPool->allocate(mVecCount)) {
+	  LeftBits(xmDataPool->allocate(mBlockLength)),
+	  RightBits(xmDataPool->allocate(mBlockLength)) {
 }
 
 ROneNode::ROneNode(const std::vector<unsigned> &frozenBits, Node *parent)
-	: RateRNode(frozenBits, parent) {
+	: RateRNode(frozenBits, parent, NO_RIGHT) {
 }
 
 ZeroRNode::ZeroRNode(const std::vector<unsigned> &frozenBits, Node *parent)
-	: RateRNode(frozenBits, parent) {
+	: RateRNode(frozenBits, parent, NO_LEFT) {
 }
 
 // Destructors of nodes
 
 RateRNode::~RateRNode() {
-	delete mLeft;
-	delete mRight;
+	if(mLeft) delete mLeft;
+	if(mRight) delete mRight;
 	xmDataPool->release(ChildLlr);
 }
 
@@ -142,58 +143,61 @@ ZeroRNode::~ZeroRNode() {
 
 // Decoders
 
-
-void RateZeroDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
-	memset(BitsOut, 127, blockLength);
+void memFloatFill(float *dst, float value, const size_t blockLength) {
+	if(blockLength>=8) {
+		const __m256 vec = _mm256_set1_ps(value);
+		for(unsigned i=0; i<blockLength; i+=8) {
+			_mm256_store_ps(dst+i, vec);
+		}
+	} else {
+		for(unsigned i=0; i<blockLength; i++) {
+			dst[i] = value;
+		}
+	}
 }
 
-void RateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
-	memcpy(BitsOut, LlrIn, blockLength);
+void RateZeroDecode(float*, float *BitsOut, const size_t blockLength) {
+	memFloatFill(BitsOut, INFINITY, blockLength);
+}
+
+void RateOneDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
+	memcpy(BitsOut, LlrIn, blockLength*4);
 }
 
 
-/* WARNING: Saturation can lead to wrong results!
-
-	127 + 127 + 127 + 127 + -128 results in -1 and thus wrong sign
-	after step-by-step saturated addition.
-
-	Conversion to epi16 will reduce throughput but circumvents that problem.
-*/
-void RepetitionDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
-	unsigned vecCount = (blockLength+31)/32;
-	__m256i LlrSum = _mm256_setzero_si256();
+void RepetitionDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
+	__m256 LlrSum = _mm256_setzero_ps();
 
 	RepetitionPrepare(LlrIn, blockLength);
 
 	// Accumulate vectors
-	for(unsigned i=0; i<vecCount; i++) {
-		LlrSum = _mm256_adds_epi8(LlrSum, _mm256_load_si256(LlrIn+i));
+	for(unsigned i=0; i<blockLength; i+=8) {
+		LlrSum = _mm256_add_ps(LlrSum, _mm256_load_ps(LlrIn+i));
 	}
 
 	// Get final sum and save decoding result
-	char Bits = reduce_adds_epi8(LlrSum);
-	memset(BitsOut, Bits, blockLength);
+	float Bits = reduce_add_ps(LlrSum);
+	memFloatFill(BitsOut, Bits, blockLength);
 }
 
-void SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
-	unsigned vecCount = (blockLength+31)/32;
-	__m256i parVec = _mm256_setzero_si256();
+void SpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
+	static const __m256 sgnMask = _mm256_set1_ps(-0.0);
+	__m256 parVec = _mm256_setzero_ps();
 	unsigned minIdx = 0;
-	char testAbs, minAbs = 127;
+	float testAbs, minAbs = INFINITY;
 
 	SpcPrepare(LlrIn, blockLength);
 
-	memcpy(BitsOut, LlrIn, blockLength);
+	for(unsigned i=0; i<blockLength; i+=8) {
+		__m256 vecIn = _mm256_load_ps(LlrIn+i);
+		_mm256_store_ps(BitsOut+i, vecIn);
 
-	for(unsigned i=0; i<vecCount; i++) {
-		__m256i vecIn = _mm256_load_si256(LlrIn+i);
-
-		parVec = _mm256_xor_si256(parVec, vecIn);
+		parVec = _mm256_xor_ps(parVec, vecIn);
 
 		// Only search for minimum if there is a chance for smaller absolute value
-		if(minAbs/* > 0*/) {
-			__m256i abs = _mm256_abs_epi8(vecIn);
-			unsigned vecMin = _mm256_minpos_epu8(abs, &testAbs);
+		if(minAbs > 0) {
+			__m256 abs = _mm256_andnot_ps(sgnMask, vecIn);
+			unsigned vecMin = _mm256_minidx_ps(abs, &testAbs);
 			if(testAbs < minAbs) {
 				minIdx = vecMin+i;
 				minAbs = testAbs;
@@ -202,35 +206,37 @@ void SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
 	}
 
 	// Flip least reliable bit, if neccessary
-	reinterpret_cast<unsigned char*>(BitsOut)[minIdx] ^= reduce_xor_si256(parVec);
+	float fParity = reduce_xor_ps(parVec);
+	unsigned int *iParity = reinterpret_cast<unsigned int*>(&fParity);
+	reinterpret_cast<unsigned char*>(BitsOut)[minIdx] ^= (*iParity & 0x80000000);
 }
 
-void ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
+void ZeroSpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
 	std::cout << "ZeroSpc";
+	static const __m256 sgnMask = _mm256_set1_ps(-0.0);
 	const size_t subBlockLength = blockLength/2;
-	unsigned vecCount = (subBlockLength+31)/32;
-	__m256i parVec = _mm256_setzero_si256();
+	__m256 parVec = _mm256_setzero_ps();
 	unsigned minIdx = 0;
-	char testAbs, minAbs = 127;
-
-	//Generate output
-	memcpy(BitsOut,                LlrIn+subBlockLength, subBlockLength);
-	memcpy(BitsOut+subBlockLength, LlrIn+subBlockLength, subBlockLength);
+	float testAbs, minAbs = INFINITY;
 
 	//Check parity equation
-	for(unsigned i=0; i<vecCount; i++) {
+	for(unsigned i=0; i<subBlockLength; i+=8) {
 		//G-function with only frozen bits
-		__m256i left = _mm256_load_si256(LlrIn+i);
-		__m256i right = _mm256_load_si256(LlrIn+vecCount+i);
-		__m256i llr = _mm256_adds_epi8(left, right);
+		__m256 left = _mm256_load_ps(LlrIn+i);
+		__m256 right = _mm256_load_ps(LlrIn+subBlockLength+i);
+		__m256 llr = _mm256_add_ps(left, right);
+
+		//Save output
+		_mm256_store_ps(BitsOut+i, right);
+		_mm256_store_ps(BitsOut+subBlockLength+i, right);
 
 		//Update parity counter
-		parVec = _mm256_xor_si256(parVec, llr);
+		parVec = _mm256_xor_ps(parVec, llr);
 
 		// Only search for minimum if there is a chance for smaller absolute value
-		if(minAbs/* > 0*/) {
-			__m256i abs = _mm256_abs_epi8(llr);
-			unsigned vecMin = _mm256_minpos_epu8(abs, &testAbs);
+		if(minAbs > 0) {
+			__m256 abs = _mm256_andnot_ps(sgnMask, llr);
+			unsigned vecMin = _mm256_minidx_ps(abs, &testAbs);
 			if(testAbs < minAbs) {
 				minIdx = vecMin+i;
 				minAbs = testAbs;
@@ -239,29 +245,32 @@ void ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
 	}
 
 	// Flip least reliable bit, if neccessary
-	reinterpret_cast<unsigned char*>(BitsOut)[minIdx] ^= reduce_xor_si256(parVec);
-	reinterpret_cast<unsigned char*>(BitsOut+subBlockLength)[minIdx] ^= reduce_xor_si256(parVec);
+	float fParity = reduce_xor_ps(parVec);
+	unsigned int *iParity = reinterpret_cast<unsigned int*>(&fParity);
+	*iParity &= 0x80000000;
+	reinterpret_cast<unsigned char*>(BitsOut)[minIdx] ^= *iParity;
+	reinterpret_cast<unsigned char*>(BitsOut+subBlockLength)[minIdx] ^= *iParity;
 }
 
-void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
-	const size_t vecCount = nBit2vecCount(blockLength);
-	for(unsigned i = 0; i < vecCount; ++i) {
-		__m256i Llr_l = _mm256_load_si256(LlrIn+i);
-		__m256i Llr_r = _mm256_load_si256(LlrIn+i+vecCount);
-		__m256i Bits = _mm256_load_si256(BitsOut+i);
+void simplifiedRightRateOneDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
+	for(unsigned i = 0; i < blockLength; i+=8) {
+		__m256 Llr_l = _mm256_load_ps(LlrIn+i);
+		__m256 Llr_r = _mm256_load_ps(LlrIn+blockLength+i);
+		__m256 Bits = _mm256_load_ps(BitsOut+i);
+		Bits = hardDecode(Bits);
 
-		__m256i Llr_o = _mm256_xor_si256(Llr_l, Bits);//G-function
-		Llr_o = _mm256_and_si256(Llr_o, Llr_r);//G-function
+		__m256 Llr_o = _mm256_xor_ps(Llr_l, Bits);//G-function
+		Llr_o = _mm256_and_ps(Llr_o, Llr_r);//G-function
 		/*nop*/ //Rate 1 decoder
-		_mm256_store_si256(BitsOut+i+vecCount, Llr_o);//Right bit
-		Llr_o = _mm256_xor_si256(Llr_o, Bits);//Combine
-		_mm256_store_si256(BitsOut+i, Llr_o);//Left bit
+		_mm256_store_ps(BitsOut+blockLength+i, Llr_o);//Right bit
+		Llr_o = _mm256_xor_ps(Llr_o, Bits);//Combine
+		_mm256_store_ps(BitsOut+i, Llr_o);//Left bit
 
 	}
 }
 
 
-void RateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
+void RateRNode::decode(float *LlrIn, float *BitsOut) {
 	F_function(LlrIn, ChildLlr->data, mBlockLength);
 
 	if(mLeft) {
@@ -273,15 +282,15 @@ void RateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	G_function(LlrIn, ChildLlr->data, BitsOut, mBlockLength);
 
 	if(mRight) {
-		mRight->decode(ChildLlr->data, BitsOut+mVecCount);
+		mRight->decode(ChildLlr->data, BitsOut+mBlockLength);
 	} else {
-		rightDecoder(ChildLlr->data, BitsOut+mVecCount, mBlockLength);
+		rightDecoder(ChildLlr->data, BitsOut+mBlockLength, mBlockLength);
 	}
 
-	Combine(BitsOut, mVecCount);
+	Combine(BitsOut, mBlockLength);
 }
 
-void ShortRateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
+void ShortRateRNode::decode(float *LlrIn, float *BitsOut) {
 	F_function(LlrIn, ChildLlr->data, mBlockLength);
 
 	if(mLeft) {
@@ -301,7 +310,7 @@ void ShortRateRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	CombineShortBits(LeftBits->data, RightBits->data, BitsOut, mBlockLength);
 }
 
-void ROneNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
+void ROneNode::decode(float *LlrIn, float *BitsOut) {
 	F_function(LlrIn, ChildLlr->data, mBlockLength);
 
 	if(mLeft) {
@@ -313,21 +322,21 @@ void ROneNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	simplifiedRightRateOneDecode(LlrIn, BitsOut, mBlockLength);
 }
 
-void ZeroRNode::decode(__m256i *LlrIn, __m256i *BitsOut) {
+void ZeroRNode::decode(float *LlrIn, float *BitsOut) {
 	G_function_0R(LlrIn, ChildLlr->data, BitsOut, mBlockLength);
 
 	if(mRight) {
-		mRight->decode(ChildLlr->data, BitsOut+mVecCount);
+		mRight->decode(ChildLlr->data, BitsOut+mBlockLength);
 	} else {
-		rightDecoder(ChildLlr->data, BitsOut+mVecCount, mBlockLength);
+		rightDecoder(ChildLlr->data, BitsOut+mBlockLength, mBlockLength);
 	}
 
-	Combine_0R(BitsOut, mVecCount);
+	Combine_0R(BitsOut, mBlockLength);
 }
 
 // End of mass defining
 
-Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(__m256i *, __m256i *, size_t)) {
+Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(float *, float *, size_t)) {
 	size_t blockLength = parent->blockLength();
 	size_t frozenBitCount = frozenBits.size();
 
@@ -352,19 +361,17 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void 
 	}
 
 	// Fallback: No special code available, split into smaller subcodes
-	if(blockLength <= 32) {
+	if(blockLength <= 8) {
 		*specialDecoder = nullptr;
 		return new ShortRateRNode(frozenBits, parent);
 	} else {
 		std::vector<unsigned> leftFrozenBits, rightFrozenBits;
 		splitFrozenBits(frozenBits, blockLength/2, leftFrozenBits, rightFrozenBits);
 
-//		std::cout << leftFrozenBits.size() << "," << rightFrozenBits.size() << "=>";
 		//Last case of optimization:
 		//Common child node combinations
 		if(leftFrozenBits.size() == blockLength/2 && rightFrozenBits.size() == 1) {
 			*specialDecoder = &ZeroSpcDecode;
-//			std::cout << "ZeroSPC" << std::endl;
 			return nullptr;
 		}
 
@@ -384,23 +391,23 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void 
 	}
 }
 
-}// namespace FastSscAvx2
+}// namespace FastSscAvx
 
-FastSscAvx2Char::FastSscAvx2Char(size_t blockLength, const std::vector<unsigned> &frozenBits) {
+FastSscAvxFloat::FastSscAvxFloat(size_t blockLength, const std::vector<unsigned> &frozenBits) {
 	initialize(blockLength, frozenBits);
 }
 
-FastSscAvx2Char::~FastSscAvx2Char() {
+FastSscAvxFloat::~FastSscAvxFloat() {
 	clear();
 }
 
-void FastSscAvx2Char::clear() {
+void FastSscAvxFloat::clear() {
 	if(mRootNode) delete mRootNode;
 	delete mNodeBase;
 	delete mDataPool;
 }
 
-void FastSscAvx2Char::initialize(size_t blockLength, const std::vector<unsigned> &frozenBits) {
+void FastSscAvxFloat::initialize(size_t blockLength, const std::vector<unsigned> &frozenBits) {
 	if(blockLength == mBlockLength && frozenBits == mFrozenBits) {
 		return;
 	}
@@ -410,18 +417,18 @@ void FastSscAvx2Char::initialize(size_t blockLength, const std::vector<unsigned>
 	mBlockLength = blockLength;
 	//mFrozenBits = frozenBits;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
-	mDataPool = new DataPool<__m256i, 32>();
-	mNodeBase = new FastSscAvx2::Node(blockLength, mDataPool);
+	mDataPool = new DataPool<float, 32>();
+	mNodeBase = new FastSscAvx::Node(blockLength, mDataPool);
 	std::cout << "Create decoder of length " << mBlockLength << std::endl;
-	mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase, &mSpecialDecoder);
-	mLlrContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()),  mBlockLength);
-	mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);
+	mRootNode = FastSscAvx::createDecoder(frozenBits, mNodeBase, &mSpecialDecoder);
+	mLlrContainer = new FloatContainer(mNodeBase->input(),  mBlockLength);
+	mBitContainer = new FloatContainer(mNodeBase->output(), mBlockLength);
 	mLlrContainer->setFrozenBits(mFrozenBits);
 	mBitContainer->setFrozenBits(mFrozenBits);
 	mOutputContainer = new unsigned char[(mBlockLength-frozenBits.size()+7)/8];
 }
 
-bool FastSscAvx2Char::decode() {
+bool FastSscAvxFloat::decode() {
 	if(mRootNode) {
 		mRootNode->decode(mNodeBase->input(), mNodeBase->output());
 	} else {
@@ -430,9 +437,9 @@ bool FastSscAvx2Char::decode() {
 	if(!mSystematic) {
 		Encoding::Encoder* encoder = new Encoding::ButterflyAvx2Packed(mBlockLength);
 		encoder->setSystematic(false);
-		encoder->setCodeword(dynamic_cast<CharContainer*>(mBitContainer)->data());
+		encoder->setCodeword(dynamic_cast<FloatContainer*>(mBitContainer)->data());
 		encoder->encode();
-		encoder->getEncodedData(dynamic_cast<CharContainer*>(mBitContainer)->data());
+		encoder->getEncodedData(dynamic_cast<FloatContainer*>(mBitContainer)->data());
 		delete encoder;
 	}
 	mBitContainer->getPackedInformationBits(mOutputContainer);
