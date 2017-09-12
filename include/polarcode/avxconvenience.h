@@ -142,10 +142,18 @@ unsigned _mm256_minpos_epu8(__m256i x, char *val = nullptr);
 __m256i _mm256_subVectorShift_epu8(__m256i x, int shift);
 __m256i _mm256_subVectorBackShift_epu8(__m256i x, int shift);
 
+__m256 _mm256_subVectorShift_ps(__m256 x, int shift);
+__m256 _mm256_subVectorBackShift_ps(__m256 x, int shift);
+
 /*!
  * \brief Check if AVX2 is available
  */
 bool featureCheckAvx2();
+
+/*!
+ * \brief Check if AVX2 is available
+ */
+bool featureCheckAvx();
 
 #endif //AVXCONVENIENCE
 

@@ -66,7 +66,7 @@ void BitContainer::clear() {
 }
 
 void BitContainer::calculateLUT() {
-	mLUT = new unsigned[mInformationBitCount];
+	mLUT = new unsigned[std::max(mInformationBitCount, 8U)];
 	unsigned lutCounter = 0;
 	unsigned frozenCounter = 0, countMax = mFrozenBits.size();
 	for(unsigned i=0; i<mElementCount; ++i) {
@@ -91,24 +91,32 @@ void BitContainer::setFrozenBits(const std::vector<unsigned> &frozenBits) {
 }
 
 FloatContainer::FloatContainer()
-	: mData(nullptr) {
+	: mData(nullptr),
+	  mDataIsExternal(false) {
 	static_assert(sizeof(float) == 4, "sizeof(float) must be 4 bytes!");
 }
 
 FloatContainer::FloatContainer(size_t size)
 	: BitContainer(size),
-	  mData(nullptr) {
+	  mData(nullptr),
+	  mDataIsExternal(false) {
 	setSize(size);
+}
+
+FloatContainer::FloatContainer(float *external, size_t size)
+	: BitContainer(size), mData(external), mDataIsExternal(true) {
+	mElementCount = size;
 }
 
 FloatContainer::FloatContainer(size_t size, std::vector<unsigned> &frozenBits)
 	: BitContainer(size, frozenBits),
-	  mData(nullptr) {
+	  mData(nullptr),
+	  mDataIsExternal(false) {
 	setSize(size);
 }
 
 FloatContainer::~FloatContainer() {
-	if(mData != nullptr) {
+	if(mData != nullptr && !mDataIsExternal) {
 		_mm_free(mData);
 	}
 }
@@ -334,9 +342,32 @@ void CharContainer::insertCharBits(const void *pData) {
 	memcpy(mData, pData, mElementCount);
 }
 
+void vectorizedFtoC(char *cPtr, const float *fPtr, const unsigned size) {
+	static const __m256 maximum = _mm256_set1_ps(127.0);
+	static const __m256 minimum = _mm256_set1_ps(-128.0);
+	__m256 fvec;
+	__m256i ivec;
+	char* cvec = reinterpret_cast<char*>(&ivec);
+	for(unsigned i=0; i<size; i+=8) {
+		fvec = _mm256_loadu_ps(fPtr+i);
+		fvec = _mm256_max_ps(fvec, minimum);
+		fvec = _mm256_min_ps(fvec, maximum);
+		fvec = _mm256_round_ps(fvec, _MM_FROUND_TO_NEAREST_INT);
+		ivec = _mm256_cvtps_epi32(fvec);
+		for(int j=0; j<8; ++j) {
+			cPtr[i+j] = cvec[j*4];
+		}
+	}
+
+}
+
 void CharContainer::insertLlr(const float *pLlr) {
-	for(unsigned int bit=0; bit < mElementCount; ++bit) {
-		mData[bit] = convertFtoC(pLlr[bit]);
+	if(mElementCount >= 8) {
+		vectorizedFtoC(mData, pLlr, mElementCount);
+	} else {
+		for(unsigned int bit=0; bit < mElementCount; ++bit) {
+			mData[bit] = convertFtoC(pLlr[bit]);
+		}
 	}
 }
 
@@ -362,21 +393,14 @@ void CharContainer::getPackedBits(void* pData) {
 void CharContainer::getPackedInformationBits(void* pData) {
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
 	unsigned char *uData = reinterpret_cast<unsigned char *>(mData);
-	unsigned char currentByte = 0, currentBit = 0;
-	unsigned *lutPtr = mLUT;
+	unsigned char currentByte = 0;
 
-	for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {
-		currentByte |= (uData[*(lutPtr++)] & 0x80) >> (currentBit++);
-		if(currentBit == 8) {
-			*charPtr = currentByte;
-			currentByte = 0;
-			currentBit = 0;
-			++charPtr;
+	for(unsigned bit = 0; bit < mInformationBitCount; bit+=8) {
+		for(int j=0; j<8; ++j) {
+			currentByte |= (uData[mLUT[bit+j]] & 0x80) >> j;
 		}
-	}
-
-	if(mFrozenBits.size()%8 != 0) {
-		*charPtr = currentByte;
+		*(charPtr++) = currentByte;
+		currentByte = 0;
 	}
 }
 

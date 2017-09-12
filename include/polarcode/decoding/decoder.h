@@ -20,8 +20,8 @@ protected:
 	size_t mBlockLength;///< Length of the Polar Code
 	bool mSystematic;///< Whether to use systematic coding
 	bool mSoftOutput;///< Whether to calculate soft output bits
-	CharContainer *mLlrContainer;///< Soft-input container
-	CharContainer *mBitContainer;///< Output bit container
+	BitContainer *mLlrContainer;///< Soft-input container
+	BitContainer *mBitContainer;///< Output bit container
 	unsigned char *mOutputContainer;///< Final data container, gets filled for error detection
 	std::vector<unsigned> mFrozenBits; ///< Indices for frozen bits
 

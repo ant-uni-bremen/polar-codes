@@ -1,21 +1,21 @@
-#ifndef PC_DEC_FASTSSC_AVX2_H
-#define PC_DEC_FASTSSC_AVX2_H
+#ifndef PC_DEC_FASTSSC_AVX_FLOAT_H
+#define PC_DEC_FASTSSC_AVX_FLOAT_H
 
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/datapool.txx>
-#include <polarcode/decoding/avx2_char.h>
+#include <polarcode/decoding/avx_float.h>
 
 namespace PolarCode {
 namespace Decoding {
 
-namespace FastSscAvx2 {
+namespace FastSscAvx {
 
 /*!
  * \brief A node of the polar decoding tree.
  */
 class Node {
-	typedef DataPool<__m256i, 32> datapool_t;
-	Block<__m256i> *mLlr, *mBit;
+	typedef DataPool<float, 32> datapool_t;
+	Block<float> *mLlr, *mBit;
 
 	void clearBlocks();
 	void clearLlrBlock();
@@ -24,8 +24,7 @@ class Node {
 protected:
 	//xm = eXternal member (not owned by this Node)
 	datapool_t *xmDataPool;///< Pointer to a DataPool object.
-	size_t mBlockLength,   ///< Length of the subcode.
-		   mVecCount;      ///< Number of AVX-vectors the data can be stored in.
+	size_t mBlockLength;   ///< Length of the subcode.
 
 public:
 	Node();
@@ -37,7 +36,7 @@ public:
 	Node(size_t blockLength, datapool_t *pool);
 	virtual ~Node();
 
-	virtual void decode(__m256i *LlrIn, __m256i *BitsOut);///< Execute a specialized decoding algorithm.
+	virtual void decode(float *LlrIn, float *BitsOut);///< Execute a specialized decoding algorithm.
 
 	/*!
 	 * \brief Get a pointer to the datapool.
@@ -55,26 +54,30 @@ public:
 	 * \brief Get a pointer to LLR values of this node.
 	 * \return Pointer to LLRs.
 	 */
-	__m256i* input();
+	float* input();
 
 	/*!
 	 * \brief Get a pointer to bits of this node.
 	 * \return Pointer to bit storage.
 	 */
-	__m256i* output();
+	float* output();
 
 };
 
 
-void   RateZeroDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void    RateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void RepetitionDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void        SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void    ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+void   RateZeroDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
+void    RateOneDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
+void RepetitionDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
+void        SpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
+void    ZeroSpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
 
-void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+void simplifiedRightRateOneDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
 
-
+enum ChildCreationFlags {
+	BOTH,
+	NO_LEFT = 0x01,
+	NO_RIGHT = 0x02
+};
 
 /*!
  * \brief A Rate-R node redirects decoding to polar subcodes of lower complexity.
@@ -84,26 +87,27 @@ protected:
 	Node *mParent;///< The parent node
 	Node *mLeft,  ///< Left child node
 		 *mRight; ///< Right child node
-	Block<__m256i> *ChildLlr;///< Temporarily holds the LLRs child nodes have to decode.
-	void (*leftDecoder)(__m256i*, __m256i*, size_t);///< Pointer to special decoding function of left child.
-	void (*rightDecoder)(__m256i*, __m256i*, size_t);///< Pointer to special decoding function of right child.
+	Block<float> *ChildLlr;///< Temporarily holds the LLRs child nodes have to decode.
+	void (*leftDecoder)(float*, float*, size_t);///< Pointer to special decoding function of left child.
+	void (*rightDecoder)(float*, float*, size_t);///< Pointer to special decoding function of right child.
 
 public:
 	/*!
 	 * \brief Using the set of frozen bits, specialized subcodes are selected.
 	 * \param frozenBits The set of frozen bits of this code.
 	 * \param parent The parent node, defining the length of this code.
+	 * \param flags Set to [NO_LEFT | NO_RIGHT] to disable child creation.
 	 */
-	RateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
+	RateRNode(const std::vector<unsigned> &frozenBits, Node *parent, ChildCreationFlags flags = BOTH);
 	~RateRNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(float *LlrIn, float *BitsOut);
 };
 
 /*!
  * \brief A rate-R node of subvector length needs child bits in separate blocks.
  */
 class ShortRateRNode : public RateRNode {
-	Block<__m256i> *LeftBits, *RightBits;
+	Block<float> *LeftBits, *RightBits;
 
 public:
 	/*!
@@ -113,7 +117,7 @@ public:
 	 */
 	ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ShortRateRNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(float *LlrIn, float *BitsOut);
 };
 
 /*!
@@ -128,7 +132,7 @@ public:
 	 */
 	ROneNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ROneNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(float *LlrIn, float *BitsOut);
 };
 
 /*!
@@ -143,7 +147,7 @@ public:
 	 */
 	ZeroRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ZeroRNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(float *LlrIn, float *BitsOut);
 };
 
 /*!
@@ -152,18 +156,18 @@ public:
  * \param parent The parent node from which the code length is fetched.
  * \return Pointer to a polymorphic decoder object.
  */
-Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(__m256i*, __m256i*, size_t));
+Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(float*, float*, size_t));
 
-}// namespace FastSscAvx2
+}// namespace FastSscAvx
 
 /*!
  * \brief The recursive systematic Fast-SSC decoder.
  */
-class FastSscAvx2Char : public Decoder {
-	FastSscAvx2::Node *mNodeBase,///< General code information
+class FastSscAvxFloat : public Decoder {
+	FastSscAvx::Node *mNodeBase,///< General code information
 					  *mRootNode;///< Actual decoder
-	DataPool<__m256i, 32> *mDataPool;///< Lazy-copy data-block pool
-	void (*mSpecialDecoder)(__m256i*, __m256i*, size_t);
+	DataPool<float, 32> *mDataPool;///< Lazy-copy data-block pool
+	void (*mSpecialDecoder)(float*, float*, size_t);
 
 	void clear();
 
@@ -173,8 +177,8 @@ public:
 	 * \param blockLength Length of the Polar Code.
 	 * \param frozenBits Set of frozen bits in the code word.
 	 */
-	FastSscAvx2Char(size_t blockLength, const std::vector<unsigned> &frozenBits);
-	~FastSscAvx2Char();
+	FastSscAvxFloat(size_t blockLength, const std::vector<unsigned> &frozenBits);
+	~FastSscAvxFloat();
 
 	bool decode();
 	void initialize(size_t blockLength, const std::vector<unsigned> &frozenBits);
@@ -183,4 +187,4 @@ public:
 }//namespace Decoding
 }//namespace PolarCode
 
-#endif //PC_DEC_FASTSSC_AVX2_H
+#endif //PC_DEC_FASTSSC_AVX_FLOAT_H

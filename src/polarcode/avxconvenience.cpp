@@ -99,6 +99,40 @@ __m256i _mm256_subVectorBackShift_epu8(__m256i x, int shift) {
 	}
 }
 
+__m256 _mm256_subVectorShift_ps(__m256 x, int shift) {
+	__m256 y;
+	switch (shift) {
+	case 1:
+		y = _mm256_shuffle_ps(x, x, 0b00110001);
+		return _mm256_blend_ps(y, _mm256_setzero_ps(), 0b10101010);
+	case 2:
+		return _mm256_shuffle_ps(x, _mm256_setzero_ps(), 0b00001110);
+	case 4:
+		return _mm256_permute2f128_ps(x, _mm256_setzero_ps(), 0b00110001);
+	default:
+		throw "Subvector shift of undefined size.";
+	}
+}
+
+__m256 _mm256_subVectorBackShift_ps(__m256 x, int shift) {
+	__m256 y;
+	switch (shift) {
+	case 1:
+		y = _mm256_shuffle_ps(x, x, 0b10000000);
+		return _mm256_blend_ps(y, _mm256_setzero_ps(), 0b01010101);
+	case 2:
+		return _mm256_shuffle_ps(_mm256_setzero_ps(), x, 0b01000000);
+	case 4:
+		return _mm256_permute2f128_ps(x, _mm256_setzero_ps(), 0b00000010);
+	default:
+		throw "Subvector shift of undefined size.";
+	}
+}
+
 bool featureCheckAvx2() {
 	return __builtin_cpu_supports("avx2");
+}
+
+bool featureCheckAvx() {
+	return __builtin_cpu_supports("avx");
 }

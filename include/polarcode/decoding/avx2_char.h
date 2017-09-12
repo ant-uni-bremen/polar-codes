@@ -18,8 +18,10 @@ void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out)
 
 void F_function(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength);
 void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBlockLength);
+void G_function_0R(__m256i *LLRin, __m256i *LLRout, __m256i*, unsigned subBlockLength);
 
 void Combine(__m256i *Bits, const unsigned vecCount);
+void Combine_0R(__m256i *Bits, const unsigned vecCount);
 void CombineShortBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
 void CombineBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
 

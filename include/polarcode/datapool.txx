@@ -5,6 +5,7 @@
 #include <cstring>
 #include <map>
 #include <stack>
+#include <algorithm>
 
 #include <polarcode/avxconvenience.h>
 
@@ -50,6 +51,8 @@ public:
 	 */
 	Block<T>* allocate(size_t size) {
 		Block<T> *block;
+
+		size = std::max(alignment/sizeof(T), size);
 
 		if(freeBlocks.find(size) == freeBlocks.end()) {
 			freeBlocks.insert({size, std::stack<Block<T>*>()});
