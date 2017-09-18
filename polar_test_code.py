@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+from __future__ import print_function, division
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -268,8 +268,8 @@ def verify_cpp_encoder_impl():
     print('N={}, matrix: {:.2f}us, unpacked: {:.2f}us, packed: {:.2f}us'.format(N, m[0], m[1], m[2]))
 
 
-def verify_cpp_decoder_impl():
-    N = 2 ** 6
+def verify_cpp_decoder_impl(N=2 ** 6, n_iterations=100):
+    print('verify CPP decoder implementation with codeword size: ', N)
     K = N // 4
 
     eta = design_snr_to_bec_eta(2, 1.0)
@@ -278,7 +278,7 @@ def verify_cpp_decoder_impl():
     print(f)
 
     p = pypolar.PolarEncoder(N, f)
-    dec = pypolar.PolarDecoder(N, f)
+    dec = pypolar.PolarDecoder(N, 1, f)
     # u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
     # d = np.packbits(u)
 
@@ -290,7 +290,7 @@ def verify_cpp_decoder_impl():
     # bhat = dec.decode_vector(llrs)
 
     ctr = 0
-    for i in np.arange(100):
+    for i in np.arange(n_iterations):
         u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
         d = np.packbits(u)
 
@@ -299,14 +299,14 @@ def verify_cpp_decoder_impl():
         llrs = -2 * b + 1
         llrs = llrs.astype(dtype=np.float32)
         dhat = dec.decode_vector(llrs)
-        print d
-        print dhat
+        # print(d)
+        # print(dhat)
         if not np.all(dhat == d):
             ud = np.unpackbits(d)
             udhat = np.unpackbits(dhat)
-            print ud
-            print udhat
-            print np.sum(udhat == ud) - len(ud)
+            print(ud)
+            print(udhat)
+            print(np.sum(udhat == ud) - len(ud))
 
         assert np.all(dhat == d)
         ctr += 1
@@ -315,6 +315,9 @@ def verify_cpp_decoder_impl():
 def main():
     verify_encode_systematic()
     verify_cpp_encoder_impl()
+    for n in range(5, 9):
+        N = 2 ** n
+        verify_cpp_decoder_impl(N, 10000)
     G = get_polar_generator_matrix(3)
     print(G)
     # matrix_row_weight(G)
@@ -346,18 +349,19 @@ def main():
     p = pypolar.PolarEncoder(N, f)
     u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
     d = np.packbits(u)
-    print d
+    print(d)
     cw_pack = p.encode_vector(d)
     b = np.unpackbits(cw_pack)
     llrs = -2 * b + 1
     llrs = llrs.astype(dtype=np.float32)
 
     dec = pypolar.PolarDecoder(N, 1, f)
-    print dec.infoLength()
+    print(dec.infoLength())
     bhat = dec.decode_vector(llrs)
-    print bhat
+    print(bhat)
+    print('Polar Coder Test')
     ctr = 0
-    for i in np.arange(100):
+    for i in np.arange(100000):
         u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
         d = np.packbits(u)
 
@@ -366,11 +370,11 @@ def main():
         llrs = -2 * b + 1
         llrs = llrs.astype(dtype=np.float32)
         dhat = dec.decode_vector(llrs)
-        print d
-        print dhat
+        #print d
+        #print dhat
         if not np.all(dhat == d):
-            print np.unpackbits(d)
-            print np.unpackbits(dhat)
+            print(np.unpackbits(d))
+            print(np.unpackbits(dhat))
 
         assert np.all(dhat == d)
         ctr += 1

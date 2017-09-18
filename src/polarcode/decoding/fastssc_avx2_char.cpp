@@ -412,7 +412,7 @@ void FastSscAvx2Char::initialize(size_t blockLength, const std::vector<unsigned>
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 	mDataPool = new DataPool<__m256i, 32>();
 	mNodeBase = new FastSscAvx2::Node(blockLength, mDataPool);
-	std::cout << "Create decoder of length " << mBlockLength << std::endl;
+	//std::cout << "Create decoder of length " << mBlockLength << std::endl;
 	mRootNode = FastSscAvx2::createDecoder(frozenBits, mNodeBase, &mSpecialDecoder);
 	mLlrContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()),  mBlockLength);
 	mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);

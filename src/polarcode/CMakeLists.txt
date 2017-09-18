@@ -56,3 +56,9 @@ add_library(PolarCode
         ${CMAKE_SOURCE_DIR}/include/polarcode/bitcontainer.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/datapool.txx
         ${CMAKE_SOURCE_DIR}/include/polarcode/polarcode.h)
+        
+install(TARGETS PolarCode
+#        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+#        ARCHIVE DESTINATION lib/static)
+)

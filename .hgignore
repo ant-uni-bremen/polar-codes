@@ -18,4 +18,9 @@ build-PCTree-Desktop-Debug/
 build-PCTree-Desktop-Release/
 .idea/
 build/
+cpp_build/
+cython_build/
+*.egg-info/
+dist/
+Polar Coding Simulation.cbp
 

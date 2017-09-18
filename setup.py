@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-GR Polar Code Cython kernels
+Polar Code Cython kernels
 ~~~~~~~
 
 This setup.py file exists to assist with Cython install.
@@ -109,27 +109,16 @@ project_top_level_dir = get_project_top_level_dir()
 print('project TOP level directory:', project_top_level_dir)
 
 # the actual classes to be compiled!
-cython_targets = ["butterfly_avx2_packed", ]
-# cython_targets = []
 # assume those are the only additional libraries to link against.
-# libraries = ['volk', ]
 libraries = ['PolarCode', ]
-# libraries = []
-
 
 
 source_files = [os.path.join(project_top_level_dir, 'pypolar/pypolar.pyx'), ]
-# source_files += find_source_files(project_top_level_dir, cython_targets, 'include/polarcode/encoding', 'src/polarcode/encoding')
-# source_files += find_source_files(project_top_level_dir, ['avxconvenience', ], 'include/polarcode', 'src/polarcode')
 print('source_files:\n', '\n'.join(source_files))
 
-include_dirs = [project_top_level_dir, ]
-# include_dirs += find_headers(libraries)
-include_dirs += [os.path.join(project_top_level_dir, 'include')]
-include_dirs += [os.path.join(project_top_level_dir, 'pypolar')]
-include_dirs += ['/usr/lib/gcc/x86_64-linux-gnu/4.8/include/', ]
-# library_dirs = find_shared_objects(libraries)
-library_dirs = [os.path.join(project_top_level_dir, 'build/lib')]
+include_dirs = [os.path.join(project_top_level_dir, 'pypolar')]
+include_dirs += find_headers(libraries)
+library_dirs = find_shared_objects(libraries)
 
 print('include_dirs:\n', '\n'.join(include_dirs))
 print('library_dirs:\n', '\n'.join(library_dirs))
@@ -143,7 +132,7 @@ ext_modules = [
               libraries=libraries,
               language="c++",
               extra_compile_args=["-std=c++11", "-Ofast", ],
-              extra_link_args=["-std=c++11"],
+              #extra_link_args=["-std=c++11", ],
               )
 ]
 
@@ -154,7 +143,7 @@ setup(
     version="0.0.1",
     author="Johannes Demel",
     author_email="demel@ant.uni-bremen.de",
-    description='Python bindings for GR Polar Code',
+    description='Python bindings for Polar Code',
     keywords="Polar Code",
     packages=['pypolar'],
     install_requires=['numpy', ],
