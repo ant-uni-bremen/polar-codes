@@ -82,6 +82,10 @@ void BitContainer::calculateLUT() {
 	}
 }
 
+size_t BitContainer::size() {
+	return mElementCount;
+}
+
 void BitContainer::setFrozenBits(const std::vector<unsigned> &frozenBits) {
 	clear();
 	//mFrozenBits = frozenBits;
@@ -229,6 +233,35 @@ void FloatContainer::getPackedInformationBits(void* pData) {
 
 void FloatContainer::getSoftBits(void *pData) {
 	memcpy(pData, mData, mElementCount*sizeof(float));
+}
+
+void FloatContainer::vectorizedHardDecode(float *dst) {
+	static const __m256 sgnMask = _mm256_set1_ps(-0.0);
+
+	for(unsigned bit=0; bit < mElementCount; bit+=8) {
+		__m256 softbit = _mm256_load_ps(mData+bit);
+		__m256 hardbit = _mm256_and_ps(sgnMask, softbit);
+		_mm256_store_ps(dst+bit, hardbit);
+	}
+}
+
+void FloatContainer::simpleHardDecode(float *dst) {
+	const unsigned int sgnMask = 0x80000000U;
+
+	unsigned int *iDst = reinterpret_cast<unsigned int*>(dst);
+	unsigned int *iSrc = reinterpret_cast<unsigned int*>(mData);
+
+	for(unsigned bit=0; bit < mElementCount; bit++) {
+		iDst[bit] = iSrc[bit] & sgnMask;
+	}
+}
+
+void FloatContainer::getFloatBits(float *pData) {
+	if(mElementCount>=8 && __builtin_cpu_supports("avx")) {
+		vectorizedHardDecode(pData);
+	} else {
+		simpleHardDecode(pData);
+	}
 }
 
 void FloatContainer::getSoftInformation(void *pData) {
@@ -406,6 +439,16 @@ void CharContainer::getPackedInformationBits(void* pData) {
 
 void CharContainer::getSoftBits(void *pData) {
 	memcpy(pData, mData, mElementCount*sizeof(char));
+}
+
+void CharContainer::getFloatBits(float *pData) {
+	unsigned char *coData = reinterpret_cast<unsigned char*>(pData);
+	unsigned char *ciData = reinterpret_cast<unsigned char*>(mData);
+	memset(pData, 0, 4*mElementCount);
+
+	for(unsigned bit = 0; bit < mElementCount; ++bit) {
+		coData[4*bit] = ciData[bit]&0x80;
+	}
 }
 
 void CharContainer::getSoftInformation(void *pData) {
@@ -616,6 +659,24 @@ void PackedContainer::insertCharBits(const void *pData) {
 	}
 }
 
+void PackedContainer::insertLlr(const float* pData) {
+	unsigned char *coData = reinterpret_cast<unsigned char*>(mData);
+	const unsigned int *iiData = reinterpret_cast<const unsigned int*>(pData);
+	unsigned offset = 0;
+
+	if(mFakeSize != mElementCount) {
+		offset = (mFakeSize-mElementCount)/8;
+	}
+
+	for(unsigned groupbit=0; groupbit < mElementCount; groupbit+=8) {
+		unsigned char currentByte = 0;
+		for(unsigned bit=0; bit < 8; ++bit) {
+			currentByte |= (iiData[groupbit+bit]&0x80000000)>>(bit+24);
+		}
+		coData[groupbit/8+offset] = currentByte;
+	}
+}
+
 void PackedContainer::getPackedBits(void* pData) {
 	unsigned int nBytes = mElementCount/8;
 	if(mFakeSize != mElementCount) {
@@ -665,10 +726,21 @@ char* PackedContainer::data() {
 }
 
 //Dummy
-void PackedContainer::insertLlr(const float*){}
 void PackedContainer::insertLlr(const char*){}
 void PackedContainer::getSoftBits(void*){}
 void PackedContainer::getSoftInformation(void*){}
+
+void PackedContainer::getFloatBits(float *pData) {
+	unsigned char *coData = reinterpret_cast<unsigned char*>(pData);
+	unsigned char *ciData = reinterpret_cast<unsigned char*>(mData);
+	memset(pData, 0, 4*mElementCount);
+
+	for(unsigned groupbit = 0; groupbit < mElementCount; groupbit += 8) {
+		for(unsigned bit = 0; bit < 8; ++bit) {
+			coData[4*(groupbit+bit)] = (ciData[bit]<<bit)&0x80;
+		}
+	}
+}
 
 
 void PackedContainer::getPackedInformationBits(void* pData) {

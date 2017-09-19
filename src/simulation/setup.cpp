@@ -14,10 +14,12 @@ using namespace TCLAP;
  * beginning of this file.
  */
 void Configurator::setupArgumentDefaults() {
-	defaultStrings.insert({"simtype", "designsnr"});
+	defaultStrings.insert({"simtype", "single"});
 
-	defaultFloats.insert({"snr-min", -2.0});
-	defaultFloats.insert({"snr-max", 8.0});
+	defaultLongInts.insert({"workload", 4e8L});
+
+	defaultFloats.insert({"snr-min", -1.5});
+	defaultFloats.insert({"snr-max", 7.0});
 	defaultInts.insert({"snr-count", 20});
 
 	defaultFloats.insert({"dsnr-fixed", 0.0});
@@ -55,7 +57,8 @@ void Configurator::insertArgument(Arg* arg) {
 
 
 void Configurator::setupArgumentSimType() {
-	vector<string> SimTypesVector = {"codelength",
+	vector<string> SimTypesVector = {"single",
+									 "codelength",
 									 "designsnr",
 									 "listlength",
 									 "rate"};
@@ -68,6 +71,11 @@ void Configurator::setupArgumentSimType() {
 							defaultStrings["simtype"],
 							&AvailableSimTypes);
 	insertArgument(SimType);
+}
+
+void Configurator::setupArgumentWorkload() {
+	auto workload = new ValueArg<long>("w", "workload", "Set the number of bits per simulation run (default: 4e8)", false, defaultLongInts["workload"], "bits");
+	insertArgument(workload);
 }
 
 void Configurator::setupArgumentSnr() {
@@ -207,6 +215,14 @@ int Configurator::getInt(std::string name) {
 		return 0;
 	}
 	return dynamic_cast<ValueArg<int>*>(argumentList[name])->getValue();
+}
+
+long Configurator::getLongInt(std::string name) {
+	if(argumentList.find(name) == argumentList.end()) {
+		cerr << "Configurator::getLongInt: Cannot find argument \"" << name << "\"." << endl;
+		return 0;
+	}
+	return dynamic_cast<ValueArg<long>*>(argumentList[name])->getValue();
 }
 
 float Configurator::getFloat(std::string name) {

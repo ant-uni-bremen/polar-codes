@@ -19,6 +19,7 @@ class Configurator {
 
 	std::map<std::string, float> defaultFloats;
 	std::map<std::string, int> defaultInts;
+	std::map<std::string, long> defaultLongInts;
 	std::map<std::string, std::string> defaultStrings;
 	std::map<std::string, bool> defaultBools;
 
@@ -31,6 +32,7 @@ class Configurator {
 	void insertArgument(TCLAP::Arg* arg);
 
 	void setupArgumentSimType();
+	void setupArgumentWorkload();
 	void setupArgumentSnr();
 	void setupArgumentDesignSnr();
 	void setupArgumentBlockLength();
@@ -63,6 +65,13 @@ public:
 	 * \return Either the default value for the argument or the value given via command-line.
 	 */
 	int getInt(std::string name);
+
+	/*!
+	 * \brief Get the value of an argument of long integer type.
+	 * \param name Name of the argument.
+	 * \return Either the default value for the argument or the value given via command-line.
+	 */
+	long getLongInt(std::string name);
 
 	/*!
 	 * \brief Get the value of an argument of floating-point type.

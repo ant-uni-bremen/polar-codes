@@ -41,6 +41,12 @@ public:
 	virtual void setSize(size_t newSize) = 0;
 
 	/*!
+	 * \brief Get the number of bits held in the container.
+	 * \return The number of bits held in the container.
+	 */
+	size_t size();
+
+	/*!
 	 * \brief Set a new set of frozen bits for this container.
 	 *
 	 * The information bit count and lookup table are updated according to the
@@ -119,6 +125,13 @@ public:
 	virtual void getSoftBits(void *pData) = 0;
 
 	/*!
+	 * \brief Convert the bits into float-bits (0=>0.0, 1=>-0.0) and save them
+	 *        at the given memory location.
+	 * \param pData Pointer to memory with at least mElementCount*4 bytes allocated.
+	 */
+	virtual void getFloatBits(float *pData) = 0;
+
+	/*!
 	 * \brief Extract LLRs of information bits into pData in container's
 	 *        native LLR representation type.
 	 * \param pData Memory location for information LLRs.
@@ -147,6 +160,9 @@ class FloatContainer : public BitContainer {
 	float *mData;
 	bool mDataIsExternal;
 
+	void vectorizedHardDecode(float *dst);
+	void simpleHardDecode(float *dst);
+
 public:
 	FloatContainer();
 	FloatContainer(size_t size);///<Initialize the container to specified size.
@@ -162,6 +178,7 @@ public:
 	void getPackedBits(void* pData);
 	void getPackedInformationBits(void* pData);
 	void getSoftBits(void* pData);
+	void getFloatBits(float *pData);
 	void getSoftInformation(void* pData);
 	void resetFrozenBits();
 
@@ -196,6 +213,7 @@ public:
 	void getPackedBits(void* pData);
 	void getPackedInformationBits(void* pData);
 	void getSoftBits(void* pData);
+	void getFloatBits(float *pData);
 	void getSoftInformation(void* pData);
 	void resetFrozenBits();
 
@@ -234,12 +252,13 @@ public:
 	void insertPackedBits(const void* pData);
 	void insertPackedInformationBits(const void *pData);
 	void insertCharBits(const void* pData);
+	void insertLlr(const float *pLlr);
 	void getPackedBits(void* pData);
 	void getPackedInformationBits(void* pData);
 	void resetFrozenBits();
+	void getFloatBits(float *pData);
 
 	/* The following functions are dummies */
-	void insertLlr(const float *pLlr);
 	void insertLlr(const char  *pLlr);
 	void getSoftBits(void* pData);
 	void getSoftInformation(void* pData);
