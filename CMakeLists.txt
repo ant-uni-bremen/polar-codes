@@ -14,6 +14,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 add_definitions(-std=c++11 -Wall -Wno-ignored-attributes)
 add_definitions(-mavx2 -mrdrnd -mbmi -fPIC)
+add_definitions(-O2 -funroll-loops)
 
 add_subdirectory(src)
 add_subdirectory(test)

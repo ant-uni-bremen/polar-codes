@@ -13,6 +13,8 @@ CTestTestfile.cmake
 [Oo]bj/
 *.user
 *~
+*.pyc
+*.pc
 .directory
 build-PCTree-Desktop-Debug/
 build-PCTree-Desktop-Release/
@@ -22,5 +24,6 @@ cpp_build/
 cython_build/
 *.egg-info/
 dist/
+results/
 Polar Coding Simulation.cbp
 

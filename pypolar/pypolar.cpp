@@ -845,7 +845,7 @@ typedef npy_clongdouble __pyx_t_5numpy_clongdouble_t;
  */
 typedef npy_cdouble __pyx_t_5numpy_complex_t;
 
-/* "pypolar.pyx":9
+/* "pypolar.pyx":8
  * 
  * 
  * cdef class PolarEncoder:             # <<<<<<<<<<<<<<
@@ -858,7 +858,7 @@ struct __pyx_obj_7pypolar_PolarEncoder {
 };
 
 
-/* "pypolar.pyx":48
+/* "pypolar.pyx":47
  * 
  * 
  * cdef class PolarDecoder:             # <<<<<<<<<<<<<<
@@ -1425,7 +1425,7 @@ static PyObject *__pyx_tuple__4;
 static PyObject *__pyx_tuple__5;
 static PyObject *__pyx_tuple__6;
 
-/* "pypolar.pyx":12
+/* "pypolar.pyx":11
  *     cdef polar_interface.Encoder* kernel
  * 
  *     def __cinit__(self, block_size, np.ndarray frozen_bit_positions, encoder_impl='Packed'):             # <<<<<<<<<<<<<<
@@ -1464,7 +1464,7 @@ static int __pyx_pw_7pypolar_12PolarEncoder_1__cinit__(PyObject *__pyx_v_self, P
         case  1:
         if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_frozen_bit_positions)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("__cinit__", 0, 2, 3, 1); __PYX_ERR(0, 12, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("__cinit__", 0, 2, 3, 1); __PYX_ERR(0, 11, __pyx_L3_error)
         }
         case  2:
         if (kw_args > 0) {
@@ -1473,7 +1473,7 @@ static int __pyx_pw_7pypolar_12PolarEncoder_1__cinit__(PyObject *__pyx_v_self, P
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(0, 12, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(0, 11, __pyx_L3_error)
       }
     } else {
       switch (PyTuple_GET_SIZE(__pyx_args)) {
@@ -1490,13 +1490,13 @@ static int __pyx_pw_7pypolar_12PolarEncoder_1__cinit__(PyObject *__pyx_v_self, P
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 0, 2, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 12, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 0, 2, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 11, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pypolar.PolarEncoder.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_frozen_bit_positions), __pyx_ptype_5numpy_ndarray, 1, "frozen_bit_positions", 0))) __PYX_ERR(0, 12, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_frozen_bit_positions), __pyx_ptype_5numpy_ndarray, 1, "frozen_bit_positions", 0))) __PYX_ERR(0, 11, __pyx_L1_error)
   __pyx_r = __pyx_pf_7pypolar_12PolarEncoder___cinit__(((struct __pyx_obj_7pypolar_PolarEncoder *)__pyx_v_self), __pyx_v_block_size, __pyx_v_frozen_bit_positions, __pyx_v_encoder_impl);
 
   /* function exit code */
@@ -1524,16 +1524,16 @@ static int __pyx_pf_7pypolar_12PolarEncoder___cinit__(struct __pyx_obj_7pypolar_
   __Pyx_RefNannySetupContext("__cinit__", 0);
   __Pyx_INCREF((PyObject *)__pyx_v_frozen_bit_positions);
 
-  /* "pypolar.pyx":13
+  /* "pypolar.pyx":12
  * 
  *     def __cinit__(self, block_size, np.ndarray frozen_bit_positions, encoder_impl='Packed'):
  *         frozen_bit_positions = np.sort(frozen_bit_positions)             # <<<<<<<<<<<<<<
  *         if encoder_impl is 'Unpacked':
  *             self.kernel = new polar_interface.ButterflyAvx2Char(block_size, frozen_bit_positions)
  */
-  __pyx_t_2 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_sort); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_sort); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_2 = NULL;
@@ -1547,25 +1547,25 @@ static int __pyx_pf_7pypolar_12PolarEncoder___cinit__(struct __pyx_obj_7pypolar_
     }
   }
   if (!__pyx_t_2) {
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_3, ((PyObject *)__pyx_v_frozen_bit_positions)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 13, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_3, ((PyObject *)__pyx_v_frozen_bit_positions)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
   } else {
-    __pyx_t_4 = PyTuple_New(1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 13, __pyx_L1_error)
+    __pyx_t_4 = PyTuple_New(1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 12, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_GIVEREF(__pyx_t_2); PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_2); __pyx_t_2 = NULL;
     __Pyx_INCREF(((PyObject *)__pyx_v_frozen_bit_positions));
     __Pyx_GIVEREF(((PyObject *)__pyx_v_frozen_bit_positions));
     PyTuple_SET_ITEM(__pyx_t_4, 0+1, ((PyObject *)__pyx_v_frozen_bit_positions));
-    __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_4, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 13, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_4, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 13, __pyx_L1_error)
+  if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_DECREF_SET(__pyx_v_frozen_bit_positions, ((PyArrayObject *)__pyx_t_1));
   __pyx_t_1 = 0;
 
-  /* "pypolar.pyx":14
+  /* "pypolar.pyx":13
  *     def __cinit__(self, block_size, np.ndarray frozen_bit_positions, encoder_impl='Packed'):
  *         frozen_bit_positions = np.sort(frozen_bit_positions)
  *         if encoder_impl is 'Unpacked':             # <<<<<<<<<<<<<<
@@ -1576,24 +1576,24 @@ static int __pyx_pf_7pypolar_12PolarEncoder___cinit__(struct __pyx_obj_7pypolar_
   __pyx_t_6 = (__pyx_t_5 != 0);
   if (__pyx_t_6) {
 
-    /* "pypolar.pyx":15
+    /* "pypolar.pyx":14
  *         frozen_bit_positions = np.sort(frozen_bit_positions)
  *         if encoder_impl is 'Unpacked':
  *             self.kernel = new polar_interface.ButterflyAvx2Char(block_size, frozen_bit_positions)             # <<<<<<<<<<<<<<
  *         else:
  *             self.kernel = new polar_interface.ButterflyAvx2Packed(block_size, frozen_bit_positions)
  */
-    __pyx_t_7 = __Pyx_PyInt_As_size_t(__pyx_v_block_size); if (unlikely((__pyx_t_7 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 15, __pyx_L1_error)
-    __pyx_t_8 = __pyx_convert_vector_from_py_unsigned_int(((PyObject *)__pyx_v_frozen_bit_positions)); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 15, __pyx_L1_error)
+    __pyx_t_7 = __Pyx_PyInt_As_size_t(__pyx_v_block_size); if (unlikely((__pyx_t_7 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L1_error)
+    __pyx_t_8 = __pyx_convert_vector_from_py_unsigned_int(((PyObject *)__pyx_v_frozen_bit_positions)); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L1_error)
     try {
       __pyx_t_9 = new PolarCode::Encoding::ButterflyAvx2Char(__pyx_t_7, __pyx_t_8);
     } catch(...) {
       __Pyx_CppExn2PyErr();
-      __PYX_ERR(0, 15, __pyx_L1_error)
+      __PYX_ERR(0, 14, __pyx_L1_error)
     }
     __pyx_v_self->kernel = __pyx_t_9;
 
-    /* "pypolar.pyx":14
+    /* "pypolar.pyx":13
  *     def __cinit__(self, block_size, np.ndarray frozen_bit_positions, encoder_impl='Packed'):
  *         frozen_bit_positions = np.sort(frozen_bit_positions)
  *         if encoder_impl is 'Unpacked':             # <<<<<<<<<<<<<<
@@ -1603,7 +1603,7 @@ static int __pyx_pf_7pypolar_12PolarEncoder___cinit__(struct __pyx_obj_7pypolar_
     goto __pyx_L3;
   }
 
-  /* "pypolar.pyx":17
+  /* "pypolar.pyx":16
  *             self.kernel = new polar_interface.ButterflyAvx2Char(block_size, frozen_bit_positions)
  *         else:
  *             self.kernel = new polar_interface.ButterflyAvx2Packed(block_size, frozen_bit_positions)             # <<<<<<<<<<<<<<
@@ -1611,19 +1611,19 @@ static int __pyx_pf_7pypolar_12PolarEncoder___cinit__(struct __pyx_obj_7pypolar_
  *     def __del__(self):
  */
   /*else*/ {
-    __pyx_t_7 = __Pyx_PyInt_As_size_t(__pyx_v_block_size); if (unlikely((__pyx_t_7 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 17, __pyx_L1_error)
-    __pyx_t_8 = __pyx_convert_vector_from_py_unsigned_int(((PyObject *)__pyx_v_frozen_bit_positions)); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 17, __pyx_L1_error)
+    __pyx_t_7 = __Pyx_PyInt_As_size_t(__pyx_v_block_size); if (unlikely((__pyx_t_7 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 16, __pyx_L1_error)
+    __pyx_t_8 = __pyx_convert_vector_from_py_unsigned_int(((PyObject *)__pyx_v_frozen_bit_positions)); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 16, __pyx_L1_error)
     try {
       __pyx_t_10 = new PolarCode::Encoding::ButterflyAvx2Packed(__pyx_t_7, __pyx_t_8);
     } catch(...) {
       __Pyx_CppExn2PyErr();
-      __PYX_ERR(0, 17, __pyx_L1_error)
+      __PYX_ERR(0, 16, __pyx_L1_error)
     }
     __pyx_v_self->kernel = __pyx_t_10;
   }
   __pyx_L3:;
 
-  /* "pypolar.pyx":12
+  /* "pypolar.pyx":11
  *     cdef polar_interface.Encoder* kernel
  * 
  *     def __cinit__(self, block_size, np.ndarray frozen_bit_positions, encoder_impl='Packed'):             # <<<<<<<<<<<<<<
@@ -1647,7 +1647,7 @@ static int __pyx_pf_7pypolar_12PolarEncoder___cinit__(struct __pyx_obj_7pypolar_
   return __pyx_r;
 }
 
-/* "pypolar.pyx":19
+/* "pypolar.pyx":18
  *             self.kernel = new polar_interface.ButterflyAvx2Packed(block_size, frozen_bit_positions)
  * 
  *     def __del__(self):             # <<<<<<<<<<<<<<
@@ -1673,7 +1673,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_2__del__(struct __pyx_obj_7pyp
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__del__", 0);
 
-  /* "pypolar.pyx":20
+  /* "pypolar.pyx":19
  * 
  *     def __del__(self):
  *         del self.kernel             # <<<<<<<<<<<<<<
@@ -1682,7 +1682,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_2__del__(struct __pyx_obj_7pyp
  */
   delete __pyx_v_self->kernel;
 
-  /* "pypolar.pyx":19
+  /* "pypolar.pyx":18
  *             self.kernel = new polar_interface.ButterflyAvx2Packed(block_size, frozen_bit_positions)
  * 
  *     def __del__(self):             # <<<<<<<<<<<<<<
@@ -1697,7 +1697,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_2__del__(struct __pyx_obj_7pyp
   return __pyx_r;
 }
 
-/* "pypolar.pyx":22
+/* "pypolar.pyx":21
  *         del self.kernel
  * 
  *     def encode(self):             # <<<<<<<<<<<<<<
@@ -1723,7 +1723,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_4encode(struct __pyx_obj_7pypo
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("encode", 0);
 
-  /* "pypolar.pyx":23
+  /* "pypolar.pyx":22
  * 
  *     def encode(self):
  *         self.kernel.encode()             # <<<<<<<<<<<<<<
@@ -1732,7 +1732,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_4encode(struct __pyx_obj_7pypo
  */
   __pyx_v_self->kernel->encode();
 
-  /* "pypolar.pyx":22
+  /* "pypolar.pyx":21
  *         del self.kernel
  * 
  *     def encode(self):             # <<<<<<<<<<<<<<
@@ -1747,7 +1747,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_4encode(struct __pyx_obj_7pypo
   return __pyx_r;
 }
 
-/* "pypolar.pyx":25
+/* "pypolar.pyx":24
  *         self.kernel.encode()
  * 
  *     def setInformation(self, np.ndarray[np.uint8_t, ndim=1] info_bytes):             # <<<<<<<<<<<<<<
@@ -1761,7 +1761,7 @@ static PyObject *__pyx_pw_7pypolar_12PolarEncoder_7setInformation(PyObject *__py
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("setInformation (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_info_bytes), __pyx_ptype_5numpy_ndarray, 1, "info_bytes", 0))) __PYX_ERR(0, 25, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_info_bytes), __pyx_ptype_5numpy_ndarray, 1, "info_bytes", 0))) __PYX_ERR(0, 24, __pyx_L1_error)
   __pyx_r = __pyx_pf_7pypolar_12PolarEncoder_6setInformation(((struct __pyx_obj_7pypolar_PolarEncoder *)__pyx_v_self), ((PyArrayObject *)__pyx_v_info_bytes));
 
   /* function exit code */
@@ -1785,11 +1785,11 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_6setInformation(struct __pyx_o
   __pyx_pybuffernd_info_bytes.rcbuffer = &__pyx_pybuffer_info_bytes;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_info_bytes.rcbuffer->pybuffer, (PyObject*)__pyx_v_info_bytes, &__Pyx_TypeInfo_nn___pyx_t_5numpy_uint8_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 25, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_info_bytes.rcbuffer->pybuffer, (PyObject*)__pyx_v_info_bytes, &__Pyx_TypeInfo_nn___pyx_t_5numpy_uint8_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 24, __pyx_L1_error)
   }
   __pyx_pybuffernd_info_bytes.diminfo[0].strides = __pyx_pybuffernd_info_bytes.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_info_bytes.diminfo[0].shape = __pyx_pybuffernd_info_bytes.rcbuffer->pybuffer.shape[0];
 
-  /* "pypolar.pyx":26
+  /* "pypolar.pyx":25
  * 
  *     def setInformation(self, np.ndarray[np.uint8_t, ndim=1] info_bytes):
  *         self.kernel.setInformation(<void*> info_bytes.data)             # <<<<<<<<<<<<<<
@@ -1798,7 +1798,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_6setInformation(struct __pyx_o
  */
   __pyx_v_self->kernel->setInformation(((void *)__pyx_v_info_bytes->data));
 
-  /* "pypolar.pyx":25
+  /* "pypolar.pyx":24
  *         self.kernel.encode()
  * 
  *     def setInformation(self, np.ndarray[np.uint8_t, ndim=1] info_bytes):             # <<<<<<<<<<<<<<
@@ -1827,7 +1827,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_6setInformation(struct __pyx_o
   return __pyx_r;
 }
 
-/* "pypolar.pyx":28
+/* "pypolar.pyx":27
  *         self.kernel.setInformation(<void*> info_bytes.data)
  * 
  *     def blockLength(self):             # <<<<<<<<<<<<<<
@@ -1854,7 +1854,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_8blockLength(struct __pyx_obj_
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("blockLength", 0);
 
-  /* "pypolar.pyx":29
+  /* "pypolar.pyx":28
  * 
  *     def blockLength(self):
  *         return self.kernel.blockLength()             # <<<<<<<<<<<<<<
@@ -1862,13 +1862,13 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_8blockLength(struct __pyx_obj_
  *     def setSystematic(self, flag):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->kernel->blockLength()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 29, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->kernel->blockLength()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 28, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pypolar.pyx":28
+  /* "pypolar.pyx":27
  *         self.kernel.setInformation(<void*> info_bytes.data)
  * 
  *     def blockLength(self):             # <<<<<<<<<<<<<<
@@ -1887,7 +1887,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_8blockLength(struct __pyx_obj_
   return __pyx_r;
 }
 
-/* "pypolar.pyx":31
+/* "pypolar.pyx":30
  *         return self.kernel.blockLength()
  * 
  *     def setSystematic(self, flag):             # <<<<<<<<<<<<<<
@@ -1914,17 +1914,17 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_10setSystematic(struct __pyx_o
   bool __pyx_t_1;
   __Pyx_RefNannySetupContext("setSystematic", 0);
 
-  /* "pypolar.pyx":32
+  /* "pypolar.pyx":31
  * 
  *     def setSystematic(self, flag):
  *         self.kernel.setSystematic(flag)             # <<<<<<<<<<<<<<
  * 
  *     def isSystematic(self):
  */
-  __pyx_t_1 = __Pyx_PyObject_IsTrue(__pyx_v_flag); if (unlikely((__pyx_t_1 == (bool)-1) && PyErr_Occurred())) __PYX_ERR(0, 32, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_IsTrue(__pyx_v_flag); if (unlikely((__pyx_t_1 == (bool)-1) && PyErr_Occurred())) __PYX_ERR(0, 31, __pyx_L1_error)
   __pyx_v_self->kernel->setSystematic(__pyx_t_1);
 
-  /* "pypolar.pyx":31
+  /* "pypolar.pyx":30
  *         return self.kernel.blockLength()
  * 
  *     def setSystematic(self, flag):             # <<<<<<<<<<<<<<
@@ -1944,7 +1944,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_10setSystematic(struct __pyx_o
   return __pyx_r;
 }
 
-/* "pypolar.pyx":34
+/* "pypolar.pyx":33
  *         self.kernel.setSystematic(flag)
  * 
  *     def isSystematic(self):             # <<<<<<<<<<<<<<
@@ -1971,7 +1971,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_12isSystematic(struct __pyx_ob
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("isSystematic", 0);
 
-  /* "pypolar.pyx":35
+  /* "pypolar.pyx":34
  * 
  *     def isSystematic(self):
  *         return self.kernel.isSystematic()             # <<<<<<<<<<<<<<
@@ -1979,13 +1979,13 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_12isSystematic(struct __pyx_ob
  *     def getEncodedData(self):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyBool_FromLong(__pyx_v_self->kernel->isSystematic()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 35, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyBool_FromLong(__pyx_v_self->kernel->isSystematic()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pypolar.pyx":34
+  /* "pypolar.pyx":33
  *         self.kernel.setSystematic(flag)
  * 
  *     def isSystematic(self):             # <<<<<<<<<<<<<<
@@ -2004,7 +2004,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_12isSystematic(struct __pyx_ob
   return __pyx_r;
 }
 
-/* "pypolar.pyx":37
+/* "pypolar.pyx":36
  *         return self.kernel.isSystematic()
  * 
  *     def getEncodedData(self):             # <<<<<<<<<<<<<<
@@ -2043,51 +2043,51 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_14getEncodedData(struct __pyx_
   __pyx_pybuffernd_codeword.data = NULL;
   __pyx_pybuffernd_codeword.rcbuffer = &__pyx_pybuffer_codeword;
 
-  /* "pypolar.pyx":38
+  /* "pypolar.pyx":37
  * 
  *     def getEncodedData(self):
  *         cdef np.ndarray[np.uint8_t, ndim=1] codeword = np.zeros((self.kernel.blockLength() // 8, ), dtype=np.uint8)             # <<<<<<<<<<<<<<
  *         self.kernel.getEncodedData(<void*> codeword.data)
  *         return codeword
  */
-  __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyInt_FromSize_t((__pyx_v_self->kernel->blockLength() / 8)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_FromSize_t((__pyx_v_self->kernel->blockLength() / 8)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_1);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1);
   __pyx_t_1 = 0;
-  __pyx_t_1 = PyTuple_New(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_1 = PyTuple_New(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_GIVEREF(__pyx_t_3);
   PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_t_3);
   __pyx_t_3 = 0;
-  __pyx_t_3 = PyDict_New(); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_3 = PyDict_New(); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_uint8); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_uint8); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 38, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_1, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_1, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 38, __pyx_L1_error)
+  if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 37, __pyx_L1_error)
   __pyx_t_6 = ((PyArrayObject *)__pyx_t_5);
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
     if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_codeword.rcbuffer->pybuffer, (PyObject*)__pyx_t_6, &__Pyx_TypeInfo_nn___pyx_t_5numpy_uint8_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) {
       __pyx_v_codeword = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_codeword.rcbuffer->pybuffer.buf = NULL;
-      __PYX_ERR(0, 38, __pyx_L1_error)
+      __PYX_ERR(0, 37, __pyx_L1_error)
     } else {__pyx_pybuffernd_codeword.diminfo[0].strides = __pyx_pybuffernd_codeword.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_codeword.diminfo[0].shape = __pyx_pybuffernd_codeword.rcbuffer->pybuffer.shape[0];
     }
   }
@@ -2095,7 +2095,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_14getEncodedData(struct __pyx_
   __pyx_v_codeword = ((PyArrayObject *)__pyx_t_5);
   __pyx_t_5 = 0;
 
-  /* "pypolar.pyx":39
+  /* "pypolar.pyx":38
  *     def getEncodedData(self):
  *         cdef np.ndarray[np.uint8_t, ndim=1] codeword = np.zeros((self.kernel.blockLength() // 8, ), dtype=np.uint8)
  *         self.kernel.getEncodedData(<void*> codeword.data)             # <<<<<<<<<<<<<<
@@ -2104,7 +2104,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_14getEncodedData(struct __pyx_
  */
   __pyx_v_self->kernel->getEncodedData(((void *)__pyx_v_codeword->data));
 
-  /* "pypolar.pyx":40
+  /* "pypolar.pyx":39
  *         cdef np.ndarray[np.uint8_t, ndim=1] codeword = np.zeros((self.kernel.blockLength() // 8, ), dtype=np.uint8)
  *         self.kernel.getEncodedData(<void*> codeword.data)
  *         return codeword             # <<<<<<<<<<<<<<
@@ -2116,7 +2116,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_14getEncodedData(struct __pyx_
   __pyx_r = ((PyObject *)__pyx_v_codeword);
   goto __pyx_L0;
 
-  /* "pypolar.pyx":37
+  /* "pypolar.pyx":36
  *         return self.kernel.isSystematic()
  * 
  *     def getEncodedData(self):             # <<<<<<<<<<<<<<
@@ -2149,7 +2149,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_14getEncodedData(struct __pyx_
   return __pyx_r;
 }
 
-/* "pypolar.pyx":42
+/* "pypolar.pyx":41
  *         return codeword
  * 
  *     def encode_vector(self, np.ndarray[np.uint8_t, ndim=1] info_bytes):             # <<<<<<<<<<<<<<
@@ -2163,7 +2163,7 @@ static PyObject *__pyx_pw_7pypolar_12PolarEncoder_17encode_vector(PyObject *__py
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("encode_vector (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_info_bytes), __pyx_ptype_5numpy_ndarray, 1, "info_bytes", 0))) __PYX_ERR(0, 42, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_info_bytes), __pyx_ptype_5numpy_ndarray, 1, "info_bytes", 0))) __PYX_ERR(0, 41, __pyx_L1_error)
   __pyx_r = __pyx_pf_7pypolar_12PolarEncoder_16encode_vector(((struct __pyx_obj_7pypolar_PolarEncoder *)__pyx_v_self), ((PyArrayObject *)__pyx_v_info_bytes));
 
   /* function exit code */
@@ -2190,11 +2190,11 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_16encode_vector(struct __pyx_o
   __pyx_pybuffernd_info_bytes.rcbuffer = &__pyx_pybuffer_info_bytes;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_info_bytes.rcbuffer->pybuffer, (PyObject*)__pyx_v_info_bytes, &__Pyx_TypeInfo_nn___pyx_t_5numpy_uint8_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 42, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_info_bytes.rcbuffer->pybuffer, (PyObject*)__pyx_v_info_bytes, &__Pyx_TypeInfo_nn___pyx_t_5numpy_uint8_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 41, __pyx_L1_error)
   }
   __pyx_pybuffernd_info_bytes.diminfo[0].strides = __pyx_pybuffernd_info_bytes.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_info_bytes.diminfo[0].shape = __pyx_pybuffernd_info_bytes.rcbuffer->pybuffer.shape[0];
 
-  /* "pypolar.pyx":43
+  /* "pypolar.pyx":42
  * 
  *     def encode_vector(self, np.ndarray[np.uint8_t, ndim=1] info_bytes):
  *         self.kernel.setInformation(<void*> info_bytes.data)             # <<<<<<<<<<<<<<
@@ -2203,7 +2203,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_16encode_vector(struct __pyx_o
  */
   __pyx_v_self->kernel->setInformation(((void *)__pyx_v_info_bytes->data));
 
-  /* "pypolar.pyx":44
+  /* "pypolar.pyx":43
  *     def encode_vector(self, np.ndarray[np.uint8_t, ndim=1] info_bytes):
  *         self.kernel.setInformation(<void*> info_bytes.data)
  *         self.kernel.encode()             # <<<<<<<<<<<<<<
@@ -2212,7 +2212,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_16encode_vector(struct __pyx_o
  */
   __pyx_v_self->kernel->encode();
 
-  /* "pypolar.pyx":45
+  /* "pypolar.pyx":44
  *         self.kernel.setInformation(<void*> info_bytes.data)
  *         self.kernel.encode()
  *         return self.getEncodedData()             # <<<<<<<<<<<<<<
@@ -2220,7 +2220,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_16encode_vector(struct __pyx_o
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_getEncodedData); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 45, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_getEncodedData); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 44, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_3 = NULL;
   if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_2))) {
@@ -2233,10 +2233,10 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_16encode_vector(struct __pyx_o
     }
   }
   if (__pyx_t_3) {
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 45, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 44, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   } else {
-    __pyx_t_1 = __Pyx_PyObject_CallNoArg(__pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 45, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_CallNoArg(__pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 44, __pyx_L1_error)
   }
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -2244,7 +2244,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_16encode_vector(struct __pyx_o
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pypolar.pyx":42
+  /* "pypolar.pyx":41
  *         return codeword
  * 
  *     def encode_vector(self, np.ndarray[np.uint8_t, ndim=1] info_bytes):             # <<<<<<<<<<<<<<
@@ -2274,7 +2274,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarEncoder_16encode_vector(struct __pyx_o
   return __pyx_r;
 }
 
-/* "pypolar.pyx":51
+/* "pypolar.pyx":50
  *     cdef polar_interface.Decoder* kernel
  * 
  *     def __cinit__(self, block_size, list_size, np.ndarray frozen_bit_positions):             # <<<<<<<<<<<<<<
@@ -2312,16 +2312,16 @@ static int __pyx_pw_7pypolar_12PolarDecoder_1__cinit__(PyObject *__pyx_v_self, P
         case  1:
         if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_list_size)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 3, 3, 1); __PYX_ERR(0, 51, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 3, 3, 1); __PYX_ERR(0, 50, __pyx_L3_error)
         }
         case  2:
         if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_frozen_bit_positions)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 3, 3, 2); __PYX_ERR(0, 51, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 3, 3, 2); __PYX_ERR(0, 50, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(0, 51, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(0, 50, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
       goto __pyx_L5_argtuple_error;
@@ -2336,13 +2336,13 @@ static int __pyx_pw_7pypolar_12PolarDecoder_1__cinit__(PyObject *__pyx_v_self, P
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 51, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 50, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pypolar.PolarDecoder.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_frozen_bit_positions), __pyx_ptype_5numpy_ndarray, 1, "frozen_bit_positions", 0))) __PYX_ERR(0, 51, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_frozen_bit_positions), __pyx_ptype_5numpy_ndarray, 1, "frozen_bit_positions", 0))) __PYX_ERR(0, 50, __pyx_L1_error)
   __pyx_r = __pyx_pf_7pypolar_12PolarDecoder___cinit__(((struct __pyx_obj_7pypolar_PolarDecoder *)__pyx_v_self), __pyx_v_block_size, __pyx_v_list_size, __pyx_v_frozen_bit_positions);
 
   /* function exit code */
@@ -2367,16 +2367,16 @@ static int __pyx_pf_7pypolar_12PolarDecoder___cinit__(struct __pyx_obj_7pypolar_
   __Pyx_RefNannySetupContext("__cinit__", 0);
   __Pyx_INCREF((PyObject *)__pyx_v_frozen_bit_positions);
 
-  /* "pypolar.pyx":52
+  /* "pypolar.pyx":51
  * 
  *     def __cinit__(self, block_size, list_size, np.ndarray frozen_bit_positions):
  *         frozen_bit_positions = np.sort(frozen_bit_positions)             # <<<<<<<<<<<<<<
  *         self.kernel = polar_interface.makeDecoder(block_size, list_size, frozen_bit_positions)
  * 
  */
-  __pyx_t_2 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 52, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 51, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_sort); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 52, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_sort); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 51, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_2 = NULL;
@@ -2390,37 +2390,37 @@ static int __pyx_pf_7pypolar_12PolarDecoder___cinit__(struct __pyx_obj_7pypolar_
     }
   }
   if (!__pyx_t_2) {
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_3, ((PyObject *)__pyx_v_frozen_bit_positions)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 52, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_3, ((PyObject *)__pyx_v_frozen_bit_positions)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 51, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
   } else {
-    __pyx_t_4 = PyTuple_New(1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 52, __pyx_L1_error)
+    __pyx_t_4 = PyTuple_New(1+1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 51, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_GIVEREF(__pyx_t_2); PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_2); __pyx_t_2 = NULL;
     __Pyx_INCREF(((PyObject *)__pyx_v_frozen_bit_positions));
     __Pyx_GIVEREF(((PyObject *)__pyx_v_frozen_bit_positions));
     PyTuple_SET_ITEM(__pyx_t_4, 0+1, ((PyObject *)__pyx_v_frozen_bit_positions));
-    __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_4, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 52, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_4, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 51, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 52, __pyx_L1_error)
+  if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 51, __pyx_L1_error)
   __Pyx_DECREF_SET(__pyx_v_frozen_bit_positions, ((PyArrayObject *)__pyx_t_1));
   __pyx_t_1 = 0;
 
-  /* "pypolar.pyx":53
+  /* "pypolar.pyx":52
  *     def __cinit__(self, block_size, list_size, np.ndarray frozen_bit_positions):
  *         frozen_bit_positions = np.sort(frozen_bit_positions)
  *         self.kernel = polar_interface.makeDecoder(block_size, list_size, frozen_bit_positions)             # <<<<<<<<<<<<<<
  * 
  *     def __del__(self):
  */
-  __pyx_t_5 = __Pyx_PyInt_As_size_t(__pyx_v_block_size); if (unlikely((__pyx_t_5 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 53, __pyx_L1_error)
-  __pyx_t_6 = __Pyx_PyInt_As_size_t(__pyx_v_list_size); if (unlikely((__pyx_t_6 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 53, __pyx_L1_error)
-  __pyx_t_7 = __pyx_convert_vector_from_py_unsigned_int(((PyObject *)__pyx_v_frozen_bit_positions)); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 53, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyInt_As_size_t(__pyx_v_block_size); if (unlikely((__pyx_t_5 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 52, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyInt_As_size_t(__pyx_v_list_size); if (unlikely((__pyx_t_6 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 52, __pyx_L1_error)
+  __pyx_t_7 = __pyx_convert_vector_from_py_unsigned_int(((PyObject *)__pyx_v_frozen_bit_positions)); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 52, __pyx_L1_error)
   __pyx_v_self->kernel = PolarCode::Decoding::makeDecoder(__pyx_t_5, __pyx_t_6, __pyx_t_7);
 
-  /* "pypolar.pyx":51
+  /* "pypolar.pyx":50
  *     cdef polar_interface.Decoder* kernel
  * 
  *     def __cinit__(self, block_size, list_size, np.ndarray frozen_bit_positions):             # <<<<<<<<<<<<<<
@@ -2444,7 +2444,7 @@ static int __pyx_pf_7pypolar_12PolarDecoder___cinit__(struct __pyx_obj_7pypolar_
   return __pyx_r;
 }
 
-/* "pypolar.pyx":55
+/* "pypolar.pyx":54
  *         self.kernel = polar_interface.makeDecoder(block_size, list_size, frozen_bit_positions)
  * 
  *     def __del__(self):             # <<<<<<<<<<<<<<
@@ -2470,7 +2470,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_2__del__(struct __pyx_obj_7pyp
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__del__", 0);
 
-  /* "pypolar.pyx":56
+  /* "pypolar.pyx":55
  * 
  *     def __del__(self):
  *         del self.kernel             # <<<<<<<<<<<<<<
@@ -2479,7 +2479,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_2__del__(struct __pyx_obj_7pyp
  */
   delete __pyx_v_self->kernel;
 
-  /* "pypolar.pyx":55
+  /* "pypolar.pyx":54
  *         self.kernel = polar_interface.makeDecoder(block_size, list_size, frozen_bit_positions)
  * 
  *     def __del__(self):             # <<<<<<<<<<<<<<
@@ -2494,7 +2494,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_2__del__(struct __pyx_obj_7pyp
   return __pyx_r;
 }
 
-/* "pypolar.pyx":58
+/* "pypolar.pyx":57
  *         del self.kernel
  * 
  *     def decode(self):             # <<<<<<<<<<<<<<
@@ -2520,7 +2520,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_4decode(struct __pyx_obj_7pypo
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("decode", 0);
 
-  /* "pypolar.pyx":59
+  /* "pypolar.pyx":58
  * 
  *     def decode(self):
  *         self.kernel.decode()             # <<<<<<<<<<<<<<
@@ -2529,7 +2529,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_4decode(struct __pyx_obj_7pypo
  */
   __pyx_v_self->kernel->decode();
 
-  /* "pypolar.pyx":58
+  /* "pypolar.pyx":57
  *         del self.kernel
  * 
  *     def decode(self):             # <<<<<<<<<<<<<<
@@ -2544,7 +2544,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_4decode(struct __pyx_obj_7pypo
   return __pyx_r;
 }
 
-/* "pypolar.pyx":61
+/* "pypolar.pyx":60
  *         self.kernel.decode()
  * 
  *     def blockLength(self):             # <<<<<<<<<<<<<<
@@ -2571,7 +2571,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_6blockLength(struct __pyx_obj_
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("blockLength", 0);
 
-  /* "pypolar.pyx":62
+  /* "pypolar.pyx":61
  * 
  *     def blockLength(self):
  *         return self.kernel.blockLength()             # <<<<<<<<<<<<<<
@@ -2579,13 +2579,13 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_6blockLength(struct __pyx_obj_
  *     def infoLength(self):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->kernel->blockLength()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 62, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->kernel->blockLength()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 61, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pypolar.pyx":61
+  /* "pypolar.pyx":60
  *         self.kernel.decode()
  * 
  *     def blockLength(self):             # <<<<<<<<<<<<<<
@@ -2604,7 +2604,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_6blockLength(struct __pyx_obj_
   return __pyx_r;
 }
 
-/* "pypolar.pyx":64
+/* "pypolar.pyx":63
  *         return self.kernel.blockLength()
  * 
  *     def infoLength(self):             # <<<<<<<<<<<<<<
@@ -2631,7 +2631,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_8infoLength(struct __pyx_obj_7
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("infoLength", 0);
 
-  /* "pypolar.pyx":65
+  /* "pypolar.pyx":64
  * 
  *     def infoLength(self):
  *         return self.kernel.infoLength()             # <<<<<<<<<<<<<<
@@ -2639,13 +2639,13 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_8infoLength(struct __pyx_obj_7
  *     def decode_vector(self, np.ndarray[np.float32_t, ndim=1] llrs):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->kernel->infoLength()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->kernel->infoLength()); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 64, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "pypolar.pyx":64
+  /* "pypolar.pyx":63
  *         return self.kernel.blockLength()
  * 
  *     def infoLength(self):             # <<<<<<<<<<<<<<
@@ -2664,7 +2664,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_8infoLength(struct __pyx_obj_7
   return __pyx_r;
 }
 
-/* "pypolar.pyx":67
+/* "pypolar.pyx":66
  *         return self.kernel.infoLength()
  * 
  *     def decode_vector(self, np.ndarray[np.float32_t, ndim=1] llrs):             # <<<<<<<<<<<<<<
@@ -2678,7 +2678,7 @@ static PyObject *__pyx_pw_7pypolar_12PolarDecoder_11decode_vector(PyObject *__py
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("decode_vector (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_llrs), __pyx_ptype_5numpy_ndarray, 1, "llrs", 0))) __PYX_ERR(0, 67, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_llrs), __pyx_ptype_5numpy_ndarray, 1, "llrs", 0))) __PYX_ERR(0, 66, __pyx_L1_error)
   __pyx_r = __pyx_pf_7pypolar_12PolarDecoder_10decode_vector(((struct __pyx_obj_7pypolar_PolarDecoder *)__pyx_v_self), ((PyArrayObject *)__pyx_v_llrs));
 
   /* function exit code */
@@ -2715,11 +2715,11 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_10decode_vector(struct __pyx_o
   __pyx_pybuffernd_llrs.rcbuffer = &__pyx_pybuffer_llrs;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_llrs.rcbuffer->pybuffer, (PyObject*)__pyx_v_llrs, &__Pyx_TypeInfo_nn___pyx_t_5numpy_float32_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 67, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_llrs.rcbuffer->pybuffer, (PyObject*)__pyx_v_llrs, &__Pyx_TypeInfo_nn___pyx_t_5numpy_float32_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 66, __pyx_L1_error)
   }
   __pyx_pybuffernd_llrs.diminfo[0].strides = __pyx_pybuffernd_llrs.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_llrs.diminfo[0].shape = __pyx_pybuffernd_llrs.rcbuffer->pybuffer.shape[0];
 
-  /* "pypolar.pyx":68
+  /* "pypolar.pyx":67
  * 
  *     def decode_vector(self, np.ndarray[np.float32_t, ndim=1] llrs):
  *         self.kernel.setSignal(<float*> llrs.data)             # <<<<<<<<<<<<<<
@@ -2728,7 +2728,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_10decode_vector(struct __pyx_o
  */
   __pyx_v_self->kernel->setSignal(((float *)__pyx_v_llrs->data));
 
-  /* "pypolar.pyx":69
+  /* "pypolar.pyx":68
  *     def decode_vector(self, np.ndarray[np.float32_t, ndim=1] llrs):
  *         self.kernel.setSignal(<float*> llrs.data)
  *         self.kernel.decode()             # <<<<<<<<<<<<<<
@@ -2737,51 +2737,51 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_10decode_vector(struct __pyx_o
  */
   __pyx_v_self->kernel->decode();
 
-  /* "pypolar.pyx":70
+  /* "pypolar.pyx":69
  *         self.kernel.setSignal(<float*> llrs.data)
  *         self.kernel.decode()
  *         cdef np.ndarray[np.uint8_t, ndim=1] infoword = np.zeros((self.kernel.infoLength() // 8, ), dtype=np.uint8)             # <<<<<<<<<<<<<<
  *         self.kernel.getDecodedInformationBits(<void*> infoword.data)
  *         return infoword
  */
-  __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_zeros); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyInt_FromSize_t((__pyx_v_self->kernel->infoLength() / 8)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_FromSize_t((__pyx_v_self->kernel->infoLength() / 8)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_1);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1);
   __pyx_t_1 = 0;
-  __pyx_t_1 = PyTuple_New(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_1 = PyTuple_New(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_GIVEREF(__pyx_t_3);
   PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_t_3);
   __pyx_t_3 = 0;
-  __pyx_t_3 = PyDict_New(); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_3 = PyDict_New(); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_uint8); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_uint8); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 70, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_1, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 70, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_1, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 70, __pyx_L1_error)
+  if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 69, __pyx_L1_error)
   __pyx_t_6 = ((PyArrayObject *)__pyx_t_5);
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
     if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_infoword.rcbuffer->pybuffer, (PyObject*)__pyx_t_6, &__Pyx_TypeInfo_nn___pyx_t_5numpy_uint8_t, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) {
       __pyx_v_infoword = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_infoword.rcbuffer->pybuffer.buf = NULL;
-      __PYX_ERR(0, 70, __pyx_L1_error)
+      __PYX_ERR(0, 69, __pyx_L1_error)
     } else {__pyx_pybuffernd_infoword.diminfo[0].strides = __pyx_pybuffernd_infoword.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_infoword.diminfo[0].shape = __pyx_pybuffernd_infoword.rcbuffer->pybuffer.shape[0];
     }
   }
@@ -2789,7 +2789,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_10decode_vector(struct __pyx_o
   __pyx_v_infoword = ((PyArrayObject *)__pyx_t_5);
   __pyx_t_5 = 0;
 
-  /* "pypolar.pyx":71
+  /* "pypolar.pyx":70
  *         self.kernel.decode()
  *         cdef np.ndarray[np.uint8_t, ndim=1] infoword = np.zeros((self.kernel.infoLength() // 8, ), dtype=np.uint8)
  *         self.kernel.getDecodedInformationBits(<void*> infoword.data)             # <<<<<<<<<<<<<<
@@ -2797,7 +2797,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_10decode_vector(struct __pyx_o
  */
   __pyx_v_self->kernel->getDecodedInformationBits(((void *)__pyx_v_infoword->data));
 
-  /* "pypolar.pyx":72
+  /* "pypolar.pyx":71
  *         cdef np.ndarray[np.uint8_t, ndim=1] infoword = np.zeros((self.kernel.infoLength() // 8, ), dtype=np.uint8)
  *         self.kernel.getDecodedInformationBits(<void*> infoword.data)
  *         return infoword             # <<<<<<<<<<<<<<
@@ -2807,7 +2807,7 @@ static PyObject *__pyx_pf_7pypolar_12PolarDecoder_10decode_vector(struct __pyx_o
   __pyx_r = ((PyObject *)__pyx_v_infoword);
   goto __pyx_L0;
 
-  /* "pypolar.pyx":67
+  /* "pypolar.pyx":66
  *         return self.kernel.infoLength()
  * 
  *     def decode_vector(self, np.ndarray[np.float32_t, ndim=1] llrs):             # <<<<<<<<<<<<<<
@@ -5492,13 +5492,13 @@ PyMODINIT_FUNC PyInit_pypolar(void)
   /*--- Variable export code ---*/
   /*--- Function export code ---*/
   /*--- Type init code ---*/
-  if (PyType_Ready(&__pyx_type_7pypolar_PolarEncoder) < 0) __PYX_ERR(0, 9, __pyx_L1_error)
+  if (PyType_Ready(&__pyx_type_7pypolar_PolarEncoder) < 0) __PYX_ERR(0, 8, __pyx_L1_error)
   __pyx_type_7pypolar_PolarEncoder.tp_print = 0;
-  if (PyObject_SetAttrString(__pyx_m, "PolarEncoder", (PyObject *)&__pyx_type_7pypolar_PolarEncoder) < 0) __PYX_ERR(0, 9, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "PolarEncoder", (PyObject *)&__pyx_type_7pypolar_PolarEncoder) < 0) __PYX_ERR(0, 8, __pyx_L1_error)
   __pyx_ptype_7pypolar_PolarEncoder = &__pyx_type_7pypolar_PolarEncoder;
-  if (PyType_Ready(&__pyx_type_7pypolar_PolarDecoder) < 0) __PYX_ERR(0, 48, __pyx_L1_error)
+  if (PyType_Ready(&__pyx_type_7pypolar_PolarDecoder) < 0) __PYX_ERR(0, 47, __pyx_L1_error)
   __pyx_type_7pypolar_PolarDecoder.tp_print = 0;
-  if (PyObject_SetAttrString(__pyx_m, "PolarDecoder", (PyObject *)&__pyx_type_7pypolar_PolarDecoder) < 0) __PYX_ERR(0, 48, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "PolarDecoder", (PyObject *)&__pyx_type_7pypolar_PolarDecoder) < 0) __PYX_ERR(0, 47, __pyx_L1_error)
   __pyx_ptype_7pypolar_PolarDecoder = &__pyx_type_7pypolar_PolarDecoder;
   /*--- Type import code ---*/
   __pyx_ptype_7cpython_4type_type = __Pyx_ImportType(__Pyx_BUILTIN_MODULE_NAME, "type", 
