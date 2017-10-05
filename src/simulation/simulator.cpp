@@ -360,8 +360,7 @@ void SimulationWorker::countErrors() {
 
 
 	for(unsigned i=0; i<nLongs; ++i) {
-		unsigned long long cmp = liData[i] ^ loData[i];
-		biterrors += _mm_popcnt_u64(cmp);
+		biterrors += _mm_popcnt_u64(liData[i] ^ loData[i]);
 	}
 	unsigned long remIn = 0, remOut = 0;
 	memcpy(&remIn, liData+nLongs, nBytes);

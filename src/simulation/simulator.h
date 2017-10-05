@@ -34,24 +34,42 @@ inline int errorDetectionStringToId(std::string str) {
 	}
 }
 
+/*!
+ * \brief A collection of simulation input/output, called 'job'.
+ *
+ * This structure holds the parameters for a simulation job, including coding
+ * parameters and statistical outputs after finishing the job.
+ */
 struct DataPoint
 {
 	//Codec-Parameters
-	float designSNR; int N,K,L;
-	int errorDetection;//0=none,8/32=crc
-	bool systematic;
+	float designSNR;///< Design-SNR for code construction
+	int N;///< Blocklength
+	int K;///< Information length
+	int L;///< List length for list-decoding
+	int errorDetection;///< 0=none,8/32=crc
+	bool systematic;///< True, if systematic coding will be used
 
 	//Simulation-Parameters
-	float EbN0;
-	long BlocksToSimulate;
+	float EbN0;///< Bit-energy to noise-energy ratio for AWGN-channel
+	long BlocksToSimulate;///< Determines the BLER-precision
 
 	//Statistics
-	int runs, bits, errors, reportedErrors, biterrors;
-	float BLER, BER, RER;
-	float time;//in seconds
-	float blps,cbps,pbps;//blocks/coded bits/payload bits per second
-	float effectiveRate;
-	float encTime, ebps;//encoding statistics
+	int runs;///< Actual number of blocks simulated
+	int bits;///< Number of payload bits sent out
+	int errors;///< ~ erroneous blocks
+	int reportedErrors;///< ~ block errors reported by error detection
+	int biterrors;///< ~ flipped payload bits
+	float BLER;///< Block Error Rate
+	float BER;///< Bit Error Rate
+	float RER;///< Reported Error Rate
+	float time;///< Decoding time in seconds
+	float blps;///< Blocks per second
+	float cbps;///< Channel bits per second
+	float pbps;///< Payload bits per second (including errors)
+	float effectiveRate;///< Successfully transmitted payload bits per second
+	float encTime;///< Encoding time in seconds
+	float ebps;///< Encoder speed in bits per second
 };
 
 /*!
@@ -102,6 +120,12 @@ public:
  */
 void SimThread(Simulator*, int workerId);
 
+/*!
+ * \brief The SimulationWorker class
+ *
+ * This class contains all static memory for a simulation environment.
+ * An object of this class is generated per thread.
+ */
 class SimulationWorker {
 	Simulator *mSim;
 	DataPoint *mJob;
@@ -151,9 +175,17 @@ class SimulationWorker {
 
 
 public:
+	/*!
+	 * \brief Initialize the worker
+	 * \param Sim Pointer to a Simulator object, which provides jobs
+	 * \param workerId The ID of this worker, for information printing
+	 */
 	SimulationWorker(Simulator* Sim, int workerId);
 	~SimulationWorker();
 
+	/*!
+	 * \brief After creating the job list, execute all of them via run().
+	 */
 	void run();
 };
 

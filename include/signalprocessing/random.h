@@ -7,16 +7,19 @@
 namespace SignalProcessing {
 namespace Random {
 
+/*!
+ * \brief Pseudo-random number generator
+ */
 struct Generator {
 #ifndef __RDRND__
 #warning RDRND not used
-	LCG<uint64_t> generator;
-	std::mutex mtx;
+	LCG<uint64_t> generator;///< Linear congruential generator
+	std::mutex mtx;///< Mutex for multi-threading compatability
 #endif
 
-	void get(uint32_t *ptr);
-	void get64(uint64_t *ptr);
-	void get64x4(uint64_t *ptr);
+	void get(uint32_t *ptr);///< Get an unsigned 32-bit integer
+	void get64(uint64_t *ptr);///< Get an unsigned 64-bit integer
+	void get64x4(uint64_t *ptr);///< Get four unsigned 64-bit integers
 };
 
 

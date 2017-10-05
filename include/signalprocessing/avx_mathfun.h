@@ -98,9 +98,11 @@ _PS256_CONST(cephes_log_q2, 0.693359375f);
 
 #ifndef __AVX2__
 
+/*! Undocumented
+ */
 typedef union imm_xmm_union {
-  v8si imm;
-  v4si xmm[2];
+  v8si imm;///< Undocumented
+  v4si xmm[2];///< Undocumented
 } imm_xmm_union;
 
 #define COPY_IMM_TO_XMM(imm_, xmm0_, xmm1_) {    \

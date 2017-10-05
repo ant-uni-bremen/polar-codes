@@ -15,11 +15,18 @@ namespace Random {
 template <class T>
 class LCG;
 
+/*!
+ * Linear congruential pseudo-random number generator for unsigned 32-bit integers.
+ */
 template <>
 class LCG<uint32_t> {
 public:
 	LCG() : x(1) {}
 
+	/*!
+	 * \brief Generate the next number of the pseudo-random sequence.
+	 * \return A pseudo-random number.
+	 */
 	uint32_t operator()() {
 		return x = x * 1664525 + 1013904223; // Numerical Recipes
 	}
@@ -28,11 +35,18 @@ private:
 	uint32_t x;
 };
 
+/*!
+ * Linear congruential pseudo-random number generator for unsigned 64-bit integers.
+ */
 template <>
 class LCG<uint64_t> {
 public:
 	LCG() : x(1) {}
 
+	/*!
+	 * \brief Generate the next number of the pseudo-random sequence.
+	 * \return A pseudo-random number.
+	 */
 	uint64_t operator()() {
 		return x = x * 2862933555777941757 + 3037000493;
 	}
@@ -41,11 +55,18 @@ private:
 	uint64_t x;
 };
 
+/*!
+ * Linear congruential pseudo-random number generator for single-precision numbers.
+ */
 template <>
 class LCG<float> {
 public:
 	LCG() : x(1) {}
 
+	/*!
+	 * \brief Generate the next number of the pseudo-random sequence.
+	 * \return A pseudo-random number.
+	 */
 	float operator()() {
 		x = x * 1664525 + 1013904223; // Numerical Recipes
 		union {
@@ -60,11 +81,18 @@ private:
 	uint32_t x;
 };
 
+/*!
+ * Linear congruential pseudo-random number generator for double-precision numbers.
+ */
 template <>
 class LCG<double> {
 public:
 	LCG() : x(1) {}
 
+	/*!
+	 * \brief Generate the next number of the pseudo-random sequence.
+	 * \return A pseudo-random number.
+	 */
 	double operator()() {
 		x = x * 2862933555777941757 + 3037000493; // http://nuclear.llnl.gov/CNP/rng/rngman/node4.html
 		union {
