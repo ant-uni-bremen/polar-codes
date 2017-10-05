@@ -419,7 +419,7 @@ void FastSscAvxFloat::initialize(size_t blockLength, const std::vector<unsigned>
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 	mDataPool = new DataPool<float, 32>();
 	mNodeBase = new FastSscAvx::Node(blockLength, mDataPool);
-	std::cout << "Create decoder of length " << mBlockLength << std::endl;
+//	std::cout << "Create decoder of length " << mBlockLength << std::endl;
 	mRootNode = FastSscAvx::createDecoder(frozenBits, mNodeBase, &mSpecialDecoder);
 	mLlrContainer = new FloatContainer(mNodeBase->input(),  mBlockLength);
 	mBitContainer = new FloatContainer(mNodeBase->output(), mBlockLength);

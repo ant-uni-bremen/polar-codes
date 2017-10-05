@@ -47,11 +47,11 @@ void Configurator::setupArgumentDefaults() {
 
 	defaultStrings.insert({"outputFile", "simulation"});
 
-	defaultInts.insert({"threads", 2});
+	defaultInts.insert({"threads", 1});
 }
 
 
-void Configurator::insertArgument(Arg* arg) {
+void Configurator::insertArgument(TCLAP::Arg* arg) {
 	argumentList.insert({arg->getName(), arg});
 }
 
@@ -62,14 +62,14 @@ void Configurator::setupArgumentSimType() {
 									 "designsnr",
 									 "listlength",
 									 "rate"};
-	ValuesConstraint<string> AvailableSimTypes(SimTypesVector);
+	ValuesConstraint<string> *AvailableSimTypes = new ValuesConstraint<string>(SimTypesVector);
 
 	auto SimType = new UnlabeledValueArg<string>(
 							"simtype",
 							"The simulation type specifies, which parameter should be varied.",
 							false,//required
 							defaultStrings["simtype"],
-							&AvailableSimTypes);
+							AvailableSimTypes);
 	insertArgument(SimType);
 }
 
@@ -166,7 +166,9 @@ void Configurator::setupArgumentThreadCount() {
 }
 
 void Configurator::setupCommandlineArguments(CmdLine *cmd) {
+	setupArgumentDefaults();
 	setupArgumentSimType();
+	setupArgumentWorkload();
 	setupArgumentSnr();
 	setupArgumentDesignSnr();
 	setupArgumentBlockLength();
@@ -238,7 +240,7 @@ bool Configurator::getSwitch(std::string name) {
 		cerr << "Configurator::getSwitch: Cannot find argument \"" << name << "\"." << endl;
 		return false;
 	}
-	return dynamic_cast<ValueArg<bool>*>(argumentList[name])->getValue();
+	return dynamic_cast<SwitchArg*>(argumentList[name])->getValue();
 }
 
 
