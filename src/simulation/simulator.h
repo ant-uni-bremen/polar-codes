@@ -8,6 +8,8 @@
 #include <polarcode/construction/bhattacharrya.h>
 #include <polarcode/encoding/butterfly_avx2_packed.h>
 #include <polarcode/decoding/fastssc_avx_float.h>
+#include <polarcode/decoding/fastssc_avx2_char.h>
+#include <polarcode/decoding/scl_avx2_char.h>
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
 #include <polarcode/errordetection/crc32.h>

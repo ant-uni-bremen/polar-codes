@@ -31,7 +31,7 @@ void Configurator::setupArgumentDefaults() {
 	defaultInts.insert({"n-min", 128});
 	defaultInts.insert({"n-max", 4096});
 
-	defaultFloats.insert({"r-fixed", 0.5});
+	defaultFloats.insert({"r-fixed", 0.25});
 	defaultFloats.insert({"r-min", 0.5});
 	defaultFloats.insert({"r-max", 0.9});
 	defaultInts.insert({"r-count", 5});
@@ -40,14 +40,14 @@ void Configurator::setupArgumentDefaults() {
 	defaultInts.insert({"l-min", 1});
 	defaultInts.insert({"l-max", 8});
 
-	defaultStrings.insert({"errorDetection","none"});
+	defaultStrings.insert({"errorDetection","crc32"});
 
 	defaultBools.insert({"soft-output", false});
 	defaultBools.insert({"non-systematic", false});
 
 	defaultStrings.insert({"outputFile", "simulation"});
 
-	defaultInts.insert({"threads", 1});
+	defaultInts.insert({"threads", 3});
 }
 
 

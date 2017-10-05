@@ -442,7 +442,7 @@ void CharContainer::getSoftBits(void *pData) {
 }
 
 void CharContainer::getFloatBits(float *pData) {
-	unsigned char *coData = reinterpret_cast<unsigned char*>(pData);
+	unsigned char *coData = reinterpret_cast<unsigned char*>(pData)+3;
 	unsigned char *ciData = reinterpret_cast<unsigned char*>(mData);
 	memset(pData, 0, 4*mElementCount);
 
@@ -731,13 +731,13 @@ void PackedContainer::getSoftBits(void*){}
 void PackedContainer::getSoftInformation(void*){}
 
 void PackedContainer::getFloatBits(float *pData) {
-	unsigned char *coData = reinterpret_cast<unsigned char*>(pData);
+	unsigned char *coData = reinterpret_cast<unsigned char*>(pData)+3;//offset to MSB
 	unsigned char *ciData = reinterpret_cast<unsigned char*>(mData);
 	memset(pData, 0, 4*mElementCount);
 
 	for(unsigned groupbit = 0; groupbit < mElementCount; groupbit += 8) {
 		for(unsigned bit = 0; bit < 8; ++bit) {
-			coData[4*(groupbit+bit)] = (ciData[bit]<<bit)&0x80;
+			coData[4*(groupbit+bit)] = (ciData[groupbit/8]<<bit)&0x80;
 		}
 	}
 }
