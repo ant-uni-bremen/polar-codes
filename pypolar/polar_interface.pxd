@@ -11,6 +11,7 @@ cdef extern from "polarcode/encoding/encoder.h" namespace "PolarCode::Encoding":
         size_t blockLength()
         void setSystematic(bool)
         bool isSystematic()
+        vector[unsigned int] frozenBits()
 
 
 cdef extern from "polarcode/encoding/butterfly_avx2_packed.h" namespace "PolarCode::Encoding":
@@ -33,6 +34,11 @@ cdef extern from "polarcode/decoding/decoder.h" namespace "PolarCode::Decoding":
         void setSignal(const float*)
         void setSignal(const char*)
         void getDecodedInformationBits(void*)
+        vector[unsigned int] frozenBits()
 
     Decoder* makeDecoder(size_t, size_t, vector[unsigned int])
+
+
+cdef extern from "polarcode/construction/constructor.h" namespace "PolarCode::Construction":
+    vector[unsigned int] frozen_bits(const int blockLength, const int infoLength, const float designSNR)
 

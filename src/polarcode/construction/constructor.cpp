@@ -1,4 +1,5 @@
 #include <polarcode/construction/constructor.h>
+#include <polarcode/construction/bhattacharrya.h>
 #include <cmath>
 
 namespace PolarCode {
@@ -24,5 +25,16 @@ void Constructor::setInformationLength(size_t newInformationLength) {
 	mInformationLength = newInformationLength;
 }
 
+void Constructor::setParameterByDesignSNR(float designSNR){
+  // FIXME: This is a dummy!
+}
+
+
+std::vector<unsigned> frozen_bits(const int blockLength, const int infoLength, const float designSNR) {
+	PolarCode::Construction::Constructor *constructor
+					= new PolarCode::Construction::Bhattacharrya(blockLength, infoLength);
+	constructor->setParameterByDesignSNR(designSNR);
+	return constructor->construct();
+}
 }//namespace Construction
 }//namespace PolarCode

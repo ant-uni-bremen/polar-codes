@@ -38,6 +38,11 @@ public:
 	size_t blockLength();
 
 	/*!
+	* \brief Query frozenBits
+	*/
+	std::vector<unsigned> frozenBits(){ return mFrozenBits;}
+
+	/*!
 	 * \brief Explicitly call setSystematic(false); to use
 	 *        non-systematic coding.
 	 *

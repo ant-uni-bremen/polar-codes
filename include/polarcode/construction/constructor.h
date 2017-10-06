@@ -38,7 +38,15 @@ public:
 	 * \param newInformationLength The desired amount of information bits.
 	 */
 	void setInformationLength(size_t newInformationLength);
+
+	/*!
+	 * \brief Set the design parameter by passing the design SNR in [dB].
+	 * \param designSNR The desired amount of information bits.
+	 */
+	virtual void setParameterByDesignSNR(float designSNR);
 };
+
+		std::vector<unsigned> frozen_bits(const int blockLength, const int infoLength, const float designSNR);
 
 }//namespace Construction
 }//namespace PolarCode

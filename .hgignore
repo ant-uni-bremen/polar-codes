@@ -25,5 +25,6 @@ cython_build/
 *.egg-info/
 dist/
 results/
+pypolar/pypolar.cpp
 Polar Coding Simulation.cbp
 

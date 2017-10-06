@@ -3,6 +3,21 @@ import numpy as np
 import time
 cimport numpy as np
 from libcpp cimport bool
+from libcpp.vector cimport vector
+
+
+cdef uint_cppvector_to_ndarray(vector[unsigned int] v):
+    cdef unsigned int *vp = &v[0]
+    cdef unsigned int[::1] vv = <unsigned int[:v.size()]>vp
+    cdef nv = np.asarray(vv)
+    cdef res = np.copy(nv)
+    return res
+
+
+
+def frozen_bits(blockLength, infoLength, designSNR):
+    vf = polar_interface.frozen_bits(blockLength, infoLength, designSNR)
+    return uint_cppvector_to_ndarray(vf)
 
 
 cdef class PolarEncoder:
@@ -26,6 +41,10 @@ cdef class PolarEncoder:
 
     def blockLength(self):
         return self.kernel.blockLength()
+
+    def frozenBits(self):
+        v = self.kernel.frozenBits()
+        return uint_cppvector_to_ndarray(v)
 
     def setSystematic(self, flag):
         self.kernel.setSystematic(flag)
@@ -56,6 +75,10 @@ cdef class PolarDecoder:
 
     def decode(self):
         self.kernel.decode()
+
+    def frozenBits(self):
+        v = self.kernel.frozenBits()
+        return uint_cppvector_to_ndarray(v)
 
     def blockLength(self):
         return self.kernel.blockLength()

@@ -107,12 +107,13 @@ def simulate_awgn_polar_code_err_frames(constellation_order, inv_coderate, info_
     K = info_length
     N = info_length * inv_coderate
 
-    if N <= 1024:
-        f = get_polar_5g_frozenBitPositions(N, N - K)
-    else:
-        eta = design_snr_to_bec_eta(0.0, 1.0)
-        polar_capacities = calculate_bec_channel_capacities(eta, N)
-        f = get_frozenBitPositions(polar_capacities, N - K)
+    # if N <= 1024:
+    #     f = get_polar_5g_frozenBitPositions(N, N - K)
+    # else:
+    # eta = design_snr_to_bec_eta(0.0, 1.0)
+    # polar_capacities = calculate_bec_channel_capacities(eta, N)
+    # f = get_frozenBitPositions(polar_capacities, N - K)
+    f = pypolar.frozen_bits(N, K, 0.0)
     encoder = pypolar.PolarEncoder(N, f)
     decoder = pypolar.PolarDecoder(N, scl_list_size, f)
 
@@ -183,10 +184,11 @@ def simulate_awgn_polar_code_err_frames(constellation_order, inv_coderate, info_
 
 def polar_simulation_run():
     info_len_list = np.array([32, 64, 128, 256, 512, 1024, ], dtype=int)
-    # k_values = np.array([32, ], dtype=int)
+    # info_len_list = np.array([64, 128, ], dtype=int)
+    # info_len_list = np.array([512, ], dtype=int)
     print(info_len_list)
     inv_coderate = 2
-    ebn0_list = np.arange(-4.0, 8.25, .25)  # overall
+    ebn0_list = np.arange(-4.0, 5.25, .25)  # overall
     # ebn0_list = np.arange(-7.0, -3.25, .25)  # BPSK
     # ebn0_list = np.arange(-2.0, 4.25, .25)  # QPSK
     # ebn0_list = np.arange(4.0, 8.25, .25)  # 8-PSK

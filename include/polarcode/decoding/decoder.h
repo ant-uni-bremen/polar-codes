@@ -43,6 +43,12 @@ public:
 	virtual void initialize(size_t blockLength,
 							const std::vector<unsigned> &frozenBits) = 0;
 
+
+	/*!
+	* \brief Query frozenBits
+	*/
+	std::vector<unsigned> frozenBits(){ return mFrozenBits;}
+
 	/*!
 	 * \brief Query codeword block Length
 	 */
