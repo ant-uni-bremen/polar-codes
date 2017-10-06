@@ -7,8 +7,7 @@ namespace Decoding {
 
 __m256 hardDecode(__m256 x) {
 	static const __m256 mask = _mm256_set1_ps(-0.0);
-	const __m256 result = _mm256_and_ps(x, mask);// Get signs of LLRs
-	return result;
+	return _mm256_and_ps(x, mask);// Get signs of LLRs
 }
 
 float hardDecode(float llr) {
@@ -30,7 +29,7 @@ void F_function_calc(__m256 &Left, __m256 &Right, float *Out)
 
 void G_function_calc(__m256 &Left, __m256 &Right, __m256 &Bits, float *Out)
 {
-	Bits = hardDecode(Bits);//When using soft-output decoding, hard-decoding is needed.
+	Bits = hardDecode(Bits);//When using soft-output decoding, hard-decoding is needed at this point.
 	Left = _mm256_xor_ps(Left, Bits);//Change to diff-operation if bit is set, else keep add-operation
 	_mm256_store_ps(Out, _mm256_add_ps(Left, Right));
 }

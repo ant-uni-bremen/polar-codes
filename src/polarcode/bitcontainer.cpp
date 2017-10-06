@@ -221,7 +221,7 @@ void FloatContainer::getPackedInformationBits(void* pData) {
 	unsigned *lutPtr = mLUT;
 
 	for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {
-		currentByte |= static_cast<unsigned char>(iBit[*(lutPtr++)]>>(24+(currentBit++)));
+		currentByte |= static_cast<unsigned char>((iBit[*(lutPtr++)]&0x80000000)>>(24+(currentBit++)));
 		if(currentBit == 8) {
 			*charPtr = currentByte;
 			currentByte = 0;
