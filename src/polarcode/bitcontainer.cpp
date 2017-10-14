@@ -428,12 +428,31 @@ void CharContainer::getPackedInformationBits(void* pData) {
 	unsigned char *uData = reinterpret_cast<unsigned char *>(mData);
 	unsigned char currentByte = 0;
 
-	for(unsigned bit = 0; bit < mInformationBitCount; bit+=8) {
-		for(int j=0; j<8; ++j) {
-			currentByte |= (uData[mLUT[bit+j]] & 0x80) >> j;
+	if(mInformationBitCount>=8) {
+		unsigned safeBytes = mInformationBitCount/8;
+		unsigned safeBits = safeBytes*8;
+		unsigned remainingBits = mInformationBitCount%8;
+
+		// Let the compiler create an unrolled loop per byte
+		for(unsigned bit = 0; bit < safeBits; bit+=8) {
+			for(int j=0; j<8; ++j) {
+				currentByte |= (uData[mLUT[bit+j]] & 0x80) >> j;
+			}
+			*(charPtr++) = currentByte;
+			currentByte = 0;
 		}
-		*(charPtr++) = currentByte;
-		currentByte = 0;
+
+		// Assemble the remaining bits
+		for(unsigned bit=0; bit < remainingBits; ++bit) {
+			currentByte |= (uData[mLUT[bit+safeBits]]&0x80) >> bit;
+		}
+		*charPtr = currentByte;
+	} else {
+		// Assemble bits of a very short code of less than 8 information bits
+		for(unsigned bit = 0; bit < mInformationBitCount; bit++) {
+			currentByte |= (uData[mLUT[bit]] & 0x80) >> bit;
+		}
+		*charPtr = currentByte;
 	}
 }
 
