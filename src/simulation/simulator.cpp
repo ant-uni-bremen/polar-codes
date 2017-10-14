@@ -57,7 +57,16 @@ void Simulator::run() {
 DataPoint* Simulator::getJob() {
 	unsigned jobId = mNextJob.fetch_add(1);
 
-	return jobId < mJobList.size() ? mJobList[jobId] : nullptr;
+	if(jobId < mJobList.size()) {
+		std::string message = "[0] Jobs in queue: ";
+		message += std::to_string(mJobList.size()-jobId-1);
+		message += "\n";
+		std::cout << message;
+
+		return mJobList[jobId];
+	} else {
+		return nullptr;
+	}
 }
 
 DataPoint* Simulator::getDefaultDataPoint() {
@@ -267,8 +276,7 @@ void SimulationWorker::stopTiming() {
 }
 
 void SimulationWorker::selectFrozenBits() {
-	mConstructor = new PolarCode::Construction::Bhattacharrya(mJob->N, mJob->K);
-	mConstructor->setParameterByDesignSNR(mJob->designSNR);
+	mConstructor = new PolarCode::Construction::Bhattacharrya(mJob->N, mJob->K, mJob->designSNR);
 	mFrozenBits = mConstructor->construct();
 }
 

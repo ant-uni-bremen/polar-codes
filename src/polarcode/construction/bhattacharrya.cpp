@@ -9,16 +9,16 @@ Bhattacharrya::Bhattacharrya()
 	: mInitialParameter(0.5) {
 }
 
-Bhattacharrya::Bhattacharrya(size_t N, size_t K)
-	: mInitialParameter(0.5) {
+Bhattacharrya::Bhattacharrya(size_t N, size_t K) {
 	setBlockLength(N);
 	setInformationLength(K);
+	setParameterByDesignSNR(mDesignSnr);
 }
 
-Bhattacharrya::Bhattacharrya(size_t N, size_t K, float param)
-	: mInitialParameter(param) {
+Bhattacharrya::Bhattacharrya(size_t N, size_t K, float designSnr) {
 	setBlockLength(N);
 	setInformationLength(K);
+	setParameterByDesignSNR(designSnr);
 }
 
 Bhattacharrya::~Bhattacharrya() {
@@ -30,6 +30,7 @@ void Bhattacharrya::setInitialParameter(float newInitialParameter) {
 
 void Bhattacharrya::setParameterByDesignSNR(float designSNR) {
 	float linearDesignSNR = pow(10.0, designSNR/10.0);
+	mDesignSnr = designSNR;
 	mInitialParameter = exp(-2.0 * linearDesignSNR
 							* mInformationLength / mBlockLength);
 

@@ -40,9 +40,9 @@ public:
 	 * \brief Create the constructor and initialize all parameters.
 	 * \param N Code length.
 	 * \param K Information length.
-	 * \param param Upper bound on error probability for design channel.
+	 * \param designSnr Signal-to-noise ratio of an AWGN channel for code optimization.
 	 */
-	Bhattacharrya(size_t N, size_t K, float param);
+	Bhattacharrya(size_t N, size_t K, float designSnr);
 	~Bhattacharrya();
 
 	/*!

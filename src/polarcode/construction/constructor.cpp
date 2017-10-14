@@ -6,7 +6,9 @@ namespace PolarCode {
 namespace Construction {
 
 Constructor::Constructor()
-	: mBlockLength(0), mInformationLength(0) {
+	: mBlockLength(0)
+	, mInformationLength(0)
+	, mDesignSnr(0.0) {
 }
 
 Constructor::~Constructor() {
@@ -25,16 +27,16 @@ void Constructor::setInformationLength(size_t newInformationLength) {
 	mInformationLength = newInformationLength;
 }
 
-void Constructor::setParameterByDesignSNR(float designSNR){
-  // FIXME: This is a dummy!
+void Constructor::setDesignSnr(float designSnr){
+	mDesignSnr = designSnr;
 }
 
-
-std::vector<unsigned> frozen_bits(const int blockLength, const int infoLength, const float designSNR) {
-	PolarCode::Construction::Constructor *constructor
-					= new PolarCode::Construction::Bhattacharrya(blockLength, infoLength);
-	constructor->setParameterByDesignSNR(designSNR);
-	return constructor->construct();
+std::vector<unsigned> frozen_bits(const int blockLength, const int infoLength, const float designSnr) {
+	auto constructor = new PolarCode::Construction::Bhattacharrya(blockLength, infoLength, designSnr);
+	auto indices = constructor->construct();
+	delete constructor;
+	return indices;
 }
+
 }//namespace Construction
 }//namespace PolarCode

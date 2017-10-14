@@ -16,6 +16,7 @@ class Constructor {
 protected:
 	size_t mBlockLength;///< Number of code bits.
 	size_t mInformationLength;///< Number of information bits.
+	float mDesignSnr;///< Construction parameter for most algorithms.
 
 public:
 	Constructor();
@@ -40,10 +41,10 @@ public:
 	void setInformationLength(size_t newInformationLength);
 
 	/*!
-	 * \brief Set the design parameter by passing the design SNR in [dB].
-	 * \param designSNR The desired amount of information bits.
+	 * \brief Set the design parameter by passing the design SNR in dB.
+	 * \param designSnr The SNR (Eb/No) the code should be designed for.
 	 */
-	virtual void setParameterByDesignSNR(float designSNR);
+	void setDesignSnr(float designSnr);
 };
 
 		std::vector<unsigned> frozen_bits(const int blockLength, const int infoLength, const float designSNR);
