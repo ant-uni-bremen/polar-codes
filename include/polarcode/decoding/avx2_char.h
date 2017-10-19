@@ -8,7 +8,7 @@ namespace Decoding {
  * \param blockLength Bits to store
  * \return The number of AVX-vectors required to store _blockLength_ char bits.
  */
-size_t nBit2vecCount(size_t blockLength);
+size_t nBit2cvecCount(size_t blockLength);
 
 __m256i hardDecode(__m256i x);
 char hardDecode(char llr);

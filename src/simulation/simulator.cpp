@@ -282,9 +282,10 @@ void SimulationWorker::selectFrozenBits() {
 
 void SimulationWorker::setCoders() {
 	mEncoder = new PolarCode::Encoding::ButterflyAvx2Packed(mJob->N, mFrozenBits);
-	mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);
+	//mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);
 	//mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits);
 	//mDecoder = new PolarCode::Decoding::SclAvx2Char(mJob->N, mJob->L, mFrozenBits);
+	mDecoder = new PolarCode::Decoding::SclAvxFloat(mJob->N, mJob->L, mFrozenBits);
 }
 void SimulationWorker::setErrorDetector() {
 	switch(mJob->errorDetection) {

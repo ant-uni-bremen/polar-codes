@@ -50,7 +50,7 @@ void F_function(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength) {
 		Right = _mm256_subVectorShift_epu8(Left, subBlockLength*8);
 		F_function_calc(Left, Right, LLRout);
 	} else {
-		unsigned vecCount = nBit2vecCount(subBlockLength);
+		unsigned vecCount = nBit2cvecCount(subBlockLength);
 		for(unsigned i=0; i<vecCount; i++) {
 			Left = _mm256_load_si256(LLRin+i);
 			Right = _mm256_load_si256(LLRin+i+vecCount);
@@ -67,7 +67,7 @@ void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBl
 		Bits = _mm256_load_si256(BitsIn);
 		G_function_calc(Left, Right, Bits, LLRout);
 	} else {
-		unsigned vecCount = nBit2vecCount(subBlockLength);
+		unsigned vecCount = nBit2cvecCount(subBlockLength);
 		for(unsigned i=0; i<vecCount; i++) {
 			Left = _mm256_load_si256(LLRin+i);
 			Right = _mm256_load_si256(LLRin+i+vecCount);
@@ -78,7 +78,7 @@ void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBl
 }
 
 void G_function_0R(__m256i *LLRin, __m256i *LLRout, __m256i*, unsigned subBlockLength) {
-	unsigned vecCount = nBit2vecCount(subBlockLength);
+	unsigned vecCount = nBit2cvecCount(subBlockLength);
 	__m256i Left, Right, Sum;
 	for(unsigned i=0; i<vecCount; i++) {
 		Left = _mm256_load_si256(LLRin+i);
@@ -122,7 +122,7 @@ void CombineBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned sub
 	if(subBlockLength < 32) {
 		return CombineShortBits(Left, Right, Out, subBlockLength);
 	} else {
-		const unsigned vecCount = nBit2vecCount(subBlockLength);
+		const unsigned vecCount = nBit2cvecCount(subBlockLength);
 		for(unsigned i=0; i<vecCount; ++i) {
 			__m256i tempL = _mm256_load_si256(Left+i);
 			__m256i tempR = _mm256_load_si256(Right+i);
@@ -151,7 +151,7 @@ void CombineSoftBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, const uns
 }
 
 void CombineSoftBitsLong(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
-	const unsigned vecCount = nBit2vecCount(subBlockLength);
+	const unsigned vecCount = nBit2cvecCount(subBlockLength);
 	__m256i LeftV;
 	__m256i RightV;
 	for(unsigned i=0; i<vecCount; ++i) {
@@ -184,7 +184,7 @@ void SpcPrepare(__m256i *x, const size_t codeLength) {
 	memset(reinterpret_cast<char*>(x)+codeLength, 127, 32-codeLength);
 }
 
-size_t nBit2vecCount(size_t blockLength) {
+size_t nBit2cvecCount(size_t blockLength) {
 	return (blockLength+31)/32;
 }
 

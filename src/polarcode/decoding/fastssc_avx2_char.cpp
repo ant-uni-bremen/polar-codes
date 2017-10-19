@@ -23,11 +23,11 @@ Node::Node()
 }
 
 Node::Node(size_t blockLength, datapool_t *pool)
-	: mLlr(pool->allocate(nBit2vecCount(blockLength))),
-	  mBit(pool->allocate(nBit2vecCount(blockLength))),
+	: mLlr(pool->allocate(nBit2cvecCount(blockLength))),
+	  mBit(pool->allocate(nBit2cvecCount(blockLength))),
 	  xmDataPool(pool),
 	  mBlockLength(blockLength),
-	  mVecCount(nBit2vecCount(blockLength)){
+	  mVecCount(nBit2cvecCount(blockLength)){
 }
 
 Node::~Node() {
@@ -102,7 +102,7 @@ RateRNode::RateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
 //		std::cout << decoderName(leftDecoder) << " " << decoderName(rightDecoder) << ": " << mBlockLength << std::endl;
 	}
 
-	mVecCount = nBit2vecCount(mBlockLength);
+	mVecCount = nBit2cvecCount(mBlockLength);
 
 	ChildLlr = xmDataPool->allocate(mVecCount);
 }
@@ -244,7 +244,7 @@ void ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
 }
 
 void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
-	const size_t vecCount = nBit2vecCount(blockLength);
+	const size_t vecCount = nBit2cvecCount(blockLength);
 	for(unsigned i = 0; i < vecCount; ++i) {
 		__m256i Llr_l = _mm256_load_si256(LlrIn+i);
 		__m256i Llr_r = _mm256_load_si256(LlrIn+i+vecCount);

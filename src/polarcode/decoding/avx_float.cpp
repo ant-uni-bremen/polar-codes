@@ -1,6 +1,7 @@
 #include <polarcode/decoding/avx_float.h>
 #include <cstring>
 #include <cassert>
+#include <cmath>
 
 namespace PolarCode {
 namespace Decoding {
@@ -97,11 +98,26 @@ void CombineShortBits(float *Left, float *Right, float *Out, const unsigned subB
 }
 
 void Combine(float *Bits, const unsigned bitCount) {
+	if(bitCount >= 8) {
+		for(unsigned i=0; i<bitCount; i+=8) {
+			__m256 tempL = _mm256_load_ps(Bits+i);
+			__m256 tempR = _mm256_load_ps(Bits+bitCount+i);
+			tempL = _mm256_xor_ps(tempL, tempR);
+			_mm256_store_ps(Bits+i, tempL);
+		}
+	} else {
+		unsigned int *iBit = reinterpret_cast<unsigned int*>(Bits);
+		for(unsigned i=0; i<bitCount; ++i) {
+			iBit[i] ^= iBit[bitCount+i];
+		}
+	}
+}
+
+void CombineSoft(float *Bits, const unsigned bitCount) {
 	for(unsigned i=0; i<bitCount; i+=8) {
 		__m256 tempL = _mm256_load_ps(Bits+i);
 		__m256 tempR = _mm256_load_ps(Bits+bitCount+i);
-		tempL = _mm256_xor_ps(tempL, tempR);
-		_mm256_store_ps(Bits+i, tempL);
+		F_function_calc(tempL, tempR, Bits+i);
 	}
 }
 
@@ -173,8 +189,16 @@ void RepetitionPrepare(float* x, const size_t codeLength) {
 void SpcPrepare(float *x, const size_t codeLength) {
 	if(codeLength >= 8) return;
 	for(unsigned i=codeLength; i<8; ++i) {
-		x[i] = 1.0/0;//positive infinity
+		x[i] = INFINITY;
 	}
+}
+
+size_t nBit2fvecCount(size_t blockLength) {
+	return (blockLength+7)/8;
+}
+
+size_t nBit2fCount(size_t blockLength) {
+	return (blockLength+7)&(~7);
 }
 
 }// namespace Decoding
