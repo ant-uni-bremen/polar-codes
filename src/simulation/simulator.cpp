@@ -3,6 +3,7 @@
 #include <thread>
 #include <fstream>
 #include <iostream>
+#include <cmath>
 
 namespace Simulation {
 
@@ -297,7 +298,14 @@ void SimulationWorker::setErrorDetector() {
 }
 
 void SimulationWorker::setChannel() {
-	mTransmitter->setEsNo(mJob->EbN0);
+	// Set channel SNR to energy per bit over noise energy for
+	// real-valued AWGN channels.
+	// Source: Chapter 11.4. in Nachrichtenübertragung by K.-D. Kammeyer, 2011
+	float EbN0_linear = pow(10.0, mJob->EbN0 / 10.0) * 2.0;
+	// Adapt SNR to code rate to get true energy per information bit
+	EbN0_linear *= mJob->K;
+	EbN0_linear /= mJob->N;
+	mTransmitter->setEsN0Linear(EbN0_linear);
 }
 
 void SimulationWorker::allocateMemory() {

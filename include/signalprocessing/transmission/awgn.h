@@ -36,15 +36,20 @@ public:
 	Awgn();
 	/*!
 	 * \brief Construct an Awgn channel with given signal-to-noise ratio per symbol.
-	 * \param EsNo_dB Signal-to-noise ratio (symbol energy per noise energy) in dB.
+	 * \param EsN0_dB Signal-to-noise ratio (symbol energy per noise energy) in dB.
 	 */
-	Awgn(float EsNo_dB);
+	Awgn(float EsN0_dB);
 	~Awgn();
 	
 	/*!
-	 * \brief Set a new SNR.
+	 * \brief Set a new SNR given in dB.
 	 */
-	void setEsNo(float);
+	void setEsN0(float);
+
+	/*!
+	 * \brief Set SNR by linear ratio.
+	 */
+	void setEsN0Linear(float);
 
 	/*!
 	 * \brief Get the current SNR-setting.

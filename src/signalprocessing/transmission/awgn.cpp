@@ -9,7 +9,7 @@ namespace Transmission {
 
 Awgn::Awgn() : Awgn(10.0) {}
 
-Awgn::Awgn(float EsNo_dB) {
+Awgn::Awgn(float EsN0_dB) {
 	//Create 256-bit pseudo-random generator
 	mRandGen = new Random::Generator();
 	mLcg = (Random::LCG<__m256>*)_mm_malloc(sizeof(Random::LCG<__m256>), 32);
@@ -23,7 +23,7 @@ Awgn::Awgn(float EsNo_dB) {
 		mLcg->seed(seed256);
 	}
 
-	setEsNo(EsNo_dB);
+	setEsN0(EsN0_dB);
 }
 
 Awgn::~Awgn() {
@@ -31,9 +31,15 @@ Awgn::~Awgn() {
 	delete mLcg;
 }
 
-void Awgn::setEsNo(float EsNo) {
+void Awgn::setEsN0(float EsNo) {
 	mEsNoLog = EsNo;
 	mEsNoLin = pow(10.0, mEsNoLog/10.0);
+	mNoiseMagnitude = 1.0/sqrt(mEsNoLin);
+}
+
+void Awgn::setEsN0Linear(float EsNo) {
+	mEsNoLin = EsNo;
+	mEsNoLog = 10.0*log10(EsNo);
 	mNoiseMagnitude = 1.0/sqrt(mEsNoLin);
 }
 
