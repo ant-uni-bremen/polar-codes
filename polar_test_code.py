@@ -553,15 +553,39 @@ def plot_channel_coding_bounds():
     plt.show()
 
 
+def calculate_r0_fer(codeword_len, info_len, ebn0s):
+    print(ebn0s)
+    rb = 1. * info_len / codeword_len
+    print(rb)
+    ebn0s_lin = 10. ** (ebn0s / 10.)
+    print(ebn0s_lin)
+    snr = rb * ebn0s_lin
+    print(snr)
+    r0 = 1 - np.log2(1 + np.exp(-1. * snr))
+    print(r0)
+    print(r0 - rb)
+    fer = 2 ** (-1. * codeword_len * (r0 - rb))
+    fer[np.where(r0 < rb)] = 1.
+    return fer
+
+
+def plot_r0_fer():
+    ebn0s = np.arange(0.0, 4., .25)
+    fer = calculate_r0_fer(512, 256, ebn0s)
+    plt.semilogy(ebn0s, fer)
+    plt.grid()
+    plt.show()
+
+
 def main():
-    # calculate_code_properties(32, 17, 0.0)
+    calculate_code_properties(32, 17, 0.0)
 
     plot_channel_coding_bounds()
-    # plot_capacity_rate()
+    plot_capacity_rate()
     # return
-    # verify_frozen_bit_positions()
-    # verify_encode_systematic()
-    # verify_cpp_encoder_impl()
+    verify_frozen_bit_positions()
+    verify_encode_systematic()
+    verify_cpp_encoder_impl()
     return
     for n in range(5, 9):
         N = 2 ** n

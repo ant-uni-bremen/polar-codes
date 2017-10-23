@@ -26,6 +26,7 @@ print('RSYNC update local folder duration: ', sube - subt)
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
+import csv
 
 
 def load_results(prefix=None):
@@ -156,20 +157,49 @@ def plot_convolutional_graph(ax, ldMlist=np.arange(8, dtype=int)):
 
 def main():
     np.set_printoptions(precision=2, linewidth=150)
+    filename = 'testrange_codelength.csv'
+    with open(filename, 'rb') as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+        # print(', '.join(spamreader[0]))
+        for row in spamreader:
+            print(', '.join(row))
 
-    fig, ax0 = plt.subplots(1, 1)
-    plot_turbo_graph(ax0, ldMlist=np.arange(2, 3, dtype=int))
-    # plot_convolutional_graph(ax0, ldMlist=np.arange(2, 3, dtype=int))
-    plt.xlabel('Eb/N0')
+    sim_res = np.genfromtxt(filename, delimiter=',')
+    print(sim_res)
+    blockLengths = np.array(sim_res[1:, 0]).astype(int)
+    blockLengths = np.reshape(blockLengths, (4, -1))
+    invRates = sim_res[1:, 1]
+    ebn0s = np.array(sim_res[1:, 4]).astype(float)
+    ebn0s = np.reshape(ebn0s, (4, -1))
+    print(ebn0s)
+
+    fers = np.array(sim_res[1:, 5]).astype(float)
+    fers = np.reshape(fers, (4, -1))
+
+    print(blockLengths)
+    for i in range(0, 4):
+        plt.semilogy(ebn0s[i], fers[i], label=blockLengths[i, 0])
+    plt.legend(title='Blocklength')
     plt.ylabel('FER')
-    plt.ylim((1e-3, 1.0))
-    plt.grid(which='major', color='black', lw=1.4)
-    plt.grid(which='minor', color='gray')
-    ax0.legend(*ax0.get_legend_handles_labels(), bbox_to_anchor=(0., 1.02, 1., .102), loc=0, mode='expand', borderaxespad=0., handletextpad=0.0, ncol=3)
-    plt.xlim((-1, 7.))
-    fig.subplots_adjust(top=0.84)
-    plt.savefig('Polar_codes_SC_32-1024.pdf')
+    plt.xlabel(r'$E_b / N_0$')
+    plt.grid()
+    plt.savefig('codelength_vs_fer.pdf')
     plt.show()
+    # print(np.reshape(blockLengths, (4, -1)))
+
+    # fig, ax0 = plt.subplots(1, 1)
+    # plot_turbo_graph(ax0, ldMlist=np.arange(2, 3, dtype=int))
+    # # plot_convolutional_graph(ax0, ldMlist=np.arange(2, 3, dtype=int))
+    # plt.xlabel('Eb/N0')
+    # plt.ylabel('FER')
+    # plt.ylim((1e-3, 1.0))
+    # plt.grid(which='major', color='black', lw=1.4)
+    # plt.grid(which='minor', color='gray')
+    # ax0.legend(*ax0.get_legend_handles_labels(), bbox_to_anchor=(0., 1.02, 1., .102), loc=0, mode='expand', borderaxespad=0., handletextpad=0.0, ncol=3)
+    # plt.xlim((-1, 7.))
+    # fig.subplots_adjust(top=0.84)
+    # plt.savefig('Polar_codes_SC_32-1024.pdf')
+    # plt.show()
 
 
 if __name__ == '__main__':

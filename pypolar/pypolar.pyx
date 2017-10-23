@@ -22,6 +22,7 @@ def frozen_bits(blockLength, infoLength, designSNR):
 
 cdef class PolarEncoder:
     cdef polar_interface.Encoder* kernel
+    cdef int enc_dur
 
     def __cinit__(self, block_size, np.ndarray frozen_bit_positions, encoder_impl='Packed'):
         frozen_bit_positions = np.sort(frozen_bit_positions)
@@ -57,18 +58,31 @@ cdef class PolarEncoder:
         self.kernel.getEncodedData(<void*> codeword.data)
         return codeword
 
+    def encoder_duration(self):
+        return self.enc_dur
+
     def encode_vector(self, np.ndarray[np.uint8_t, ndim=1] info_bytes):
+        cdef np.ndarray[np.uint8_t, ndim=1] codeword = np.zeros((self.kernel.blockLength() // 8, ), dtype=np.uint8)
+        s = time.time()
         self.kernel.setInformation(<void*> info_bytes.data)
         self.kernel.encode()
-        return self.getEncodedData()
+        self.kernel.getEncodedData(<void*> codeword.data)
+        e = time.time()
+        self.enc_dur = int(1e9 * (e - s))
+        return codeword
 
 
 cdef class PolarDecoder:
     cdef polar_interface.Decoder* kernel
+    cdef int decoder_impl_flag
+    cdef int dec_dur
 
-    def __cinit__(self, block_size, list_size, np.ndarray frozen_bit_positions):
+    def __cinit__(self, block_size, list_size, np.ndarray frozen_bit_positions, decoder_impl="char"):
         frozen_bit_positions = np.sort(frozen_bit_positions)
-        self.kernel = polar_interface.makeDecoder(block_size, list_size, frozen_bit_positions)
+
+        self.decoder_impl_flag = 1 if decoder_impl == "float" else 0
+        print(self.decoder_impl_flag)
+        self.kernel = polar_interface.makeDecoder(block_size, list_size, frozen_bit_positions, self.decoder_impl_flag)
 
     def __del__(self):
         del self.kernel
@@ -87,8 +101,30 @@ cdef class PolarDecoder:
         return self.kernel.infoLength()
 
     def decode_vector(self, np.ndarray[np.float32_t, ndim=1] llrs):
-        self.kernel.setSignal(<float*> llrs.data)
-        self.kernel.decode()
         cdef np.ndarray[np.uint8_t, ndim=1] infoword = np.zeros((self.kernel.infoLength() // 8, ), dtype=np.uint8)
-        self.kernel.getDecodedInformationBits(<void*> infoword.data)
+        self.kernel.decode_vector(<float*> llrs.data, <void*> infoword.data)
         return infoword
+
+    def decode_vector(self, np.ndarray[np.int8_t, ndim=1] llrs):
+        cdef np.ndarray[np.uint8_t, ndim=1] infoword = np.zeros((self.kernel.infoLength() // 8, ), dtype=np.uint8)
+        self.kernel.decode_vector(<char*> llrs.data, <void*> infoword.data)
+        return infoword
+
+    def decoder_duration(self):
+        return self.kernel.duration_ns()
+
+    def enableSoftOutput(self, flag):
+        self.kernel.enableSoftOutput(flag)
+
+    def hasSoftOutput(self):
+        return self.kernel.hasSoftOutput()
+
+    def getSoftCodeword(self):
+        cdef np.ndarray[np.int8_t, ndim=1] llrs = np.zeros((self.kernel.blockLength(), ), dtype=np.int8)
+        self.kernel.getSoftCodeword(llrs.data)
+        return llrs
+
+    def getSoftInformation(self):
+        cdef np.ndarray[np.int8_t, ndim=1] llrs = np.zeros((self.kernel.infoLength(), ), dtype=np.int8)
+        self.kernel.getSoftInformation(llrs.data)
+        return llrs

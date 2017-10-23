@@ -2,6 +2,7 @@
 #define PC_DEC_DECODER_H
 
 #include <cstddef>
+#include <string>
 
 #include <polarcode/bitcontainer.h>
 #include <polarcode/errordetection/errordetector.h>
@@ -15,6 +16,8 @@ namespace Decoding {
  *
  */
 class Decoder {
+private:
+    size_t mDecoderDuration;
 protected:
 	ErrorDetection::Detector* mErrorDetector;///< Error detecting object
 	size_t mBlockLength;///< Length of the Polar Code
@@ -35,6 +38,24 @@ public:
 	 * \return True, if no errors detected after decoding.
 	 */
 	virtual bool decode() = 0;
+
+/*!
+ * \brief Decode float vector
+ * \return True, if no errors detected after decoding.
+ */
+  bool decode_vector(const float *pLlr, void* pData);
+
+/*!
+ * \brief Decode char vector
+ * \return True, if no errors detected after decoding.
+ */
+  bool decode_vector(const char *pLlr, void* pData);
+
+/*!
+* \brief Decoder duration
+* \return Number of ticks in nanoseconds for last decoder call.
+*/
+  size_t duration_ns(){ return mDecoderDuration;};
 
 	/*!
 	 * \brief Set the decoder's parameters.
@@ -137,7 +158,7 @@ public:
  * \param listSize if '1' FastSSC Decoder is returned. Else: SCL Decoder
  * \param frozenBits positions of frozen bits ordered in ascending order.
  */
-  Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits);
+  Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits, int decoder_impl=0);
 }//namespace Decoding
 }//namespace PolarCode
 

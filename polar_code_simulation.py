@@ -36,7 +36,7 @@ def save_results(filename, constellation_order, inv_coderate, info_length, ebn0,
         'avgDecoderDurationNs': {'python': python_ns, 'c': c_ns},
         'results': results
     }
-    np.save(filename, d)
+    # np.save(filename, d)
     return d
 
 
@@ -50,12 +50,18 @@ def calculate_fer(results, info_length):
     return 1. * (len(results) - n_correct_frames) / len(results)
 
 
-def print_time_statistics(datapoint_sim_duration, python_ns, c_ns, n_iterations):
+def print_time_statistics(datapoint_sim_duration, python_ns, c_ns, enc_c_ns, n_iterations, codeword_len, info_length):
     datapoint_sim_duration_per_iteration = int(datapoint_sim_duration * 1e9 / n_iterations)
     python_ns /= n_iterations
     c_ns /= n_iterations
+    enc_c_ns /= n_iterations
+    p_s = 1e-9 * c_ns
+    py_info_thr = 1.e-6 * info_length / p_s
+    py_code_thr = 1.e-6 * codeword_len / p_s
+    encoder_thr = 1.e-6 * info_length / (1.e-9 * enc_c_ns)
     print('Simulation Duration: {:6.2f}s,\tper iteration: {:6.2f}us'.format(datapoint_sim_duration, datapoint_sim_duration_per_iteration / 1e3))
-    print('Decoder      Python: {:6.2f}us,\tC: {:6.2f}us,\tInterface: {:6.2f}us'.format(python_ns / 1e3, c_ns / 1e3, (python_ns - c_ns) / 1e3))
+    print('Decoder      Python: {:6.2f}us,\tC: {:6.2f}us,\tInterface: {:6.2f}us, {}'.format(python_ns / 1e3, c_ns / 1e3, (python_ns - c_ns) / 1e3, enc_c_ns))
+    print('Decoder  Throughput: {:6.2f}Mbit/s Info, {:6.2f}Mbit/s Code\tEncoder {:6.2f}Mbit/s'.format(py_info_thr, py_code_thr, encoder_thr))
 
 
 def lte_subblock_interleaver_indices(block_indices):
@@ -115,7 +121,8 @@ def simulate_awgn_polar_code_err_frames(constellation_order, inv_coderate, info_
     # f = get_frozenBitPositions(polar_capacities, N - K)
     f = pypolar.frozen_bits(N, K, 0.0)
     encoder = pypolar.PolarEncoder(N, f)
-    decoder = pypolar.PolarDecoder(N, scl_list_size, f)
+    decoder = pypolar.PolarDecoder(N, scl_list_size, f, 'float')
+    # decoder.enableSoftOutput(True)
 
     sigma = cs.ebn0_to_sigma(ebn0, 1. / inv_coderate, constellation_order)
     print('EbN0 {:.2f}dB -> SNR {:.2f}dB'.format(ebn0, 10. * np.log10(1. / sigma ** 2)))
@@ -129,15 +136,18 @@ def simulate_awgn_polar_code_err_frames(constellation_order, inv_coderate, info_
 
     python_ns = 0
     c_ns = 0
+    enc_c_ns = 0
     err_frames = 0
     n_iterations = 0
     max_iterations = max_frame_errs * (2 ** 10)
     results = np.zeros(max_iterations)
+    error_pattern = np.zeros(info_length)
     sim_start_time = time.time()
     while err_frames < max_frame_errs and n_iterations < max_iterations:
         bits = np.random.randint(0, 2, info_length).astype(np.int32)
         d = np.packbits(bits)
         encoded = encoder.encode_vector(d)
+        enc_c_ns += encoder.encoder_duration()
 
         btx = np.unpackbits(encoded)
         tx = np.concatenate((btx, np.zeros(codeword_len - N, dtype=btx.dtype)))
@@ -153,9 +163,11 @@ def simulate_awgn_polar_code_err_frames(constellation_order, inv_coderate, info_
         st = time.time()
         up = decoder.decode_vector(llrs)
         python_ns += int((time.time() - st) * 1e9)
+        c_ns += decoder.decoder_duration()
         u = np.unpackbits(up)
 
         frame_pattern = bits == u
+        error_pattern += (1 - frame_pattern)
         n_correct = np.sum(frame_pattern)
         results[n_iterations] = n_correct
 
@@ -172,10 +184,17 @@ def simulate_awgn_polar_code_err_frames(constellation_order, inv_coderate, info_
             break
     datapoint_sim_duration = time.time() - sim_start_time
     results = results[0:n_iterations]
-    print_time_statistics(datapoint_sim_duration, python_ns, c_ns, n_iterations)
+    print_time_statistics(datapoint_sim_duration, python_ns, c_ns, enc_c_ns, n_iterations, codeword_len, info_length)
 
     ber = calculate_ber(results, info_length)
     fer = calculate_fer(results, info_length)
+
+    print('has Softoutput: ', decoder.hasSoftOutput())
+    # softoutout = decoder.getSoftInformation()
+    # print(np.shape(softoutout))
+    # print(softoutout)
+    # print(error_pattern)
+    # plt.plot(error_pattern)
 
     print('#frames {} with BER {:8.2e} and FER {:8.2e}'.format(len(results), ber, fer))
     return save_results(filename, constellation_order, inv_coderate, info_length, ebn0, n_iterations, scl_list_size,
@@ -184,14 +203,16 @@ def simulate_awgn_polar_code_err_frames(constellation_order, inv_coderate, info_
 
 def polar_simulation_run():
     info_len_list = np.array([32, 64, 128, 256, 512, 1024, ], dtype=int)
-    # info_len_list = np.array([64, 128, ], dtype=int)
-    # info_len_list = np.array([512, ], dtype=int)
+    info_len_list = np.array([32, 64, 128, ], dtype=int)
+    info_len_list = np.array([64, 128, ], dtype=int)
+    info_len_list = np.array([512, 2048, ], dtype=int)
     print(info_len_list)
     inv_coderate = 2
     ebn0_list = np.arange(-4.0, 5.25, .25)  # overall
     # ebn0_list = np.arange(-7.0, -3.25, .25)  # BPSK
     # ebn0_list = np.arange(-2.0, 4.25, .25)  # QPSK
     # ebn0_list = np.arange(4.0, 8.25, .25)  # 8-PSK
+    # ebn0_list = np.arange(4.0, 4.55, .25)  # overall
     fer_list = np.ones(len(ebn0_list))
     ber_list = np.ones(len(ebn0_list))
     num_err_frames = 2 ** 9
@@ -217,7 +238,7 @@ def polar_simulation_run():
                 plt.semilogy(ebn0_list, fer_list)
                 plt.semilogy(ebn0_list, ber_list)
                 plt.xlabel('Eb/N0 [dB]')
-                plt.title('Polar Code with info length {}, constellation order {}'.format(info_length, constellation_order))
+                plt.title('Polar Code ({}, {}), constellation order {}'.format(int(info_length * inv_coderate), info_length, constellation_order))
                 plt.grid()
                 plt.draw()
     plt.ioff()

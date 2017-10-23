@@ -42,14 +42,23 @@ void Simulator::run() {
 	std::vector<std::thread> Threads;
 
 	// Start the work
-	for(unsigned i=0; i<threadCount; ++i) {
-		Threads.push_back(std::thread(SimThread, this, i+1));
+	try {
+		for(unsigned i=0; i<threadCount; ++i) {
+			Threads.push_back(std::thread(SimThread, this, i+1));
+		}
+
+		// Wait for all threads to stop
+		for(auto& Thread : Threads) {
+			Thread.join();
+		}
+	}
+	catch(std::system_error e) {
+		std::cout << "Cannot use multithreaded simulation!\n";
+		std::cout << "what(): " << e.what() << std::endl;
+		SimThread(this, 1);
 	}
 
-	// Wait for all threads to stop
-	for(auto& Thread : Threads) {
-		Thread.join();
-	}
+
 
 	// Write results into file
 	saveResults();

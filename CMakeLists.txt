@@ -4,6 +4,7 @@ find_package(Doxygen)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 find_package(CppUnit)
+#find_package(Threads)
 
 SET(BUILD_SHARED_LIBS ON)
 
@@ -14,11 +15,12 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 add_definitions(-std=c++11 -Wall -Wno-ignored-attributes)
 add_definitions(-march=native -fPIC)
-add_definitions(-O3 -funroll-loops)
+add_definitions(-O2 -funroll-loops)
+#add_definitions(-Wl,--no-as-needed)
 
 add_subdirectory(src)
 add_subdirectory(test)
-add_subdirectory(doc)
+#add_subdirectory(doc)
 add_subdirectory(include/polarcode)
 
 
