@@ -22,6 +22,12 @@ public:
 	~Dummy();
 
 	/*!
+	 * \brief Get another Dummy error detection object.
+	 * \return A new Dummy object.
+	 */
+	Dummy* clone();
+
+	/*!
 	 * \brief Does not do anything.
 	 * \param dataPtr Memory location that might hold data.
 	 * \param bytes Number of bytes there might be.

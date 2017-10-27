@@ -20,6 +20,7 @@ class CRC32 : public Detector {
 public:
 	CRC32();
 	~CRC32();
+	CRC32* clone();
 	
 	void generate(void *pData, int bytes);
 	bool check(void *pData, int bytes);

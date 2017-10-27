@@ -26,14 +26,22 @@ Decoder::Decoder()
 	  mLlrContainer(nullptr),
 	  mBitContainer(nullptr),
 	  mOutputContainer(nullptr),
-	  mFrozenBits({}) {
+	  mFrozenBits({}),
+	  mExternalContainers(false){
 }
 
 Decoder::~Decoder() {
 	delete mErrorDetector;
-	if(mLlrContainer) delete mLlrContainer;
-	if(mBitContainer) delete mBitContainer;
-	if(mOutputContainer) delete [] mOutputContainer;
+	if(!mExternalContainers) {
+		if(mLlrContainer) delete mLlrContainer;
+		if(mBitContainer) delete mBitContainer;
+		if(mOutputContainer) delete [] mOutputContainer;
+	}
+}
+
+void Decoder::initialize(size_t blockLength, const std::vector<unsigned> &frozenBits) {
+	mBlockLength = blockLength;
+	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 }
 
 size_t Decoder::blockLength() {
@@ -42,6 +50,18 @@ size_t Decoder::blockLength() {
 
 size_t Decoder::infoLength() {
 	return mBlockLength - mFrozenBits.size();
+}
+
+BitContainer* Decoder::inputContainer() {
+	return mLlrContainer;
+}
+
+BitContainer* Decoder::outputContainer() {
+	return mBitContainer;
+}
+
+unsigned char* Decoder::packedOutput() {
+	return mOutputContainer;
 }
 
 void Decoder::setSystematic(bool sys) {

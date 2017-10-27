@@ -215,11 +215,11 @@ void DecoderNode::decode() {
 	}
 
 	if(mLeft) {
+		mLeft->decode();
+	} else {
 		for(unsigned path=0; path < pathCount; ++path) {
 			xmPathList->getWriteAccessToBit(path, mStage);
 		}
-		mLeft->decode();
-	} else {
 		leftDecoder(xmPathList, mStage);
 	}
 
@@ -232,11 +232,11 @@ void DecoderNode::decode() {
 	}
 
 	if(mRight) {
+		mRight->decode();
+	} else {
 		for(unsigned path=0; path < pathCount; ++path) {
 			xmPathList->getWriteAccessToBit(path, mStage);
 		}
-		mRight->decode();
-	} else {
 		rightDecoder(xmPathList, mStage);
 	}
 

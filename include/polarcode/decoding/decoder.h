@@ -24,6 +24,7 @@ protected:
 	BitContainer *mBitContainer;///< Output bit container
 	unsigned char *mOutputContainer;///< Final data container, gets filled for error detection
 	std::vector<unsigned> mFrozenBits; ///< Indices for frozen bits
+	bool mExternalContainers;///< On destruction, do not delete containers
 
 public:
 	Decoder();
@@ -41,7 +42,7 @@ public:
 	 * \param frozenBits A set of frozen channel indices.
 	 */
 	virtual void initialize(size_t blockLength,
-							const std::vector<unsigned> &frozenBits) = 0;
+							const std::vector<unsigned> &frozenBits);
 
 
 	/*!
@@ -59,6 +60,10 @@ public:
 	*/
 	size_t infoLength();
 
+	BitContainer* inputContainer(); ///< Get direct pointer to mLlrContainer
+	BitContainer* outputContainer();///< Get direct pointer to mBitContainer
+	unsigned char* packedOutput();  ///< Get direct pointer to mOutputContainer
+
 	/*!
 	* \brief Explicitly call setSystematic(false); to use
 	*        non-systematic coding.
@@ -68,7 +73,7 @@ public:
 	* or re-activating it lateron.
 	* \param sys Whether coding should be systematic.
 	*/
-	void setSystematic(bool sys);
+	virtual void setSystematic(bool sys);
 
 	/*!
 	* \brief Query if Decoder produces systematic codeword.
@@ -93,13 +98,13 @@ public:
 	 * \brief Set an error detection scheme.
 	 * \param pDetector Pointer to an error detecting object. Ownership is taken.
 	 */
-	void setErrorDetection(ErrorDetection::Detector* pDetector);
+	virtual void setErrorDetection(ErrorDetection::Detector* pDetector);
 
 	/*!
 	 * \brief Copy the received signal into decoder's memory.
 	 * \param pLlr Pointer to single precision floating point LLRs.
 	 */
-	void setSignal(const float *pLlr);
+	virtual void setSignal(const float *pLlr);
 
 	/*!
 	 * \brief Copy the received signal into decoder's memory.

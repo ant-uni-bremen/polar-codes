@@ -9,6 +9,10 @@ Dummy::Dummy() {
 Dummy::~Dummy() {
 }
 
+Dummy* Dummy::clone() {
+	return new Dummy();
+}
+
 //Null check believes the code was okay
 bool Dummy::check(void *dataPtr, int bytes) {
 	return true;

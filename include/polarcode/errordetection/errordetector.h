@@ -17,6 +17,12 @@ public:
 	virtual ~Detector(){}
 
 	/*!
+	 * \brief Get a copy of this object with the same parameters, if there are some.
+	 * \return Copy of this error detector.
+	 */
+	virtual Detector* clone() = 0;
+
+	/*!
 	 * \brief Replaces the last bytes of data with a checksum.
 	 * \param data Memory location to generate the checksum of.
 	 * \param bytes Number of bytes of data including the checksum.

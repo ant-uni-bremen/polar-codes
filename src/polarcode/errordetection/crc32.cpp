@@ -12,6 +12,10 @@ CRC32::CRC32() {
 CRC32::~CRC32() {
 }
 
+CRC32* CRC32::clone() {
+	return new CRC32();
+}
+
 void CRC32::checkBlockSizeRestriction(int blockCount, int byteCount) {
 	if((blockCount<<2) != byteCount) {
 		throw "Crc32 failed: Block size does not fit 32 bit restriction!";

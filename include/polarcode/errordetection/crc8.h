@@ -16,6 +16,7 @@ class CRC8 : public Detector {
 public:
 	CRC8();
 	~CRC8();
+	CRC8* clone();
 	
 	void generate(void *pData, int bytes);
 	bool check(void *pData, int bytes);

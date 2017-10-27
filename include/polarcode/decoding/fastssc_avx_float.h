@@ -173,7 +173,7 @@ class FastSscAvxFloat : public Decoder {
 
 public:
 	/*!
-	 * \brief Create a Fast-SSC decoder with AVX char-bit decoding.
+	 * \brief Create a Fast-SSC decoder with AVX float-bit decoding.
 	 * \param blockLength Length of the Polar Code.
 	 * \param frozenBits Set of frozen bits in the code word.
 	 */

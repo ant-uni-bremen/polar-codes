@@ -12,7 +12,8 @@
    via Sommarive, 18
    I-38123 Trento (Italy)
    
-   Edited by Florian Lotze, as AVX2 wasn't actually used, somehow
+   Edited by Florian Lotze, as AVX2 wasn't actually used, somehow.
+   + Added FMA support.
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -68,6 +69,7 @@ _PI32AVX_CONST(4, 4);
 
 _PS256_CONST(1  , 1.0f);
 _PS256_CONST(0p5, 0.5f);
+_PS256_CONST(0p5n, -0.5f);
 /* the smallest non denormalized float number */
 _PS256_CONST_TYPE(min_norm_pos, int, 0x00800000);
 _PS256_CONST_TYPE(mant_mask, int, 0x7f800000);
@@ -207,6 +209,7 @@ inline v8sf log256_ps(v8sf x) {
   v8sf z = _mm256_mul_ps(x,x);
 
   v8sf y = *(v8sf*)_ps256_cephes_log_p0;
+#ifndef __FMA__
   y = _mm256_mul_ps(y, x);
   y = _mm256_add_ps(y, *(v8sf*)_ps256_cephes_log_p1);
   y = _mm256_mul_ps(y, x);
@@ -224,19 +227,35 @@ inline v8sf log256_ps(v8sf x) {
   y = _mm256_mul_ps(y, x);
   y = _mm256_add_ps(y, *(v8sf*)_ps256_cephes_log_p8);
   y = _mm256_mul_ps(y, x);
+#else
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_log_p1);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_log_p2);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_log_p3);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_log_p4);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_log_p5);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_log_p6);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_log_p7);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_log_p8);
+#endif
 
   y = _mm256_mul_ps(y, z);
-  
+
+#ifndef __FMA__
   tmp = _mm256_mul_ps(e, *(v8sf*)_ps256_cephes_log_q1);
   y = _mm256_add_ps(y, tmp);
-
 
   tmp = _mm256_mul_ps(z, *(v8sf*)_ps256_0p5);
   y = _mm256_sub_ps(y, tmp);
 
   tmp = _mm256_mul_ps(e, *(v8sf*)_ps256_cephes_log_q2);
-  x = _mm256_add_ps(x, y);
   x = _mm256_add_ps(x, tmp);
+#else
+  y = _mm256_fmadd_ps(e, *(v8sf*)_ps256_cephes_log_q1, y);
+  y = _mm256_fmadd_ps(z, *(v8sf*)_ps256_0p5, y);
+  x = _mm256_fmadd_ps(e, *(v8sf*)_ps256_cephes_log_q2, x);
+#endif
+
+  x = _mm256_add_ps(x, y);
   x = _mm256_or_ps(x, invalid_mask); // negative arg will be NAN
   return x;
 }
@@ -264,8 +283,12 @@ inline v8sf exp256_ps(v8sf x) {
   x = _mm256_max_ps(x, *(v8sf*)_ps256_exp_lo);
 
   /* express exp(x) as exp(g + n*log(2)) */
+#ifndef __FMA__
   fx = _mm256_mul_ps(x, *(v8sf*)_ps256_cephes_LOG2EF);
   fx = _mm256_add_ps(fx, *(v8sf*)_ps256_0p5);
+#else
+  fx = _mm256_fmadd_ps(x, *(v8sf*)_ps256_cephes_LOG2EF, *(v8sf*)_ps256_0p5);
+#endif
 
   /* how to perform a floorf with SSE: just below */
   //imm0 = _mm256_cvttps_epi32(fx);
@@ -279,14 +302,19 @@ inline v8sf exp256_ps(v8sf x) {
   mask = _mm256_and_ps(mask, one);
   fx = _mm256_sub_ps(tmp, mask);
 
-  tmp = _mm256_mul_ps(fx, *(v8sf*)_ps256_cephes_exp_C1);
   v8sf z = _mm256_mul_ps(fx, *(v8sf*)_ps256_cephes_exp_C2);
+#ifndef __FMA__
+  tmp = _mm256_mul_ps(fx, *(v8sf*)_ps256_cephes_exp_C1);
   x = _mm256_sub_ps(x, tmp);
+#else
+  x = _mm256_fmsub_ps(fx, *(v8sf*)_ps256_cephes_exp_C1, x);
+#endif
   x = _mm256_sub_ps(x, z);
 
   z = _mm256_mul_ps(x,x);
   
   v8sf y = *(v8sf*)_ps256_cephes_exp_p0;
+#ifndef __FMA__
   y = _mm256_mul_ps(y, x);
   y = _mm256_add_ps(y, *(v8sf*)_ps256_cephes_exp_p1);
   y = _mm256_mul_ps(y, x);
@@ -299,6 +327,14 @@ inline v8sf exp256_ps(v8sf x) {
   y = _mm256_add_ps(y, *(v8sf*)_ps256_cephes_exp_p5);
   y = _mm256_mul_ps(y, z);
   y = _mm256_add_ps(y, x);
+#else
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_exp_p1);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_exp_p2);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_exp_p3);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_exp_p4);
+  y = _mm256_fmadd_ps(y, x, *(v8sf*)_ps256_cephes_exp_p5);
+  y = _mm256_fmadd_ps(y, z, x);
+#endif
   y = _mm256_add_ps(y, one);
 
   /* build 2^n */
@@ -421,17 +457,24 @@ inline v8sf sin256_ps(v8sf x) { // any x
   xmm1 = *(v8sf*)_ps256_minus_cephes_DP1;
   xmm2 = *(v8sf*)_ps256_minus_cephes_DP2;
   xmm3 = *(v8sf*)_ps256_minus_cephes_DP3;
+#ifndef __FMA__
   xmm1 = _mm256_mul_ps(y, xmm1);
   xmm2 = _mm256_mul_ps(y, xmm2);
   xmm3 = _mm256_mul_ps(y, xmm3);
   x = _mm256_add_ps(x, xmm1);
   x = _mm256_add_ps(x, xmm2);
   x = _mm256_add_ps(x, xmm3);
+#else
+  x = _mm256_fmadd_ps(y, xmm1, x);
+  x = _mm256_fmadd_ps(y, xmm2, x);
+  x = _mm256_fmadd_ps(y, xmm3, x);
+#endif
 
   /* Evaluate the first polynom  (0 <= x <= Pi/4) */
   y = *(v8sf*)_ps256_coscof_p0;
   v8sf z = _mm256_mul_ps(x,x);
 
+#ifndef __FMA__
   y = _mm256_mul_ps(y, z);
   y = _mm256_add_ps(y, *(v8sf*)_ps256_coscof_p1);
   y = _mm256_mul_ps(y, z);
@@ -440,11 +483,19 @@ inline v8sf sin256_ps(v8sf x) { // any x
   y = _mm256_mul_ps(y, z);
   v8sf tmp = _mm256_mul_ps(z, *(v8sf*)_ps256_0p5);
   y = _mm256_sub_ps(y, tmp);
+#else
+  y = _mm256_fmadd_ps(y, z, *(v8sf*)_ps256_coscof_p1);
+  y = _mm256_fmadd_ps(y, z, *(v8sf*)_ps256_coscof_p2);
+  y = _mm256_mul_ps(y, z);
+  y = _mm256_mul_ps(y, z);
+  y = _mm256_fmadd_ps(z, *(v8sf*)_ps256_0p5n, y);
+#endif
   y = _mm256_add_ps(y, *(v8sf*)_ps256_1);
   
   /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
 
   v8sf y2 = *(v8sf*)_ps256_sincof_p0;
+#ifndef __FMA__
   y2 = _mm256_mul_ps(y2, z);
   y2 = _mm256_add_ps(y2, *(v8sf*)_ps256_sincof_p1);
   y2 = _mm256_mul_ps(y2, z);
@@ -452,6 +503,12 @@ inline v8sf sin256_ps(v8sf x) { // any x
   y2 = _mm256_mul_ps(y2, z);
   y2 = _mm256_mul_ps(y2, x);
   y2 = _mm256_add_ps(y2, x);
+#else
+  y2 = _mm256_fmadd_ps(y2, z, *(v8sf*)_ps256_sincof_p1);
+  y2 = _mm256_fmadd_ps(y2, z, *(v8sf*)_ps256_sincof_p2);
+  y2 = _mm256_mul_ps(y2, z);
+  y2 = _mm256_fmadd_ps(y2, x, x);
+#endif
 
   /* select the correct result from the two polynoms */  
   xmm3 = poly_mask;
@@ -662,12 +719,18 @@ inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c) {
   xmm1 = *(v8sf*)_ps256_minus_cephes_DP1;
   xmm2 = *(v8sf*)_ps256_minus_cephes_DP2;
   xmm3 = *(v8sf*)_ps256_minus_cephes_DP3;
+#ifndef __FMA__
   xmm1 = _mm256_mul_ps(y, xmm1);
   xmm2 = _mm256_mul_ps(y, xmm2);
   xmm3 = _mm256_mul_ps(y, xmm3);
   x = _mm256_add_ps(x, xmm1);
   x = _mm256_add_ps(x, xmm2);
   x = _mm256_add_ps(x, xmm3);
+#else
+  x = _mm256_fmadd_ps(y, xmm1, x);
+  x = _mm256_fmadd_ps(y, xmm2, x);
+  x = _mm256_fmadd_ps(y, xmm3, x);
+#endif
 
 #ifdef __AVX2__
   imm4 = _mm256_sub_epi32(imm4, *(v8si*)_pi32_256_2);
@@ -694,6 +757,7 @@ inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c) {
   v8sf z = _mm256_mul_ps(x,x);
   y = *(v8sf*)_ps256_coscof_p0;
 
+#ifndef __FMA__
   y = _mm256_mul_ps(y, z);
   y = _mm256_add_ps(y, *(v8sf*)_ps256_coscof_p1);
   y = _mm256_mul_ps(y, z);
@@ -702,11 +766,19 @@ inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c) {
   y = _mm256_mul_ps(y, z);
   v8sf tmp = _mm256_mul_ps(z, *(v8sf*)_ps256_0p5);
   y = _mm256_sub_ps(y, tmp);
+#else
+  y = _mm256_fmadd_ps(y, z, *(v8sf*)_ps256_coscof_p1);
+  y = _mm256_fmadd_ps(y, z, *(v8sf*)_ps256_coscof_p2);
+  y = _mm256_mul_ps(y, z);
+  y = _mm256_mul_ps(y, z);
+  y = _mm256_fmadd_ps(z, *(v8sf*)_ps256_0p5n, y);
+#endif
   y = _mm256_add_ps(y, *(v8sf*)_ps256_1);
   
   /* Evaluate the second polynom  (Pi/4 <= x <= 0) */
 
   v8sf y2 = *(v8sf*)_ps256_sincof_p0;
+#ifndef __FMA__
   y2 = _mm256_mul_ps(y2, z);
   y2 = _mm256_add_ps(y2, *(v8sf*)_ps256_sincof_p1);
   y2 = _mm256_mul_ps(y2, z);
@@ -714,6 +786,12 @@ inline void sincos256_ps(v8sf x, v8sf *s, v8sf *c) {
   y2 = _mm256_mul_ps(y2, z);
   y2 = _mm256_mul_ps(y2, x);
   y2 = _mm256_add_ps(y2, x);
+#else
+  y2 = _mm256_fmadd_ps(y2, z, *(v8sf*)_ps256_sincof_p1);
+  y2 = _mm256_fmadd_ps(y2, z, *(v8sf*)_ps256_sincof_p2);
+  y2 = _mm256_mul_ps(y2, z);
+  y2 = _mm256_fmadd_ps(y2, x, x);
+#endif
 
   /* select the correct result from the two polynoms */  
   xmm3 = poly_mask;

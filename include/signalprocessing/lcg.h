@@ -51,6 +51,12 @@ public:
 		return x = x * 2862933555777941757 + 3037000493;
 	}
 
+	/*!
+	 * \brief Initialize the PRNG.
+	 * \param s The seed to use.
+	 */
+	void seed(uint64_t s){x=s;}
+
 private:
 	uint64_t x;
 };
