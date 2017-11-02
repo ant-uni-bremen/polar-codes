@@ -216,17 +216,32 @@ void FloatContainer::getPackedBits(void* pData) {
 
 void FloatContainer::getPackedInformationBits(void* pData) {
 	unsigned char *charPtr = static_cast<unsigned char*>(pData);
-	unsigned char currentByte = 0, currentBit = 0;
+	unsigned int currentByte = 0, currentBit = 24;
 	unsigned int *iBit = reinterpret_cast<unsigned int*>(mData);
 	unsigned *lutPtr = mLUT;
 
-	for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {
-		currentByte |= static_cast<unsigned char>((iBit[*(lutPtr++)]&0x80000000)>>(24+(currentBit++)));
-		if(currentBit == 8) {
-			*charPtr = currentByte;
-			currentByte = 0;
-			currentBit = 0;
-			++charPtr;
+	if(mInformationBitCount % 8 == 0) {
+		for(unsigned bit = 0; bit < mInformationBitCount; bit+=8) {
+			// less conditionals in this loop
+			currentByte  = (iBit[*(lutPtr++)]&0x80000000)>>24;
+			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>25;
+			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>26;
+			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>27;
+			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>28;
+			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>29;
+			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>30;
+			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>31;
+			*(charPtr++) = static_cast<unsigned char>(currentByte);
+		}
+	} else {
+		for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {
+			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>(currentBit++);
+			if(currentBit == 32) {
+				*charPtr = static_cast<unsigned char>(currentByte);
+				currentByte = 0;
+				currentBit = 0;
+				++charPtr;
+			}
 		}
 	}
 }

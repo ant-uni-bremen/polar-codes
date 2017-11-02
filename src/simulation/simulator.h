@@ -63,6 +63,9 @@ struct DataPoint
 	int errors;///< ~ erroneous blocks
 	int reportedErrors;///< ~ block errors reported by error detection
 	int biterrors;///< ~ flipped payload bits
+	float apparentlyBestMetric;///< Lowest metric of output candidates (before error detection)
+	float selectedPathMetric;///< Metric of the selected decoding path (after error detection)
+
 	float BLER;///< Block Error Rate
 	float BER;///< Bit Error Rate
 	float RER;///< Reported Error Rate

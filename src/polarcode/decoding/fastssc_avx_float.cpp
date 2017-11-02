@@ -194,21 +194,21 @@ void SpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
 
 		parVec = _mm256_xor_ps(parVec, vecIn);
 
-		// Only search for minimum if there is a chance for smaller absolute value
-		if(minAbs > 0) {
-			__m256 abs = _mm256_andnot_ps(sgnMask, vecIn);
-			unsigned vecMin = _mm256_minidx_ps(abs, &testAbs);
-			if(testAbs < minAbs) {
-				minIdx = vecMin+i;
-				minAbs = testAbs;
-			}
+		__m256 abs = _mm256_andnot_ps(sgnMask, vecIn);
+		unsigned vecMin = _mm256_minidx_ps(abs, &testAbs);
+		if(testAbs < minAbs) {
+			minIdx = vecMin+i;
+			minAbs = testAbs;
 		}
 	}
 
 	// Flip least reliable bit, if neccessary
-	float fParity = reduce_xor_ps(parVec);
-	unsigned int *iParity = reinterpret_cast<unsigned int*>(&fParity);
-	reinterpret_cast<unsigned int*>(BitsOut)[minIdx] ^= (*iParity & 0x80000000);
+	union {
+		float fParity;
+		unsigned int iParity;
+	};
+	fParity = reduce_xor_ps(parVec);
+	reinterpret_cast<unsigned int*>(BitsOut)[minIdx] ^= (iParity & 0x80000000);
 }
 
 void ZeroSpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
@@ -245,11 +245,14 @@ void ZeroSpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
 	}
 
 	// Flip least reliable bit, if neccessary
-	float fParity = reduce_xor_ps(parVec);
-	unsigned int *iParity = reinterpret_cast<unsigned int*>(&fParity);
-	*iParity &= 0x80000000;
-	reinterpret_cast<unsigned char*>(BitsOut)[minIdx] ^= *iParity;
-	reinterpret_cast<unsigned char*>(BitsOut+subBlockLength)[minIdx] ^= *iParity;
+	union {
+		float fParity;
+		unsigned int iParity;
+	};
+	fParity = reduce_xor_ps(parVec);
+	iParity &= 0x80000000;
+	reinterpret_cast<unsigned int*>(BitsOut)[minIdx] ^= iParity;
+	reinterpret_cast<unsigned int*>(BitsOut+subBlockLength)[minIdx] ^= iParity;
 }
 
 void simplifiedRightRateOneDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {

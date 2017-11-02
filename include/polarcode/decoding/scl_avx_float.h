@@ -31,6 +31,10 @@ class PathList {
 	unsigned mPathLimit, mPathCount, mNextPathCount;
 	unsigned mStageCount;
 	datapool_t *xmDataPool;
+
+	float mApparentlyBestMetric;///< Information for statistics calculation
+	float mSelectedPathMetric;  ///< Information for statistics calculation
+
 public:
 	block_t* tempBlock;///< Pointer to a permanently allocated block for temporary storage.
 
@@ -319,6 +323,7 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void 
 
 void RateZeroDecode(PathList* pathList, unsigned stage);
 void RateOneDecode(PathList* pathList, unsigned stage);
+void RepetitionDecode(PathList* pathList, unsigned stage);
 
 
 void RateZeroDecodeSingleBit(PathList* pathList, unsigned);

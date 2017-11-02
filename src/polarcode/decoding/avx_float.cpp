@@ -80,7 +80,11 @@ void G_function_0R(float *LLRin, float *LLRout, float*, unsigned subBlockLength)
 
 
 void PrepareForShortOperation(__m256& Left, const unsigned subBlockLength) {
-	memset(reinterpret_cast<float*>(&Left)+subBlockLength, 0, subBlockLength*4);
+	//memset(reinterpret_cast<float*>(&Left)+subBlockLength, 0, subBlockLength*4);
+	unsigned int *ptr = reinterpret_cast<unsigned int*>(&Left)+subBlockLength;
+	for(unsigned int i=0; i<subBlockLength; ++i) {
+		ptr[i] = 0;
+	}
 }
 
 void MoveRightBits(__m256& Right, const unsigned subBlockLength) {

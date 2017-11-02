@@ -18,13 +18,14 @@ namespace Decoding {
 class Decoder {
 private:
     size_t mDecoderDuration;
+
 protected:
 	ErrorDetection::Detector* mErrorDetector;///< Error detecting object
 	size_t mBlockLength;///< Length of the Polar Code
 	bool mSystematic;///< Whether to use systematic coding
 	bool mSoftOutput;///< Whether to calculate soft output bits
 	BitContainer *mLlrContainer;///< Soft-input container
-	BitContainer *mBitContainer;///< Output bit container
+	BitContainer *mBitContainer;///< (optionally soft-) Output bit container
 	unsigned char *mOutputContainer;///< Final data container, gets filled for error detection
 	std::vector<unsigned> mFrozenBits; ///< Indices for frozen bits
 	bool mExternalContainers;///< On destruction, do not delete containers
@@ -39,23 +40,23 @@ public:
 	 */
 	virtual bool decode() = 0;
 
-/*!
- * \brief Decode float vector
- * \return True, if no errors detected after decoding.
- */
-  bool decode_vector(const float *pLlr, void* pData);
+	/*!
+	 * \brief Decode float vector
+	 * \return True, if no errors detected after decoding.
+	 */
+	bool decode_vector(const float *pLlr, void* pData);
 
-/*!
- * \brief Decode char vector
- * \return True, if no errors detected after decoding.
- */
-  bool decode_vector(const char *pLlr, void* pData);
+	/*!
+	 * \brief Decode char vector
+	 * \return True, if no errors detected after decoding.
+	 */
+	bool decode_vector(const char *pLlr, void* pData);
 
-/*!
-* \brief Decoder duration
-* \return Number of ticks in nanoseconds for last decoder call.
-*/
-  size_t duration_ns(){ return mDecoderDuration;};
+	/*!
+	* \brief Decoder duration
+	* \return Number of ticks in nanoseconds for last decoder call.
+	*/
+	size_t duration_ns(){ return mDecoderDuration;};
 
 	/*!
 	 * \brief Set the decoder's parameters.

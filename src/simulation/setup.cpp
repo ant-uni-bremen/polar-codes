@@ -19,26 +19,26 @@ void Configurator::setupArgumentDefaults() {
 	defaultLongInts.insert({"workload", 4e8L});
 
 	defaultFloats.insert({"snr-min", -1.5});
-	defaultFloats.insert({"snr-max", 7.0});
-	defaultInts.insert({"snr-count", 20});
+	defaultFloats.insert({"snr-max",  6.0});
+	defaultInts.insert({"snr-count", 12});
 
 	defaultFloats.insert({"dsnr-fixed", 0.0});
-	defaultFloats.insert({"dsnr-min", -1.59});
-	defaultFloats.insert({"dsnr-max", 10.0});
-	defaultInts.insert({"dsnr-count", 6});
+	defaultFloats.insert({"dsnr-min",  -1.59});
+	defaultFloats.insert({"dsnr-max",  10.0});
+	defaultInts.insert({"dsnr-count",   6});
 
 	defaultInts.insert({"n-fixed", 1024});
-	defaultInts.insert({"n-min", 128});
-	defaultInts.insert({"n-max", 4096});
+	defaultInts.insert({"n-min",    128});
+	defaultInts.insert({"n-max",   4096});
 
-	defaultFloats.insert({"r-fixed", 0.25});
-	defaultFloats.insert({"r-min", 0.5});
-	defaultFloats.insert({"r-max", 0.9});
-	defaultInts.insert({"r-count", 5});
+	defaultFloats.insert({"r-fixed", 0.5});
+	defaultFloats.insert({"r-min",   0.25});
+	defaultFloats.insert({"r-max",   0.9});
+	defaultInts.insert({"r-count",   5});
 
 	defaultInts.insert({"l-fixed", 4});
-	defaultInts.insert({"l-min", 1});
-	defaultInts.insert({"l-max", 8});
+	defaultInts.insert({"l-min",   1});
+	defaultInts.insert({"l-max",  64});
 
 	defaultStrings.insert({"errorDetection","crc32"});
 
@@ -47,7 +47,7 @@ void Configurator::setupArgumentDefaults() {
 
 	defaultStrings.insert({"outputFile", "simulation"});
 
-	defaultInts.insert({"threads", 3});
+	defaultInts.insert({"threads", 1});
 }
 
 
@@ -242,7 +242,6 @@ bool Configurator::getSwitch(std::string name) {
 	}
 	return dynamic_cast<SwitchArg*>(argumentList[name])->getValue();
 }
-
 
 
 }//namespace Setup

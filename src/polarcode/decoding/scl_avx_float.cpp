@@ -272,6 +272,10 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent, void 
 			*specialDecoder = &RateOneDecode;
 			return nullptr;
 		}*/
+		if(frozenBitCount == blockLength-1) {
+			*specialDecoder = &RepetitionDecode;
+			return nullptr;
+		}
 	}
 
 	*specialDecoder = nullptr;
@@ -310,7 +314,7 @@ void RateOneDecode(PathList *pathList, unsigned stage) {
 	bitFlipHints.resize(pathCount*4);
 
 	for(unsigned path = 0; path < pathCount; ++path) {
-		long metric = pathList->Metric(path);
+		float metric = pathList->Metric(path);
 		float* LlrSource = pathList->Llr(path, stage);
 		for(unsigned i=0; i<bitCount; i+=8) {
 			__m256 Llr = _mm256_load_ps(LlrSource+i);
@@ -357,6 +361,79 @@ void RateOneDecode(PathList *pathList, unsigned stage) {
 
 		for(unsigned index : bitFlipHints[indices[path]]) {
 			iBitDestination[index] ^= 0x80000000;
+		}
+	}
+
+	pathList->switchToNext();
+}
+
+void RepetitionDecode(PathList *pathList, unsigned stage) {
+	static const __m256 zero = _mm256_setzero_ps();
+	std::vector<unsigned> indices;
+	std::vector<float> metrics;
+	std::vector<float> results;
+	unsigned pathCount = pathList->PathCount();
+	unsigned bitCount = nBit2fCount(1<<stage);
+
+	metrics.resize(pathCount*2);
+	results.resize(pathCount*2);
+
+	for(unsigned path = 0; path < pathCount; ++path) {
+		float metric  = pathList->Metric(path);
+		__m256 vZero  = _mm256_setzero_ps();//metric for '0' decision
+		__m256 vOne   = _mm256_setzero_ps();//metric for '1' decision
+		__m256 vResult = _mm256_setzero_ps();//repetition decoding result
+		float* LlrSource = pathList->Llr(path, stage);
+		for(unsigned i=0; i<bitCount; i+=8) {
+			__m256 Llr = _mm256_load_ps(LlrSource+i);
+			vZero   = _mm256_add_ps(vZero, _mm256_min_ps(Llr, zero));
+			vOne    = _mm256_add_ps(vOne,  _mm256_max_ps(Llr, zero));
+			vResult = _mm256_add_ps(vResult, Llr);
+		}
+
+		{// Calculate output LLR, but fix the sign bit to the candidate's assumption
+			union {
+				float        fResultZero;
+				unsigned int iResultZero;
+			};
+			union {
+				float        fResultOne;
+				unsigned int iResultOne;
+			};
+
+			fResultOne = fResultZero = reduce_add_ps(vResult);
+			iResultZero &= 0x7FFFFFFF;// Unset sign bit
+			iResultOne  |= 0x80000000;// Set sign bit
+
+			results[path*2]   = fResultZero;
+			results[path*2+1] = fResultOne;
+		}
+
+		metrics[path*2]   = metric + reduce_add_ps(vZero);
+		metrics[path*2+1] = metric - reduce_add_ps(vOne);
+	}
+
+	unsigned newPathCount = std::min(pathCount*2, pathList->PathLimit());
+	pathList->setNextPathCount(newPathCount);
+	simplePartialSortDescending<unsigned,float>(indices, metrics, newPathCount);
+
+	for(unsigned path = 0; path < newPathCount; ++path) {
+		pathList->duplicatePath(path, indices[path]/2, stage);
+	}
+
+	for(unsigned path = 0; path < pathCount; ++path) {
+		pathList->clearOldPath(path, stage);
+	}
+
+	for(unsigned path = 0; path < newPathCount; ++path) {
+		pathList->getWriteAccessToNextBit(path, stage);
+		pathList->NextMetric(path) = metrics[path];
+
+		__m256 output = _mm256_set1_ps(results[indices[path]]);
+		float* bitDestination = pathList->NextBit(path, stage);
+
+		for(unsigned i=0; i<bitCount; i+=8) {
+			_mm256_store_ps(bitDestination+i, output);
 		}
 	}
 
