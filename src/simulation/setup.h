@@ -40,6 +40,8 @@ class Configurator {
 	void setupArgumentListLength();
 	void setupArgumentErrorDetection();
 	void setupSwitchArguments();
+	void setupArgumentDecodingPrecision();
+	void setupArgumentAmplification();
 	void setupArgumentOutputFile();
 	void setupArgumentThreadCount();
 

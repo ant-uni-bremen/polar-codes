@@ -45,6 +45,13 @@ void Configurator::setupArgumentDefaults() {
 	defaultBools.insert({"soft-output", false});
 	defaultBools.insert({"non-systematic", false});
 
+	defaultInts.insert({"precision", 32});
+
+	defaultFloats.insert({"amp-fixed", 6.0});//found empirically
+	defaultFloats.insert({"amp-min",   1.0});
+	defaultFloats.insert({"amp-max", 128.0});
+	defaultInts.insert({"amp-count",   6});
+
 	defaultStrings.insert({"outputFile", "simulation"});
 
 	defaultInts.insert({"threads", 1});
@@ -61,7 +68,8 @@ void Configurator::setupArgumentSimType() {
 									 "codelength",
 									 "designsnr",
 									 "listlength",
-									 "rate"};
+									 "rate",
+									 "amplification"};
 	ValuesConstraint<string> *AvailableSimTypes = new ValuesConstraint<string>(SimTypesVector);
 
 	auto SimType = new UnlabeledValueArg<string>(
@@ -150,6 +158,22 @@ void Configurator::setupSwitchArguments() {
 	insertArgument(Systematic);
 }
 
+void Configurator::setupArgumentDecodingPrecision() {
+	auto Precision = new ValueArg<int>("p", "precision", "Select decoding precision (32-bit floating point or 8-bit fixed integer).", false, defaultInts["precision"], "8,32");
+	insertArgument(Precision);
+}
+
+void Configurator::setupArgumentAmplification() {
+	auto ampFixed = new ValueArg<float>("a", "amplification", "Set the fixed amplification factor for 8-bit pre-quantization scaling.", false, defaultFloats["amp-fixed"], "float");
+	auto ampMin = new ValueArg<float>("", "amp-min", "Set the lower amplification factor.", false, defaultFloats["amp-min"], "float");
+	auto ampMax = new ValueArg<float>("", "amp-max", "Set the upper amplification factor.", false, defaultFloats["amp-max"], "float");
+	auto ampCount = new ValueArg<int>("", "amp-count", "Set the number of amplification factors.", false, defaultInts["amp-count"], "integer");
+	insertArgument(ampFixed);
+	insertArgument(ampMin);
+	insertArgument(ampMax);
+	insertArgument(ampCount);
+}
+
 void Configurator::setupArgumentOutputFile() {
 	auto OutputFile = new ValueArg<string>("o",
 										   "output",
@@ -176,6 +200,8 @@ void Configurator::setupCommandlineArguments(CmdLine *cmd) {
 	setupArgumentListLength();
 	setupArgumentErrorDetection();
 	setupSwitchArguments();
+	setupArgumentDecodingPrecision();
+	setupArgumentAmplification();
 	setupArgumentOutputFile();
 	setupArgumentThreadCount();
 

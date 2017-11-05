@@ -202,7 +202,8 @@ void SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
 	}
 
 	// Flip least reliable bit, if neccessary
-	reinterpret_cast<unsigned char*>(BitsOut)[minIdx] ^= reduce_xor_si256(parVec);
+	unsigned char parity = reduce_xor_si256(parVec) & 0x80;
+	reinterpret_cast<unsigned char*>(BitsOut)[minIdx] ^= parity;
 }
 
 void ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
@@ -239,8 +240,9 @@ void ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
 	}
 
 	// Flip least reliable bit, if neccessary
-	reinterpret_cast<unsigned char*>(BitsOut)[minIdx] ^= reduce_xor_si256(parVec);
-	reinterpret_cast<unsigned char*>(BitsOut+subBlockLength)[minIdx] ^= reduce_xor_si256(parVec);
+	unsigned char parity = reduce_xor_si256(parVec) & 0x80;
+	reinterpret_cast<unsigned char*>(BitsOut)[minIdx] ^= parity;
+	reinterpret_cast<unsigned char*>(BitsOut+subBlockLength)[minIdx] ^= parity;
 }
 
 void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {

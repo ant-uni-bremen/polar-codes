@@ -5,20 +5,29 @@
 #include <chrono>
 #include <queue>
 
+
 #include <polarcode/construction/bhattacharrya.h>
+
 #include <polarcode/encoding/butterfly_avx2_packed.h>
+
 #include <polarcode/decoding/fastssc_avx_float.h>
 #include <polarcode/decoding/fastssc_avx2_char.h>
 #include <polarcode/decoding/scl_avx2_char.h>
 #include <polarcode/decoding/scl_avx_float.h>
 #include <polarcode/decoding/adaptive_float.h>
+#include <polarcode/decoding/adaptive_char.h>
+
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
 #include <polarcode/errordetection/crc32.h>
 #include <polarcode/errordetection/errordetector.h>
 
+
 #include <signalprocessing/random.h>
+
 #include <signalprocessing/modulation/bpsk.h>
+
+#include <signalprocessing/transmission/scale.h>
 #include <signalprocessing/transmission/awgn.h>
 #include <signalprocessing/transmission/rayleigh.h>
 
@@ -56,6 +65,8 @@ struct DataPoint
 	//Simulation-Parameters
 	float EbN0;///< Bit-energy to noise-energy ratio for AWGN-channel
 	long BlocksToSimulate;///< Determines the BLER-precision
+	int precision;///< Quantization bits per symbol (32-bit float or 8-bit int)
+	float amplification;///< Amplification factor to optimize 8-bit quantization
 
 	//Statistics
 	int runs;///< Actual number of blocks simulated
@@ -93,6 +104,7 @@ class Simulator {
 	void configureDesignSnrSim();
 	void configureListLengthSim();
 	void configureRateSim();
+	void configureAmplificationSim();
 	void snrInflateJobList();
 
 	void saveResults();
@@ -142,6 +154,7 @@ class SimulationWorker {
 
 	SignalProcessing::Modulation::Modem *mModem;
 	SignalProcessing::Transmission::Awgn *mTransmitter;
+	SignalProcessing::Transmission::Scale *mAmplifier;
 
 	std::vector<unsigned> mFrozenBits;
 

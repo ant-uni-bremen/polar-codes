@@ -8,9 +8,11 @@ add_library(Modulator OBJECT
 
 add_library(Transmitter OBJECT
         transmission/transmitter
+        transmission/scale
         transmission/awgn
         transmission/rayleigh
         ${CMAKE_SOURCE_DIR}/include/signalprocessing/transmission/transmitter.h
+        ${CMAKE_SOURCE_DIR}/include/signalprocessing/transmission/scale.h
         ${CMAKE_SOURCE_DIR}/include/signalprocessing/transmission/awgn.h
         ${CMAKE_SOURCE_DIR}/include/signalprocessing/transmission/rayleigh.h)
 

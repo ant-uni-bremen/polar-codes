@@ -23,6 +23,8 @@ Simulator::Simulator(Setup::Configurator *config)
 		configureListLengthSim();
 	} else if(simType == "rate") {
 		configureRateSim();
+	} else if(simType == "amplification") {
+		configureAmplificationSim();
 	} else {
 		// Unknown simulation type, should be caught by cmd-parser
 		exit(EXIT_FAILURE);
@@ -83,16 +85,18 @@ DataPoint* Simulator::getDefaultDataPoint() {
 	DataPoint* dp = new DataPoint();
 
 	// Set code parameters
-	dp->designSNR =   mConfiguration->getFloat("design-snr");
-	dp->N =           mConfiguration->getInt("blocklength");
-	dp->K = dp->N *   mConfiguration->getFloat("rate");
-	dp->L =           mConfiguration->getInt("pathlimit");
-	dp->errorDetection = errorDetectionStringToId(mConfiguration->getString("error-detection"));
-	dp->systematic = !mConfiguration->getSwitch("non-systematic");
+	dp->designSNR =        mConfiguration->getFloat("design-snr");
+	dp->N =                mConfiguration->getInt("blocklength");
+	dp->K = dp->N *        mConfiguration->getFloat("rate");
+	dp->L =                mConfiguration->getInt("pathlimit");
+	dp->errorDetection =   errorDetectionStringToId(mConfiguration->getString("error-detection"));
+	dp->systematic =      !mConfiguration->getSwitch("non-systematic");
 
 	// Set simulation parameters
-	dp->EbN0 =        mConfiguration->getFloat("snr-max");
+	dp->EbN0 =             mConfiguration->getFloat("snr-max");
 	dp->BlocksToSimulate = mConfiguration->getLongInt("workload") / dp->N;
+	dp->precision =        mConfiguration->getInt("precision");
+	dp->amplification =    mConfiguration->getFloat("amplification");
 
 	// Statistics
 	//nothing to configure here, all values were set to zero
@@ -183,6 +187,25 @@ void Simulator::configureRateSim() {
 	delete jobTemplate;
 }
 
+void Simulator::configureAmplificationSim() {
+	DataPoint* jobTemplate = getDefaultDataPoint();
+	float ampMin = mConfiguration->getFloat("amp-min");
+	float ampMax = mConfiguration->getFloat("amp-max");
+	unsigned ampCount = mConfiguration->getInt("amp-count");
+	float scale = (ampMax-ampMin)/(ampCount - 1);
+
+	for(unsigned i = 0; i < ampCount; ++i) {
+		DataPoint* job = new DataPoint(*jobTemplate);
+
+		job->amplification = ampMin + i*scale;
+
+		mJobList.push_back(job);
+	}
+
+	delete jobTemplate;
+}
+
+
 void Simulator::snrInflateJobList() {
 	std::vector<DataPoint*> compactList;
 	compactList.clear();
@@ -211,7 +234,7 @@ void Simulator::saveResults() {
 	fileName += ".csv";
 	std::ofstream file(fileName);
 
-	file << "\"N\",\"R\",\"dSNR\",\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"RER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\",\"Encoder Bitrate\"" << std::endl;
+	file << "\"N\",\"R\",\"dSNR\",\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"RER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\",\"Encoder Bitrate\",\"Amplification\"" << std::endl;
 
 	for(auto job : mJobList) {
 		file<< job->N << ','
@@ -226,7 +249,8 @@ void Simulator::saveResults() {
 		if(job->cbps > 0)           file << job->cbps << ',';   else file << "nan,";
 		if(job->pbps > 0)           file << job->pbps << ',';   else file << "nan,";
 		if(job->effectiveRate != 0) file << job->effectiveRate << ','; else file << "nan,";
-		file << job->ebps;
+		file << job->ebps << ',';
+		file << job->amplification;
 		file << std::endl;
 	}
 	file.close();
@@ -242,6 +266,7 @@ SimulationWorker::SimulationWorker(Simulator* Sim, int workerId)
 	: mSim(Sim)
 	, mModem(new SignalProcessing::Modulation::Bpsk())
 	, mTransmitter(new SignalProcessing::Transmission::Awgn())
+	, mAmplifier(new SignalProcessing::Transmission::Scale())
 	, mWorkerId(workerId)
 {}
 
@@ -291,12 +316,47 @@ void SimulationWorker::selectFrozenBits() {
 }
 
 void SimulationWorker::setCoders() {
-	mEncoder = new PolarCode::Encoding::ButterflyAvx2Packed(mJob->N, mFrozenBits);
+	if(featureCheckAvx2())
+		mEncoder = new PolarCode::Encoding::ButterflyAvx2Packed(mJob->N, mFrozenBits);
+	else if(featureCheckAvx())
+		//mEncoder = new PolarCode::Encoding
+#warning TODO: Add SSE-based packed encoder
+		mEncoder = nullptr;
+	else {
+		std::cerr << "No encoder available (neither AVX2 nor SSE)" << std::endl;
+		exit(1);
+	}
+
+	if(mJob->L > 1) {
+		switch(mJob->precision) {
+		case 8:
+			mDecoder = new PolarCode::Decoding::AdaptiveChar(mJob->N, mJob->L, mFrozenBits);
+			break;
+		case 32:
+			mDecoder = new PolarCode::Decoding::AdaptiveFloat(mJob->N, mJob->L, mFrozenBits);
+			break;
+		default:
+			std::cerr << "No decoder present for " << mJob->precision << "-bit decoding." << std::endl;
+			exit(1);
+		}
+	} else {
+		switch(mJob->precision) {
+		case 8:
+			mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits);
+			break;
+		case 32:
+			mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);
+			break;
+		default:
+			std::cerr << "No decoder present for " << mJob->precision << "-bit decoding." << std::endl;
+			exit(1);
+		}
+	}
+	//Other options:
 	//mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);
 	//mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits);
-	//mDecoder = new PolarCode::Decoding::SclAvx2Char(mJob->N, mJob->L, mFrozenBits);
 	//mDecoder = new PolarCode::Decoding::SclAvxFloat(mJob->N, mJob->L, mFrozenBits);
-	mDecoder = new PolarCode::Decoding::AdaptiveFloat(mJob->N, mJob->L, mFrozenBits);
+
 }
 void SimulationWorker::setErrorDetector() {
 	switch(mJob->errorDetection) {
@@ -316,6 +376,8 @@ void SimulationWorker::setChannel() {
 	EbN0_linear *= mJob->K;
 	EbN0_linear /= mJob->N;
 	mTransmitter->setEsN0Linear(EbN0_linear);
+
+	mAmplifier->setFactor(mJob->amplification);
 }
 
 void SimulationWorker::allocateMemory() {
@@ -362,6 +424,11 @@ void SimulationWorker::modulate() {
 void SimulationWorker::transmit() {
 	mTransmitter->setSignal(mSignal);
 	mTransmitter->transmit();
+
+	if(mJob->precision == 8 && mJob->amplification != 1.0) {
+		mAmplifier->setSignal(mSignal);
+		mAmplifier->transmit();
+	}
 }
 
 void SimulationWorker::decode() {
@@ -416,7 +483,7 @@ void SimulationWorker::calculateStatistics() {
 	mJob->pbps /= mJob->time;
 	mJob->ebps /= mJob->encTime;
 	mJob->effectiveRate = (mJob->runs-mJob->errors+0.0)
-						* (mJob->N - mJob->errorDetection)
+						* (mJob->K - mJob->errorDetection)
 						/ mJob->time;
 
 }
