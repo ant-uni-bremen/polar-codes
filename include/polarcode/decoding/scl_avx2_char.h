@@ -162,6 +162,13 @@ public:
 	__m256i* Bit(unsigned path, unsigned stage);
 
 	/*!
+	 * \brief Swap bit blocks. This eliminates a copy operation.
+	 * \param stage The stage to be swapped.
+	 * \param other Reference to a vector of bit block pointers.
+	 */
+	void swapBitBlocks(unsigned stage, std::vector<block_t*>& other);
+
+	/*!
 	 * \brief Get a pointer to a future LLR-block.
 	 *
 	 * \param path Index of the path.
@@ -313,7 +320,9 @@ public:
 Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(PathList*, unsigned));
 
 void RateZeroDecode(PathList* pathList, unsigned stage);
+void RateZeroDecodeShort(PathList* pathList, unsigned stage);
 void RateOneDecode(PathList* pathList, unsigned stage);
+void RateOneDecodeShort(PathList* pathList, unsigned stage);
 
 
 void RateZeroDecodeSingleBit(PathList* pathList, unsigned);

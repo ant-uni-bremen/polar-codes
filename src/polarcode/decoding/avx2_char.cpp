@@ -46,7 +46,7 @@ void F_function(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength) {
 	__m256i Left, Right;
 	if(subBlockLength < 32) {
 		Left = _mm256_load_si256(LLRin);
-		Right = _mm256_subVectorShift_epu8(Left, subBlockLength*8);
+		Right = _mm256_subVectorShiftBytes_epu8(Left, subBlockLength);
 		F_function_calc(Left, Right, LLRout);
 	} else {
 		unsigned vecCount = nBit2cvecCount(subBlockLength);
@@ -62,7 +62,7 @@ void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBl
 	__m256i Left, Right, Bits;
 	if(subBlockLength < 32) {
 		Left = _mm256_load_si256(LLRin);
-		Right = _mm256_subVectorShift_epu8(Left, subBlockLength*8);
+		Right = _mm256_subVectorShiftBytes_epu8(Left, subBlockLength);
 		Bits = _mm256_load_si256(BitsIn);
 		G_function_calc(Left, Right, Bits, LLRout);
 	} else {
@@ -76,7 +76,7 @@ void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBl
 	}
 }
 
-void G_function_0R(__m256i *LLRin, __m256i *LLRout, __m256i*, unsigned subBlockLength) {
+void G_function_0R(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength) {
 	unsigned vecCount = nBit2cvecCount(subBlockLength);
 	__m256i Left, Right, Sum;
 	for(unsigned i=0; i<vecCount; i++) {
@@ -87,22 +87,24 @@ void G_function_0R(__m256i *LLRin, __m256i *LLRout, __m256i*, unsigned subBlockL
 	}
 }
 
+void G_function_0RShort(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength) {
+	__m256i Left, Right, Sum;
+	Left = _mm256_load_si256(LLRin);
+	Right = _mm256_subVectorShiftBytes_epu8(Left, subBlockLength);
+	Sum = _mm256_adds_epi8(Left, Right);
+	_mm256_store_si256(LLRout, Sum);
+}
+
 
 void PrepareForShortOperation(__m256i* Left, const unsigned subBlockLength) {
 	memset(reinterpret_cast<char*>(Left)+subBlockLength, 0, subBlockLength);
 }
 
 void MoveRightBits(__m256i* Right, const unsigned subBlockLength) {
-	*Right = _mm256_subVectorBackShift_epu8(*Right, subBlockLength*8);
+	*Right = _mm256_subVectorBackShiftBytes_epu8(*Right, subBlockLength);
 }
 
-void CombineShortBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
-	*Left = _mm256_xor_si256(*Left, *Right);
-	PrepareForShortOperation(Left, subBlockLength);
-	MoveRightBits(Right, subBlockLength);
-	__m256i result = _mm256_or_si256(*Left, *Right);
-	_mm256_store_si256(Out, result);
-}
+
 
 void Combine(__m256i *Bits, const unsigned vecCount) {
 	for(unsigned i=0; i<vecCount; i++) {
@@ -113,25 +115,35 @@ void Combine(__m256i *Bits, const unsigned vecCount) {
 	}
 }
 
-void Combine_0R(__m256i *Bits, const unsigned vecCount) {
-	memcpy(Bits, Bits+vecCount, vecCount*32);
+void Combine_0R(__m256i *Bits, const unsigned blockLength) {
+	char* BitPtr = reinterpret_cast<char*>(Bits);
+	memcpy(BitPtr, BitPtr+blockLength, blockLength);
+}
+
+void Combine_0RShort(__m256i *Bits, __m256i *RightBits, const unsigned blockLength) {
+	char* BitPtr = reinterpret_cast<char*>(Bits);
+	memcpy(BitPtr,             RightBits, blockLength);
+	memcpy(BitPtr+blockLength, RightBits, blockLength);
 }
 
 void CombineBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
-	if(subBlockLength < 32) {
-		return CombineShortBits(Left, Right, Out, subBlockLength);
-	} else {
-		const unsigned vecCount = nBit2cvecCount(subBlockLength);
-		for(unsigned i=0; i<vecCount; ++i) {
-			__m256i tempL = _mm256_load_si256(Left+i);
-			__m256i tempR = _mm256_load_si256(Right+i);
-			tempL = _mm256_xor_si256(tempL, tempR);
-			_mm256_store_si256(Out+i, tempL);
-			_mm256_store_si256(Out+vecCount+i, tempR);
-		}
+	const unsigned vecCount = nBit2cvecCount(subBlockLength);
+	for(unsigned i=0; i<vecCount; ++i) {
+		__m256i tempL = _mm256_load_si256(Left+i);
+		__m256i tempR = _mm256_load_si256(Right+i);
+		tempL = _mm256_xor_si256(tempL, tempR);
+		_mm256_store_si256(Out+i, tempL);
+		_mm256_store_si256(Out+vecCount+i, tempR);
 	}
 }
 
+void CombineShortBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
+	*Left = _mm256_xor_si256(*Left, *Right);
+	PrepareForShortOperation(Left, subBlockLength);
+	MoveRightBits(Right, subBlockLength);
+	__m256i result = _mm256_or_si256(*Left, *Right);
+	_mm256_store_si256(Out, result);
+}
 
 void CombineSoftBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
 	PrepareForShortOperation(Left, subBlockLength);

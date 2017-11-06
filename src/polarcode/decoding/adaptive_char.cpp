@@ -9,6 +9,7 @@ AdaptiveChar::AdaptiveChar
 	, size_t listSize
 	, const std::vector<unsigned> &frozenBits
 	, bool softOutput)
+	: mListSize(listSize)
 {
 	mBlockLength = blockLength;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
@@ -16,7 +17,7 @@ AdaptiveChar::AdaptiveChar
 	mExternalContainers = true;
 
 	mFastDecoder = new FastSscAvx2Char(mBlockLength, mFrozenBits);
-	mListDecoder = new SclAvx2Char(mBlockLength, listSize, mFrozenBits, mSoftOutput);
+	mListDecoder = new SclAvx2Char(mBlockLength, mListSize, mFrozenBits, mSoftOutput);
 }
 
 AdaptiveChar::~AdaptiveChar() {
@@ -26,11 +27,10 @@ AdaptiveChar::~AdaptiveChar() {
 
 bool AdaptiveChar::decode() {
 	bool success;
-	if(mFastDecoder->decode()) {
+	if((success = mFastDecoder->decode()) == true) {
 		mOutputContainer = mFastDecoder->packedOutput();
 		mBitContainer = mFastDecoder->outputContainer();
-		success = true;
-	} else {
+	} else if(mListSize > 1){
 		success = mListDecoder->decode();
 		mOutputContainer = mListDecoder->packedOutput();
 		mBitContainer = mListDecoder->outputContainer();

@@ -69,10 +69,15 @@ public:
 void   RateZeroDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 void    RateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 void RepetitionDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+void RepetitionDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 void        SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+void        SpcDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 void    ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+void    ZeroSpcDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+
 
 void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+void simplifiedRightRateOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 
 
 
@@ -103,6 +108,7 @@ public:
  * \brief A rate-R node of subvector length needs child bits in separate blocks.
  */
 class ShortRateRNode : public RateRNode {
+protected:
 	Block<__m256i> *LeftBits, *RightBits;
 
 public:
@@ -132,6 +138,21 @@ public:
 };
 
 /*!
+ * \brief Optimized decoding, if the right subcode is rate-1.
+ */
+class ShortROneNode : public ShortRateRNode {
+public:
+	/*!
+	 * \brief Initialize the right-rate-1 optimized decoder.
+	 * \param frozenBits The set of frozen bits of both subcodes (apparently only left subcode has frozen bits).
+	 * \param parent The parent node.
+	 */
+	ShortROneNode(const std::vector<unsigned> &frozenBits, Node *parent);
+	~ShortROneNode();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
+/*!
  * \brief Optimized decoding, if the left subcode is rate-0.
  */
 class ZeroRNode : public RateRNode {
@@ -143,6 +164,21 @@ public:
 	 */
 	ZeroRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ZeroRNode();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
+/*!
+ * \brief Optimized decoding, if the left subcode is rate-0.
+ */
+class ShortZeroRNode : public ShortRateRNode {
+public:
+	/*!
+	 * \brief Initialize the left-rate-0 optimized decoder.
+	 * \param frozenBits The set of frozen bits for both subcodes.
+	 * \param parent The parent node.
+	 */
+	ShortZeroRNode(const std::vector<unsigned> &frozenBits, Node *parent);
+	~ShortZeroRNode();
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 

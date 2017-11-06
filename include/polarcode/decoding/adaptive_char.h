@@ -18,6 +18,7 @@ namespace Decoding {
 class AdaptiveChar : public Decoder {
 	FastSscAvx2Char *mFastDecoder;
 	SclAvx2Char	*mListDecoder;
+	size_t mListSize;
 
 public:
 	/*!

@@ -6,6 +6,7 @@
 #include <map>
 #include <stack>
 #include <algorithm>
+#include <iostream>
 
 #include <polarcode/avxconvenience.h>
 
@@ -60,7 +61,11 @@ public:
 
 		if(freeBlocks[size].empty()) {
 			block = new Block<T>();
-			block->data = reinterpret_cast<T*>(_mm_malloc(sizeof(T)*size, alignment));
+			void* ptr = _mm_malloc(sizeof(T)*size, alignment);
+			if(ptr == nullptr) {
+				std::cerr << "Can't allocate aligned memory." << std::endl;
+			}
+			block->data = reinterpret_cast<T*>(ptr);
 			memset(block->data, 0, sizeof(T)*size);
 			block->useCount = 1;
 			block->size = size;

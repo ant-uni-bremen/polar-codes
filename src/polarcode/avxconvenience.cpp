@@ -71,6 +71,23 @@ __m256i _mm256_subVectorShift_epu8(__m256i x, int shift) {
 	}
 }
 
+__m256i _mm256_subVectorShiftBytes_epu8(__m256i x, int shift) {
+	switch(shift) {
+	case 1:
+		return _mm256_srli_epi16(x, 8);
+	case 2:
+		return _mm256_srli_epi32(x, 16);
+	case 4:
+		return _mm256_srli_epi64(x, 32);
+	case 8:
+		return _mm256_srli_si256(x, 8);
+	case 16:
+		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b00100001);
+	default:
+		throw "Subvector shift of undefined size.";
+	}
+}
+
 __m256i _mm256_subVectorBackShift_epu8(__m256i x, int shift) {
 	static const __m256i mask[4] = {
 		_mm256_set1_epi8(0b01010101),
@@ -93,6 +110,23 @@ __m256i _mm256_subVectorBackShift_epu8(__m256i x, int shift) {
 	case 64:
 		return _mm256_slli_si256(x, 8);
 	case 128:
+		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b01001110);
+	default:
+		throw "Subvector shift of undefined size.";
+	}
+}
+
+__m256i _mm256_subVectorBackShiftBytes_epu8(__m256i x, int shift) {
+	switch(shift) {
+	case 1:
+		return _mm256_slli_epi16(x, 8);
+	case 2:
+		return _mm256_slli_epi32(x, 16);
+	case 4:
+		return _mm256_slli_epi64(x, 32);
+	case 8:
+		return _mm256_slli_si256(x, 8);
+	case 16:
 		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b01001110);
 	default:
 		throw "Subvector shift of undefined size.";

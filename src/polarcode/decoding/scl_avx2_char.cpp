@@ -107,6 +107,12 @@ __m256i* PathList::Bit(unsigned path, unsigned stage) {
 	return mBitTree[path][stage]->data;
 }
 
+void PathList::swapBitBlocks(unsigned stage, std::vector<block_t *> &other) {
+	for(unsigned path = 0; path < mPathCount; ++path) {
+		std::swap(mBitTree[path][stage], other[path]);
+	}
+}
+
 __m256i* PathList::NextLlr(unsigned path, unsigned stage) {
 	return mNextLlrTree[path][stage]->data;
 }
@@ -190,7 +196,11 @@ DecoderNode::DecoderNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	mLeft = createDecoder(leftFrozenBits, this, &leftDecoder);
 	mRight = createDecoder(rightFrozenBits, this, &rightDecoder);
 
-	combineFunction = mSoftOutput ? CombineSoftBits : CombineBits;
+	if(mBlockLength < 32) {
+		combineFunction = mSoftOutput ? CombineSoftBitsShort : CombineShortBits;
+	} else {
+		combineFunction = mSoftOutput ? CombineSoftBitsLong : CombineBits;
+	}
 
 	childBits.resize(mListSize);
 	for(unsigned i=0; i<mListSize; ++i) {
@@ -207,8 +217,9 @@ DecoderNode::~DecoderNode() {
 }
 
 void DecoderNode::decode() {
-	unsigned pathCount = xmPathList->PathCount();
 	xmPathList->allocateStage(mStage, mVecCount);
+
+	unsigned pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
 		F_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), mBlockLength);
 	}
@@ -219,11 +230,12 @@ void DecoderNode::decode() {
 		leftDecoder(xmPathList, mStage);
 	}
 
+	xmPathList->swapBitBlocks(mStage, childBits);
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
-		memcpy(childBits[path]->data, xmPathList->Bit(path, mStage), mBlockLength);
+		//memcpy(childBits[path]->data, xmPathList->Bit(path, mStage), mBlockLength);
 		xmPathList->getWriteAccessToLlr(path, mStage);
-		G_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), xmPathList->Bit(path, mStage), mBlockLength);
+		G_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), childBits[path]->data, mBlockLength);
 	}
 
 	if(mRight) {
@@ -254,7 +266,19 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent, void 
 		return nullptr;
 	}
 
-	if(blockLength >= 32) {
+
+	if(blockLength <= 32) {
+		if(frozenBitCount == blockLength) {
+			*specialDecoder = &RateZeroDecodeShort;
+			return nullptr;
+		}
+		if(frozenBitCount == 0) {
+			*specialDecoder = &RateOneDecodeShort;
+			return nullptr;
+		}
+	}
+
+	if(blockLength > 32) {
 		if(frozenBitCount == blockLength) {
 			*specialDecoder = &RateZeroDecode;
 			return nullptr;
@@ -293,6 +317,36 @@ void RateZeroDecode(PathList *pathList, unsigned stage) {
 	}
 }
 
+void RateZeroDecodeShort(PathList *pathList, unsigned stage) {
+	const __m256i zero = _mm256_setzero_si256();
+	unsigned pathCount = pathList->PathCount();
+	unsigned stageBits = 1<<stage;
+	union {
+		__m256i LlrIn;
+		char cLlrIn[32];
+	};
+	__m128i epi8a, epi8b;
+	__m256i epi16a, epi16b, punishment;
+
+
+	for(unsigned path = 0; path < pathCount; ++path) {
+		memset(pathList->Bit(path, stage), 127, stageBits);
+
+		LlrIn = _mm256_load_si256(pathList->Llr(path, stage));
+		memset(cLlrIn+stageBits, 0, 32-stageBits);
+
+		epi8a = _mm256_extracti128_si256(LlrIn, 1);
+		epi8b = _mm256_extracti128_si256(LlrIn, 0);
+		epi16a = _mm256_cvtepi8_epi16(epi8a);
+		epi16b = _mm256_cvtepi8_epi16(epi8b);
+		punishment = _mm256_adds_epi16(
+							_mm256_min_epi16(epi16a, zero),
+							_mm256_min_epi16(epi16b, zero));
+
+		pathList->Metric(path) += reduce_adds_epi16(punishment);
+	}
+}
+
 void RateOneDecode(PathList *pathList, unsigned stage) {
 	static const __m256i absCorrector = _mm256_set1_epi8(-127);
 	std::vector<unsigned> indices;
@@ -300,8 +354,11 @@ void RateOneDecode(PathList *pathList, unsigned stage) {
 	std::vector<std::vector<unsigned>> bitFlipHints;
 	unsigned pathCount = pathList->PathCount();
 	unsigned vecCount = nBit2cvecCount(1<<stage);
-	__m256i* vTempBlock = pathList->tempBlock->data;
-	char *cTempBlock = reinterpret_cast<char*>(vTempBlock);
+	union {
+		__m256i* vTempBlock;
+		char *cTempBlock;
+	};
+	vTempBlock = pathList->tempBlock->data;
 
 	metrics.resize(pathCount*4);
 	bitFlipHints.resize(pathCount*4);
@@ -327,7 +384,8 @@ void RateOneDecode(PathList *pathList, unsigned stage) {
 	}
 	unsigned newPathCount = std::min(pathCount*4, pathList->PathLimit());
 	pathList->setNextPathCount(newPathCount);
-	simplePartialSortDescending<unsigned,long>(indices, metrics, newPathCount);
+	sortMetrics<unsigned,long>(indices, metrics, newPathCount);
+	//simplePartialSortDescending<unsigned,long>(indices, metrics, newPathCount);
 
 	for(unsigned path = 0; path < newPathCount; ++path) {
 		pathList->duplicatePath(path, indices[path]/4, stage);
@@ -341,13 +399,84 @@ void RateOneDecode(PathList *pathList, unsigned stage) {
 		pathList->getWriteAccessToNextBit(path, stage);
 		pathList->NextMetric(path) = metrics[path];
 		__m256i* LlrSource = pathList->NextLlr(path, stage);
-		__m256i* BitDestination = pathList->NextBit(path, stage);
-		unsigned char *cBitDestination = reinterpret_cast<unsigned char*>(BitDestination);
+		union {
+			__m256i* BitDestination;
+			char* cBitDestination;
+		};
+		BitDestination = pathList->NextBit(path, stage);
 		for(unsigned i=0; i<vecCount; ++i) {
 			__m256i Llr = _mm256_load_si256(LlrSource+i);
 /*			__m256i Bit = hardDecode(Llr);*/
 			_mm256_store_si256(BitDestination+i, /*Bit*/ Llr);
 		}
+
+		for(unsigned index : bitFlipHints[indices[path]]) {
+			cBitDestination[index] = ~(cBitDestination[index]);
+		}
+	}
+
+	pathList->switchToNext();
+}
+
+void RateOneDecodeShort(PathList *pathList, unsigned stage) {
+	static const __m256i absCorrector = _mm256_set1_epi8(-127);
+	std::vector<unsigned> indices;
+	std::vector<long> metrics;
+	std::vector<std::vector<unsigned>> bitFlipHints;
+	unsigned pathCount = pathList->PathCount();
+	unsigned bitCount = 1<<stage;
+	union {
+		__m256i* vTempBlock;
+		char *cTempBlock;
+	};
+	vTempBlock = pathList->tempBlock->data;
+
+	metrics.resize(pathCount*4);
+	bitFlipHints.resize(pathCount*4);
+
+	for(unsigned path = 0; path < pathCount; ++path) {
+		long metric = pathList->Metric(path);
+		__m256i* LlrSource = pathList->Llr(path, stage);
+
+		__m256i Llr = _mm256_load_si256(LlrSource);
+		Llr = _mm256_abs_epi8(_mm256_max_epi8(Llr, absCorrector));
+		_mm256_store_si256(vTempBlock, Llr);
+
+		simplePartialSortDescending<unsigned,char>(indices, cTempBlock, bitCount, 2);
+		metrics[path*4] = metric;
+		metrics[path*4+1] = metric-cTempBlock[0];
+		metrics[path*4+2] = metric-cTempBlock[1];
+		metrics[path*4+3] = metric-cTempBlock[0]-cTempBlock[1];
+
+		bitFlipHints[path*4] = {};
+		bitFlipHints[path*4+1] = {indices[0]};
+		bitFlipHints[path*4+2] = {indices[1]};
+		bitFlipHints[path*4+3] = {indices[0],indices[1]};
+	}
+	unsigned newPathCount = std::min(pathCount*4, pathList->PathLimit());
+	pathList->setNextPathCount(newPathCount);
+	sortMetrics<unsigned,long>(indices, metrics, newPathCount);
+	//simplePartialSortDescending<unsigned,long>(indices, metrics, newPathCount);
+
+	for(unsigned path = 0; path < newPathCount; ++path) {
+		pathList->duplicatePath(path, indices[path]/4, stage);
+	}
+
+	for(unsigned path = 0; path < pathCount; ++path) {
+		pathList->clearOldPath(path, stage);
+	}
+
+	for(unsigned path = 0; path < newPathCount; ++path) {
+		pathList->getWriteAccessToNextBit(path, stage);
+		pathList->NextMetric(path) = metrics[path];
+		__m256i* LlrSource = pathList->NextLlr(path, stage);
+		union {
+			__m256i* BitDestination;
+			char* cBitDestination;
+		};
+		BitDestination = pathList->NextBit(path, stage);
+		__m256i Llr = _mm256_load_si256(LlrSource);
+		_mm256_store_si256(BitDestination, Llr);
 
 		for(unsigned index : bitFlipHints[indices[path]]) {
 			cBitDestination[index] = ~(cBitDestination[index]);
@@ -394,7 +523,8 @@ void RateOneDecodeSingleBit(PathList *pathList, unsigned) {
 	}
 	unsigned newPathCount = std::min(pathCount*2, pathList->PathLimit());
 	pathList->setNextPathCount(newPathCount);
-	simplePartialSortDescending<unsigned,long>(indices, metrics, newPathCount);
+	sortMetrics<unsigned,long>(indices, metrics, newPathCount);
+	//simplePartialSortDescending<unsigned,long>(indices, metrics, newPathCount);
 
 	for(unsigned path = 0; path < newPathCount; ++path) {
 		pathList->duplicatePath(path, indices[path]/2, 0);
