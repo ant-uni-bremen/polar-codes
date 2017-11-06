@@ -19,15 +19,19 @@ PathList::PathList(size_t listSize, size_t stageCount, datapool_t *dataPool)
 	  xmDataPool(dataPool) {
 	mLlrTree.resize(listSize);
 	mBitTree.resize(listSize);
+	mLeftBitTree.resize(listSize);
 	mMetric.assign(listSize, 0);
 	mNextLlrTree.resize(listSize);
 	mNextBitTree.resize(listSize);
+	mNextLeftBitTree.resize(listSize);
 	mNextMetric.assign(listSize, 0);
 	for(unsigned i=0; i<mPathLimit; ++i) {
 		mLlrTree[i].resize(stageCount);
 		mBitTree[i].resize(stageCount);
+		mLeftBitTree[i].resize(stageCount);
 		mNextLlrTree[i].resize(stageCount);
 		mNextBitTree[i].resize(stageCount);
+		mNextLeftBitTree[i].resize(stageCount);
 	}
 	tempBlock = xmDataPool->allocate(nBit2fCount(1<<stageCount));
 }
@@ -41,6 +45,7 @@ void PathList::clear() {
 	for(unsigned path=0; path < mPathCount; ++path) {
 		xmDataPool->release(mLlrTree[path][mStageCount-1]);
 		xmDataPool->release(mBitTree[path][mStageCount-1]);
+		xmDataPool->release(mLeftBitTree[path][mStageCount-1]);
 	}
 	mPathCount = 0;
 }
@@ -49,6 +54,7 @@ void PathList::duplicatePath(unsigned destination, unsigned source, unsigned sta
 	for(unsigned i = stage; i<mStageCount; ++i) {
 		mNextLlrTree[destination][i] = xmDataPool->lazyDuplicate(mLlrTree[source][i]);
 		mNextBitTree[destination][i] = xmDataPool->lazyDuplicate(mBitTree[source][i]);
+		mNextLeftBitTree[destination][i] = xmDataPool->lazyDuplicate(mLeftBitTree[source][i]);
 	}
 }
 
@@ -68,12 +74,14 @@ void PathList::clearOldPath(unsigned path, unsigned stage) {
 	for(unsigned i = stage; i < mStageCount; ++i) {
 		xmDataPool->release(mLlrTree[path][i]);
 		xmDataPool->release(mBitTree[path][i]);
+		xmDataPool->release(mLeftBitTree[path][i]);
 	}
 }
 
 void PathList::switchToNext() {
 	std::swap(mLlrTree, mNextLlrTree);
 	std::swap(mBitTree, mNextBitTree);
+	std::swap(mLeftBitTree, mNextLeftBitTree);
 	std::swap(mMetric, mNextMetric);
 	mPathCount = mNextPathCount;
 }
@@ -82,6 +90,7 @@ void PathList::setFirstPath(void *pLlr, unsigned bitCount) {
 	unsigned expandedBitCount = nBit2fCount(bitCount);
 	mLlrTree[0][mStageCount-1] = xmDataPool->allocate(expandedBitCount);
 	mBitTree[0][mStageCount-1] = xmDataPool->allocate(expandedBitCount);
+	mLeftBitTree[0][mStageCount-1] = xmDataPool->allocate(expandedBitCount);
 	mPathCount = 1;
 
 	memcpy(Llr(0, mStageCount-1), pLlr, 4*expandedBitCount);
@@ -92,6 +101,7 @@ void PathList::allocateStage(unsigned stage, unsigned bitCount) {
 	for(unsigned path = 0; path < mPathCount; ++path) {
 		mLlrTree[path][stage] = xmDataPool->allocate(expandedBitCount);
 		mBitTree[path][stage] = xmDataPool->allocate(expandedBitCount);
+		mLeftBitTree[path][stage] = xmDataPool->allocate(expandedBitCount);
 	}
 }
 
@@ -99,6 +109,7 @@ void PathList::clearStage(unsigned stage) {
 	for(unsigned path = 0; path < mPathCount; ++path) {
 		xmDataPool->release(mLlrTree[path][stage]);
 		xmDataPool->release(mBitTree[path][stage]);
+		xmDataPool->release(mLeftBitTree[path][stage]);
 	}
 }
 
@@ -108,6 +119,16 @@ float* PathList::Llr(unsigned path, unsigned stage) {
 
 float* PathList::Bit(unsigned path, unsigned stage) {
 	return mBitTree[path][stage]->data;
+}
+
+float* PathList::LeftBit(unsigned path, unsigned stage) {
+	return mLeftBitTree[path][stage]->data;
+}
+
+void PathList::swapBitBlocks(unsigned stage) {
+	for(unsigned path = 0; path < mPathCount; ++path) {
+		std::swap(mBitTree[path][stage], mLeftBitTree[path][stage]);
+	}
 }
 
 block_t* PathList::exportBits(unsigned path, unsigned stage) {
@@ -199,12 +220,16 @@ DecoderNode::DecoderNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	mLeft = createDecoder(leftFrozenBits, this, &leftDecoder);
 	mRight = createDecoder(rightFrozenBits, this, &rightDecoder);
 
-	combineFunction = mSoftOutput ? CombineSoft : Combine;
+	if(mBlockLength < 8) {
+		combineFunction = mSoftOutput ? CombineSoftBitsShort : CombineShortBits;
+	} else {
+		combineFunction = mSoftOutput ? CombineSoftBitsLong : CombineBits;
+	}
 }
 
 DecoderNode::~DecoderNode() {
-	delete mLeft;
-	delete mRight;
+	if(mLeft) delete mLeft;
+	if(mRight) delete mRight;
 }
 
 void DecoderNode::decode() {
@@ -217,34 +242,29 @@ void DecoderNode::decode() {
 	if(mLeft) {
 		mLeft->decode();
 	} else {
-		for(unsigned path=0; path < pathCount; ++path) {
-			xmPathList->getWriteAccessToBit(path, mStage);
-		}
 		leftDecoder(xmPathList, mStage);
 	}
 
+	xmPathList->swapBitBlocks(mStage);
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
-		xmPathList->getWriteAccessToBit(path, mStage+1);
-		memcpy(xmPathList->Bit(path, mStage+1), xmPathList->Bit(path, mStage), mBlockLength*4);
+		//xmPathList->getWriteAccessToBit(path, mStage+1);
+		//memcpy(xmPathList->Bit(path, mStage+1), xmPathList->Bit(path, mStage), mBlockLength*4);
 		xmPathList->getWriteAccessToLlr(path, mStage);
-		G_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), xmPathList->Bit(path, mStage), mBlockLength);
+		G_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), xmPathList->LeftBit(path, mStage), mBlockLength);
 	}
 
 	if(mRight) {
 		mRight->decode();
 	} else {
-		for(unsigned path=0; path < pathCount; ++path) {
-			xmPathList->getWriteAccessToBit(path, mStage);
-		}
 		rightDecoder(xmPathList, mStage);
 	}
 
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
 		xmPathList->getWriteAccessToBit(path, mStage+1);
-		memcpy(xmPathList->Bit(path, mStage+1)+mBlockLength, xmPathList->Bit(path, mStage), mBlockLength*4);
-		combineFunction(xmPathList->Bit(path, mStage+1), mBlockLength);
+		//memcpy(xmPathList->Bit(path, mStage+1)+mBlockLength, xmPathList->Bit(path, mStage), mBlockLength*4);
+		combineFunction(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
 	}
 
 	xmPathList->clearStage(mStage);

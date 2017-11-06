@@ -55,7 +55,13 @@ public:
 
 		size = std::max(alignment/sizeof(T), size);
 
-		if(freeBlocks.find(size) == freeBlocks.end()) {
+/* This change improves performance only slightly, but looks nice:
+ * Instead of searching the key, we simply try to access it and when failing,
+ * create a new element.
+ */
+		try {
+			(void)freeBlocks[size];
+		} catch(...) {
 			freeBlocks.insert({size, std::stack<Block<T>*>()});
 		}
 
@@ -66,7 +72,6 @@ public:
 				std::cerr << "Can't allocate aligned memory." << std::endl;
 			}
 			block->data = reinterpret_cast<T*>(ptr);
-			memset(block->data, 0, sizeof(T)*size);
 			block->useCount = 1;
 			block->size = size;
 		} else {

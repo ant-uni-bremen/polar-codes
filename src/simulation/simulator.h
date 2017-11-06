@@ -16,6 +16,7 @@
 #include <polarcode/decoding/scl_avx_float.h>
 #include <polarcode/decoding/adaptive_float.h>
 #include <polarcode/decoding/adaptive_char.h>
+#include <polarcode/decoding/adaptive_mixed.h>
 
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>

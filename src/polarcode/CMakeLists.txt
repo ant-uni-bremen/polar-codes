@@ -32,6 +32,7 @@ add_library(PolarDecoder OBJECT
         decoding/scl_avx_float
         decoding/adaptive_float
         decoding/adaptive_char
+        decoding/adaptive_mixed
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/decoder.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/avx2_char.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fastssc_avx2_char.h
@@ -40,7 +41,8 @@ add_library(PolarDecoder OBJECT
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fastssc_avx_float.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/scl_avx_float.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_float.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_char.h)
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_char.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_mixed.h)
 
 add_library(PolarConstructor OBJECT
         construction/constructor

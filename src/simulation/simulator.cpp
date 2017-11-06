@@ -335,6 +335,9 @@ void SimulationWorker::setCoders() {
 		case 32:
 			mDecoder = new PolarCode::Decoding::AdaptiveFloat(mJob->N, mJob->L, mFrozenBits);
 			break;
+		case 832:
+			mDecoder = new PolarCode::Decoding::AdaptiveMixed(mJob->N, mJob->L, mFrozenBits);
+			break;
 		default:
 			std::cerr << "No decoder present for " << mJob->precision << "-bit decoding." << std::endl;
 			exit(1);
@@ -342,6 +345,7 @@ void SimulationWorker::setCoders() {
 	} else {
 		switch(mJob->precision) {
 		case 8:
+		case 832:
 			mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits);
 			break;
 		case 32:
@@ -425,7 +429,7 @@ void SimulationWorker::transmit() {
 	mTransmitter->setSignal(mSignal);
 	mTransmitter->transmit();
 
-	if(mJob->precision == 8 && mJob->amplification != 1.0) {
+	if((mJob->precision == 8 || mJob->precision == 832) && mJob->amplification != 1.0) {
 		mAmplifier->setSignal(mSignal);
 		mAmplifier->transmit();
 	}
@@ -513,8 +517,9 @@ void SimulationWorker::jobEndingOutput() {
 	output += "] BLER=" + std::to_string(mJob->BLER);
 	output += ", BER=" + std::to_string(mJob->BER);
 	output += ", RER=" + std::to_string(mJob->RER);
-	output += ", pbps=" + std::to_string(mJob->pbps);
-	output += "\n";
+	output += ", payload:" + std::to_string(mJob->pbps * 1e-6);
+	output += "Mbps, delay=" + std::to_string(mJob->time / mJob->runs * 1e6);
+	output += "µs\n";
 
 	std::cout << output;
 

@@ -45,9 +45,9 @@ void Configurator::setupArgumentDefaults() {
 	defaultBools.insert({"soft-output", false});
 	defaultBools.insert({"non-systematic", false});
 
-	defaultInts.insert({"precision", 32});
+	defaultInts.insert({"precision", 832});
 
-	defaultFloats.insert({"amp-fixed", 6.0});//found empirically
+	defaultFloats.insert({"amp-fixed", 10.0});//found empirically
 	defaultFloats.insert({"amp-min",   1.0});
 	defaultFloats.insert({"amp-max", 128.0});
 	defaultInts.insert({"amp-count",   6});
@@ -159,7 +159,7 @@ void Configurator::setupSwitchArguments() {
 }
 
 void Configurator::setupArgumentDecodingPrecision() {
-	auto Precision = new ValueArg<int>("p", "precision", "Select decoding precision (32-bit floating point or 8-bit fixed integer).", false, defaultInts["precision"], "8,32");
+	auto Precision = new ValueArg<int>("p", "precision", "Select decoding precision (32-bit floating point, 8-bit fixed integer or '832' for mixed precision).", false, defaultInts["precision"], "8,32,832");
 	insertArgument(Precision);
 }
 

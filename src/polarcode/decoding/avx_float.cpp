@@ -130,16 +130,12 @@ void Combine_0R(float *Bits, const unsigned bitCount) {
 }
 
 void CombineBits(float *Left, float *Right, float *Out, const unsigned subBlockLength) {
-	if(subBlockLength < 8) {
-		return CombineShortBits(Left, Right, Out, subBlockLength);
-	} else {
-		for(unsigned i=0; i<subBlockLength; i+=8) {
-			__m256 tempL = _mm256_load_ps(Left+i);
-			__m256 tempR = _mm256_load_ps(Right+i);
-			tempL = _mm256_xor_ps(tempL, tempR);
-			_mm256_store_ps(Out+i, tempL);
-			_mm256_store_ps(Out+subBlockLength+i, tempR);
-		}
+	for(unsigned i=0; i<subBlockLength; i+=8) {
+		__m256 tempL = _mm256_load_ps(Left+i);
+		__m256 tempR = _mm256_load_ps(Right+i);
+		tempL = _mm256_xor_ps(tempL, tempR);
+		_mm256_store_ps(Out+i, tempL);
+		_mm256_store_ps(Out+subBlockLength+i, tempR);
 	}
 }
 

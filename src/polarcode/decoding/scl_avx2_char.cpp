@@ -209,8 +209,8 @@ DecoderNode::DecoderNode(const std::vector<unsigned> &frozenBits, Node *parent)
 }
 
 DecoderNode::~DecoderNode() {
-	delete mLeft;
-	delete mRight;
+	if(mLeft) delete mLeft;
+	if(mRight) delete mRight;
 	for(unsigned i=0; i<mListSize; ++i) {
 		xmDataPool->release(childBits[i]);
 	}

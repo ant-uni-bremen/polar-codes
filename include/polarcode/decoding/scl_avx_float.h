@@ -24,9 +24,11 @@ typedef Block<float> block_t;
 class PathList {
 	std::vector<std::vector<block_t*>> mLlrTree;
 	std::vector<std::vector<block_t*>> mBitTree;
+	std::vector<std::vector<block_t*>> mLeftBitTree;
 	std::vector<float> mMetric;
 	std::vector<std::vector<block_t*>> mNextLlrTree;
 	std::vector<std::vector<block_t*>> mNextBitTree;
+	std::vector<std::vector<block_t*>> mNextLeftBitTree;
 	std::vector<float> mNextMetric;
 	unsigned mPathLimit, mPathCount, mNextPathCount;
 	unsigned mStageCount;
@@ -163,6 +165,22 @@ public:
 	 * \return A pointer to an AVX2 aligned memory block.
 	 */
 	float* Bit(unsigned path, unsigned stage);
+
+	/*!
+	 * \brief Get a pointer to a left bit-block.
+	 *
+	 * \param path Index of the path.
+	 * \param stage Index of the stage.
+	 * \return A pointer to an AVX2 aligned memory block.
+	 */
+	float* LeftBit(unsigned path, unsigned stage);
+
+	/*!
+	 * \brief Swap bit blocks. This eliminates a copy operation.
+	 * \param stage The stage to be swapped.
+	 * \param other Reference to a vector of bit block pointers.
+	 */
+	void swapBitBlocks(unsigned stage);
 
 	/*!
 	 * \brief Export a bit array lazily.
@@ -304,7 +322,7 @@ protected:
 	void (*rightDecoder)(PathList*, unsigned);///< Pointer to a specialized decoder for right child.
 
 	/*! Pointer to fast XOR or slow Boxplus combination function */
-	void (*combineFunction)(float*, const unsigned);
+	void (*combineFunction)(float*, float*, float*, const unsigned);
 
 public:
 	DecoderNode();
