@@ -248,8 +248,6 @@ void DecoderNode::decode() {
 	xmPathList->swapBitBlocks(mStage);
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
-		//xmPathList->getWriteAccessToBit(path, mStage+1);
-		//memcpy(xmPathList->Bit(path, mStage+1), xmPathList->Bit(path, mStage), mBlockLength*4);
 		xmPathList->getWriteAccessToLlr(path, mStage);
 		G_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), xmPathList->LeftBit(path, mStage), mBlockLength);
 	}
@@ -263,7 +261,6 @@ void DecoderNode::decode() {
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
 		xmPathList->getWriteAccessToBit(path, mStage+1);
-		//memcpy(xmPathList->Bit(path, mStage+1)+mBlockLength, xmPathList->Bit(path, mStage), mBlockLength*4);
 		combineFunction(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
 	}
 

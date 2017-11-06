@@ -25,9 +25,11 @@ typedef Block<__m256i> block_t;
 class PathList {
 	std::vector<std::vector<block_t*>> mLlrTree;
 	std::vector<std::vector<block_t*>> mBitTree;
+	std::vector<std::vector<block_t*>> mLeftBitTree;
 	std::vector<long> mMetric;
 	std::vector<std::vector<block_t*>> mNextLlrTree;
 	std::vector<std::vector<block_t*>> mNextBitTree;
+	std::vector<std::vector<block_t*>> mNextLeftBitTree;
 	std::vector<long> mNextMetric;
 	unsigned mPathLimit, mPathCount, mNextPathCount;
 	unsigned mStageCount;
@@ -162,11 +164,19 @@ public:
 	__m256i* Bit(unsigned path, unsigned stage);
 
 	/*!
+	 * \brief Get a pointer to a left bit-block.
+	 *
+	 * \param path Index of the path.
+	 * \param stage Index of the stage.
+	 * \return A pointer to an AVX2 aligned memory block.
+	 */
+	__m256i* LeftBit(unsigned path, unsigned stage);
+
+	/*!
 	 * \brief Swap bit blocks. This eliminates a copy operation.
 	 * \param stage The stage to be swapped.
-	 * \param other Reference to a vector of bit block pointers.
 	 */
-	void swapBitBlocks(unsigned stage, std::vector<block_t*>& other);
+	void swapBitBlocks(unsigned stage);
 
 	/*!
 	 * \brief Get a pointer to a future LLR-block.
@@ -295,8 +305,6 @@ protected:
 	Node *mLeft,    ///< Left child node
 		 *mRight;   ///< Right child node
 	unsigned mStage;///< Recursion depth of this node
-
-	std::vector<block_t*> childBits;///< Temporary storage for left decoder output.
 
 	void (*leftDecoder)(PathList*, unsigned);///< Pointer to a specialized decoder for left child.
 	void (*rightDecoder)(PathList*, unsigned);///< Pointer to a specialized decoder for right child.

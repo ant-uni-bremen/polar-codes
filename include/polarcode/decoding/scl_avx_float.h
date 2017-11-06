@@ -178,7 +178,6 @@ public:
 	/*!
 	 * \brief Swap bit blocks. This eliminates a copy operation.
 	 * \param stage The stage to be swapped.
-	 * \param other Reference to a vector of bit block pointers.
 	 */
 	void swapBitBlocks(unsigned stage);
 
