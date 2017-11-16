@@ -45,7 +45,7 @@ bool CRC32::check(void *pData, int bytes) {
 
 void CRC32::generate(void *pData, int bytes) {
 	unsigned int chkSum;
-	int reducedBlockCount = (bytes>>2)-1;
+	int reducedBlockCount = (bytes/4)-1;
 	unsigned int *data = reinterpret_cast<unsigned int*>(pData);
 
 	checkBlockSizeRestriction(reducedBlockCount+1, bytes);
@@ -60,7 +60,7 @@ int CRC32::multiCheck(void **pData, int nArrays, int nBytes) {
 	unsigned int **data = reinterpret_cast<unsigned int**>(pData);
 	unsigned int *checksums = new unsigned int[nArrays]();
 
-	int nCheckBlocks = (nBytes-4)>>2;
+	int nCheckBlocks = (nBytes-4)/4;
 
 	checkBlockSizeRestriction(nCheckBlocks, nBytes-4);
 

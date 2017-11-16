@@ -3,6 +3,8 @@
 namespace PolarCode {
 namespace ErrorDetection {
 
+Dummy globalDummyDetector;
+
 Dummy::Dummy() {
 }
 

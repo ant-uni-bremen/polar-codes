@@ -20,7 +20,6 @@ namespace Encoding {
  */
 class ButterflyAvx2Packed : public Encoder {
 	void transform();
-	void featureCheck();
 
 public:
 	ButterflyAvx2Packed();

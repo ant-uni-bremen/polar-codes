@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <polarcode/bitcontainer.h>
+#include <polarcode/errordetection/errordetector.h>
 
 namespace PolarCode {
 namespace Encoding {
@@ -14,8 +15,10 @@ namespace Encoding {
  */
 class Encoder {
 protected:
+	ErrorDetection::Detector* mErrorDetector;///< Error detecting object
 	size_t mBlockLength;           ///< Block length of the Polar Code
 	bool mSystematic;              ///< Whether to use systematic coding
+	unsigned char *xmInputData;    ///< Pointer to memory location of bits to encode
 	BitContainer *mBitContainer;   ///< Internal bit memory
 	std::vector<unsigned> mFrozenBits; ///< Indices for frozen bits
 
@@ -41,6 +44,13 @@ public:
 	* \brief Query frozenBits
 	*/
 	std::vector<unsigned> frozenBits(){ return mFrozenBits;}
+
+	/*!
+	 * \brief Set an error detection scheme.
+	 * \param pDetector Pointer to an error detecting object.
+	 */
+	void setErrorDetection(ErrorDetection::Detector* pDetector);
+
 
 	/*!
 	 * \brief Explicitly call setSystematic(false); to use

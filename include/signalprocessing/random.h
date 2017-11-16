@@ -3,6 +3,8 @@
 
 #include "lcg.h"
 #include <mutex>
+#include <alignednew.h>
+
 
 namespace SignalProcessing {
 namespace Random {
@@ -10,7 +12,7 @@ namespace Random {
 /*!
  * \brief Pseudo-random number generator
  */
-class Generator {
+class Generator : public AlignedNew<32> {
 #ifndef __RDRND__
 #warning RDRND not used
 	struct {

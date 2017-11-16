@@ -245,6 +245,9 @@ void RecursiveAvx2Packed::initialize(size_t blockLength, const std::vector<unsig
 }
 
 void RecursiveAvx2Packed::encode() {
+	mErrorDetector->generate(xmInputData, (mBlockLength - mFrozenBits.size()) / 8);
+	mBitContainer->insertPackedInformationBits(xmInputData);
+
 	mRootNode->encode(mNodeBase->block());
 }
 }// namespace Encoding

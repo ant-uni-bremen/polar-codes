@@ -179,7 +179,6 @@ class SimulationWorker {
 	void allocateMemory();
 
 	void generateData();
-	void calculateChecksum();
 	void encode();
 	void modulate();
 	void transmit();

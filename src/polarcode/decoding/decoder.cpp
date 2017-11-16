@@ -30,7 +30,7 @@ Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsi
 }
 
 Decoder::Decoder()
-	: mErrorDetector(new ErrorDetection::Dummy()),
+	: mErrorDetector(&ErrorDetection::globalDummyDetector),
 	  mBlockLength(0),
 	  mSystematic(true),
 	  mSoftOutput(false),
@@ -42,7 +42,6 @@ Decoder::Decoder()
 }
 
 Decoder::~Decoder() {
-	delete mErrorDetector;
 	if(!mExternalContainers) {
 		if(mLlrContainer) delete mLlrContainer;
 		if(mBitContainer) delete mBitContainer;
@@ -92,7 +91,6 @@ bool Decoder::hasSoftOutput() {
 }
 
 void Decoder::setErrorDetection(ErrorDetection::Detector *pDetector) {
-	delete mErrorDetector;
 	mErrorDetector = pDetector;
 }
 

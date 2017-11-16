@@ -56,7 +56,7 @@ public:
 	* \brief Decoder duration
 	* \return Number of ticks in nanoseconds for last decoder call.
 	*/
-	size_t duration_ns(){ return mDecoderDuration;};
+	size_t duration_ns(){ return mDecoderDuration;}
 
 	/*!
 	 * \brief Set the decoder's parameters.
@@ -118,7 +118,7 @@ public:
 
 	/*!
 	 * \brief Set an error detection scheme.
-	 * \param pDetector Pointer to an error detecting object. Ownership is taken.
+	 * \param pDetector Pointer to an error detecting object.
 	 */
 	virtual void setErrorDetection(ErrorDetection::Detector* pDetector);
 

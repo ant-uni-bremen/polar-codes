@@ -239,7 +239,6 @@ void SpcDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) 
 }
 
 void ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
-	unsigned char* LlrPtr = reinterpret_cast<unsigned char*>(LlrIn);
 	unsigned char* BitPtr = reinterpret_cast<unsigned char*>(BitsOut);
 	const size_t subBlockLength = blockLength/2;
 	unsigned vecCount = (subBlockLength+31)/32;
@@ -247,16 +246,16 @@ void ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
 	unsigned minIdx = 0;
 	char testAbs, minAbs = 127;
 
-	//Generate output
-	memcpy(BitPtr,                LlrPtr+subBlockLength, subBlockLength);
-	memcpy(BitPtr+subBlockLength, LlrPtr+subBlockLength, subBlockLength);
-
 	//Check parity equation
 	for(unsigned i=0; i<vecCount; i++) {
 		//G-function with only frozen bits
 		__m256i left = _mm256_load_si256(LlrIn+i);
 		__m256i right = _mm256_load_si256(LlrIn+vecCount+i);
 		__m256i llr = _mm256_adds_epi8(left, right);
+
+		//Store output
+		_mm256_store_si256(BitsOut+i, llr);
+		_mm256_store_si256(BitsOut+vecCount+i, llr);
 
 		//Update parity counter
 		parVec = _mm256_xor_si256(parVec, llr);
@@ -274,19 +273,15 @@ void ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
 
 	// Flip least reliable bit, if neccessary
 	unsigned char parity = reduce_xor_si256(parVec) & 0x80;
-	BitPtr[minIdx] ^= parity;
-	BitPtr[minIdx+subBlockLength] ^= parity;
+	if(parity) {
+		BitPtr[minIdx] = -BitPtr[minIdx];
+		BitPtr[minIdx+subBlockLength] = -BitPtr[minIdx+subBlockLength];
+	}
 }
 
 void ZeroSpcDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
-	unsigned char* LlrPtr = reinterpret_cast<unsigned char*>(LlrIn);
 	unsigned char* BitPtr = reinterpret_cast<unsigned char*>(BitsOut);
 	const size_t subBlockLength = blockLength/2;
-	char testAbs;
-
-	//Generate output
-	memcpy(BitPtr,                LlrPtr+subBlockLength, subBlockLength);
-	memcpy(BitPtr+subBlockLength, LlrPtr+subBlockLength, subBlockLength);
 
 	//G-function with only frozen bits
 	__m256i left = _mm256_load_si256(LlrIn);
@@ -301,11 +296,16 @@ void ZeroSpcDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLeng
 	memset(llr_c+subBlockLength, 127, 32-subBlockLength);
 
 	// Flip least reliable bit, if neccessary
-	__m256i abs = _mm256_abs_epi8(llr);
-	unsigned vecMin = _mm256_minpos_epu8(abs, &testAbs);
 	unsigned char parity = reduce_xor_si256(llr) & 0x80;
-	BitPtr[vecMin] ^= parity;
-	BitPtr[vecMin+subBlockLength] ^= parity;
+	if(parity) {
+		__m256i abs = _mm256_abs_epi8(llr);
+		unsigned vecMin = _mm256_minpos_epu8(abs);
+		llr_c[vecMin] = -llr_c[vecMin];
+	}
+
+	//Generate output
+	memcpy(BitPtr,                llr_c, subBlockLength);
+	memcpy(BitPtr+subBlockLength, llr_c, subBlockLength);
 }
 
 void ZeroOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
@@ -315,7 +315,7 @@ void ZeroOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLeng
 	G_function_0RShort(LlrIn, &subLlrLeft, subBlockLength);
 
 	subLlrRight = _mm256_subVectorBackShiftBytes_epu8(subLlrLeft, subBlockLength);
-	RepetitionPrepare(&subLlrLeft, subBlockLength);
+	PrepareForShortOperation(&subLlrLeft, subBlockLength);
 	_mm256_store_si256(BitsOut, _mm256_or_si256(subLlrLeft, subLlrRight));
 }
 
@@ -470,7 +470,7 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void 
 	splitFrozenBits(frozenBits, blockLength/2, leftFrozenBits, rightFrozenBits);
 
 	if(blockLength <= 32) {
-		if(leftFrozenBits.size() == blockLength/2 && rightFrozenBits.size() == 1) {
+		if(leftFrozenBits.size() == blockLength/2 && rightFrozenBits.size() == 0) {
 			*specialDecoder = &ZeroOneDecodeShort;
 			return nullptr;
 		}

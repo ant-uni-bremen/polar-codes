@@ -227,13 +227,15 @@ inline void CombineSoftBits(__m256i *Left, __m256i *Right, __m256i *Out, const u
 }
 
 inline void RepetitionPrepare(__m256i* x, const size_t codeLength) {
-	if(codeLength >= 32) return;
-	memset(reinterpret_cast<char*>(x)+codeLength, 0, 32-codeLength);
+	if(codeLength < 32) {
+		memset(reinterpret_cast<char*>(x)+codeLength, 0, 32-codeLength);
+	}
 }
 
 inline void SpcPrepare(__m256i *x, const size_t codeLength) {
-	if(codeLength >= 32) return;
-	memset(reinterpret_cast<char*>(x)+codeLength, 127, 32-codeLength);
+	if(codeLength < 32) {
+		memset(reinterpret_cast<char*>(x)+codeLength, 127, 32-codeLength);
+	}
 }
 
 

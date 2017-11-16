@@ -1,11 +1,17 @@
 #include <polarcode/encoding/encoder.h>
+#include <polarcode/errordetection/dummy.h>
 
 namespace PolarCode {
 namespace Encoding {
 
 Encoder::Encoder()
-	: mBlockLength(0), mSystematic(true), mBitContainer(nullptr),
-	  mFrozenBits(std::vector<unsigned>()){
+	: mErrorDetector(&ErrorDetection::globalDummyDetector)
+	, mBlockLength(0)
+	, mSystematic(true)
+	, xmInputData(nullptr)
+	, mBitContainer(nullptr)
+	, mFrozenBits(std::vector<unsigned>())
+{
 }
 
 Encoder::~Encoder() {
@@ -18,6 +24,10 @@ size_t Encoder::blockLength() {
 	return mBlockLength;
 }
 
+void Encoder::setErrorDetection(ErrorDetection::Detector *pDetector) {
+	mErrorDetector = pDetector;
+}
+
 void Encoder::setSystematic(bool sys) {
 	mSystematic = sys;
 }
@@ -27,7 +37,7 @@ bool Encoder::isSystematic() {
 }
 
 void Encoder::setInformation(void *pData) {
-	mBitContainer->insertPackedInformationBits(pData);
+	xmInputData = static_cast<unsigned char*>(pData);
 }
 
 void Encoder::getInformation(void *pData) {

@@ -54,6 +54,8 @@ public:
 	int multiCheck(void **dataPtr, int nArrays, int nBytes);
 };
 
+extern Dummy globalDummyDetector;
+
 }//namespace ErrorDetection
 }//namespace PolarCode
 

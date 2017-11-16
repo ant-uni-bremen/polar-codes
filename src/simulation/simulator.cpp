@@ -287,7 +287,6 @@ void SimulationWorker::run() {
 		unsigned long blocksToSimulate = mJob->BlocksToSimulate;
 		for(unsigned block = 0; block < blocksToSimulate; ++block) {
 			generateData();
-			calculateChecksum();
 			encode();
 			modulate();
 			transmit();
@@ -316,12 +315,7 @@ void SimulationWorker::selectFrozenBits() {
 }
 
 void SimulationWorker::setCoders() {
-	if(featureCheckAvx2())
-		mEncoder = new PolarCode::Encoding::ButterflyAvx2Packed(mJob->N, mFrozenBits);
-	else {
-		std::cerr << "No encoder available" << std::endl;
-		exit(1);
-	}
+	mEncoder = new PolarCode::Encoding::ButterflyAvx2Packed(mJob->N, mFrozenBits);
 
 	if(mJob->L > 1) {
 		switch(mJob->precision) {
@@ -364,6 +358,7 @@ void SimulationWorker::setErrorDetector() {
 		case 32: mErrorDetector = new PolarCode::ErrorDetection::CRC32(); break;
 		default: mErrorDetector = new PolarCode::ErrorDetection::Dummy();
 	}
+	mEncoder->setErrorDetection(mErrorDetector);
 	mDecoder->setErrorDetection(mErrorDetector);
 }
 
@@ -400,10 +395,6 @@ void SimulationWorker::generateData() {
 	unsigned long rem;
 	generator.get64(&rem);
 	memcpy(lData + nLongs, &rem, nBytes);
-}
-
-void SimulationWorker::calculateChecksum() {
-	mErrorDetector->generate(mInputData, mJob->K / 8);
 }
 
 void SimulationWorker::encode() {
@@ -527,8 +518,8 @@ void SimulationWorker::cleanup() {
 	delete [] mDecodedData;
 
 	delete mDecoder;
-	//delete mErrorDetector; Ownership taken by mDecoder
 	delete mEncoder;
+	delete mErrorDetector;
 	mFrozenBits.clear();
 	delete mConstructor;
 }

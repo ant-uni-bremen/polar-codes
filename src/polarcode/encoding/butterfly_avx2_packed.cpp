@@ -9,17 +9,14 @@ namespace Encoding {
 
 
 ButterflyAvx2Packed::ButterflyAvx2Packed() {
-	featureCheck();
 }
 
 ButterflyAvx2Packed::ButterflyAvx2Packed(size_t blockLength) {
-	featureCheck();
 	initialize(blockLength, {});
 }
 
 ButterflyAvx2Packed::ButterflyAvx2Packed(size_t blockLength,
 		const std::vector<unsigned> &frozenBits) {
-	featureCheck();
 	initialize(blockLength, frozenBits);
 }
 
@@ -36,6 +33,9 @@ void ButterflyAvx2Packed::initialize(size_t blockLength,
 }
 
 void ButterflyAvx2Packed::encode() {
+	mErrorDetector->generate(xmInputData, (mBlockLength - mFrozenBits.size()) / 8);
+	mBitContainer->insertPackedInformationBits(xmInputData);
+
 	transform();
 
 	if(mSystematic) {
@@ -53,13 +53,6 @@ void ButterflyAvx2Packed::transform() {
 
 	for(int stage = 0; stage<n; ++stage) {
 		ButterflyAvx2PackedTransform(vBit, mBlockLength, stage);
-	}
-}
-
-void ButterflyAvx2Packed::featureCheck() {
-
-	if(!featureCheckAvx2()) {
-		throw Avx2NotSupportedException();
 	}
 }
 

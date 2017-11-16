@@ -162,11 +162,3 @@ __m256 _mm256_subVectorBackShift_ps(__m256 x, int shift) {
 		throw "Subvector shift of undefined size.";
 	}
 }
-
-bool featureCheckAvx2() {
-	return __builtin_cpu_supports("avx2");
-}
-
-bool featureCheckAvx() {
-	return __builtin_cpu_supports("avx");
-}

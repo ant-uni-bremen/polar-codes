@@ -57,10 +57,10 @@ void Generator::get64(uint64_t *ptr)
 void Generator::get64x4(uint64_t *ptr)
 {
 	Uniform.Mutex.lock();
-	ptr[0] = generator();
-	ptr[1] = generator();
-	ptr[2] = generator();
-	ptr[3] = generator();
+	ptr[0] = Uniform.Generator();
+	ptr[1] = Uniform.Generator();
+	ptr[2] = Uniform.Generator();
+	ptr[3] = Uniform.Generator();
 	Uniform.Mutex.unlock();
 }
 #endif
