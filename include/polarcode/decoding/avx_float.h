@@ -1,4 +1,10 @@
+#ifndef PC_DEC_AVX_FLOAT_H
+#define PC_DEC_AVX_FLOAT_H
+
 #include <polarcode/avxconvenience.h>
+#include <cstring>
+#include <cassert>
+#include <cmath>
 
 namespace PolarCode {
 namespace Decoding {
@@ -47,3 +53,4 @@ void SpcPrepare(float* x, const size_t codeLength);
 }// namespace Decoding
 }// namespace PolarCode
 
+#endif

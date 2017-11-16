@@ -1,10 +1,8 @@
 #include <polarcode/decoding/avx_float.h>
-#include <cstring>
-#include <cassert>
-#include <cmath>
 
 namespace PolarCode {
 namespace Decoding {
+
 
 __m256 hardDecode(__m256 x) {
 	static const __m256 mask = _mm256_set1_ps(-0.0);

@@ -13,6 +13,10 @@ Dummy* Dummy::clone() {
 	return new Dummy();
 }
 
+unsigned Dummy::getCheckBitCount() {
+	return 0;
+}
+
 //Null check believes the code was okay
 bool Dummy::check(void *dataPtr, int bytes) {
 	return true;

@@ -23,6 +23,12 @@ public:
 	virtual Detector* clone() = 0;
 
 	/*!
+	 * \brief Get the number of bits that are added by the detecter.
+	 * \return Number of check bits.
+	 */
+	virtual unsigned getCheckBitCount() = 0;
+
+	/*!
 	 * \brief Replaces the last bytes of data with a checksum.
 	 * \param data Memory location to generate the checksum of.
 	 * \param bytes Number of bytes of data including the checksum.

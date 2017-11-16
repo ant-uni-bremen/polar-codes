@@ -3,5 +3,7 @@
 namespace PolarCode {
 namespace ErrorDetection {
 
+//The Detector-class is purely virtual.
+
 }//namespace ErrorDetection
 }//namespace PolarCode

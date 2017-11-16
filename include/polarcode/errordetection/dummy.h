@@ -27,6 +27,8 @@ public:
 	 */
 	Dummy* clone();
 
+	unsigned getCheckBitCount();
+
 	/*!
 	 * \brief Does not do anything.
 	 * \param dataPtr Memory location that might hold data.

@@ -308,6 +308,17 @@ void ZeroSpcDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLeng
 	BitPtr[vecMin+subBlockLength] ^= parity;
 }
 
+void ZeroOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
+	__m256i subLlrLeft, subLlrRight;
+	const size_t subBlockLength = blockLength/2;
+
+	G_function_0RShort(LlrIn, &subLlrLeft, subBlockLength);
+
+	subLlrRight = _mm256_subVectorBackShiftBytes_epu8(subLlrLeft, subBlockLength);
+	RepetitionPrepare(&subLlrLeft, subBlockLength);
+	_mm256_store_si256(BitsOut, _mm256_or_si256(subLlrLeft, subLlrRight));
+}
+
 void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
 	const size_t vecCount = nBit2cvecCount(blockLength);
 	for(unsigned i = 0; i < vecCount; ++i) {
@@ -327,7 +338,7 @@ void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t
 
 void simplifiedRightRateOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength) {
 	__m256i Bits = _mm256_load_si256(BitsOut);//Load left bits
-	__m256i Llr_r_subcode;//Destination for right subcode
+	__m256i Llr_r_subcode = _mm256_setzero_si256();//Destination for right subcode
 
 	G_function(LlrIn, &Llr_r_subcode, BitsOut, blockLength);//Get right child LLRs
 
@@ -459,6 +470,11 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void 
 	splitFrozenBits(frozenBits, blockLength/2, leftFrozenBits, rightFrozenBits);
 
 	if(blockLength <= 32) {
+		if(leftFrozenBits.size() == blockLength/2 && rightFrozenBits.size() == 1) {
+			*specialDecoder = &ZeroOneDecodeShort;
+			return nullptr;
+		}
+
 		if(leftFrozenBits.size() == blockLength/2 && rightFrozenBits.size() == 1) {
 			*specialDecoder = &ZeroSpcDecodeShort;
 			return nullptr;

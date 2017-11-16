@@ -212,9 +212,9 @@ DecoderNode::DecoderNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	mRight = createDecoder(rightFrozenBits, this, &rightDecoder);
 
 	if(mBlockLength < 32) {
-		combineFunction = mSoftOutput ? CombineSoftBitsShort : CombineShortBits;
+		combineFunction = mSoftOutput ? FastSscAvx2::CombineSoftBitsShort : FastSscAvx2::CombineShortBits;
 	} else {
-		combineFunction = mSoftOutput ? CombineSoftBitsLong : CombineBits;
+		combineFunction = mSoftOutput ? FastSscAvx2::CombineSoftBitsLong : FastSscAvx2::CombineBits;
 	}
 }
 
@@ -228,7 +228,7 @@ void DecoderNode::decode() {
 
 	unsigned pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
-		F_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), mBlockLength);
+		FastSscAvx2::F_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), mBlockLength);
 	}
 
 	if(mLeft) {
@@ -241,7 +241,7 @@ void DecoderNode::decode() {
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
 		xmPathList->getWriteAccessToLlr(path, mStage);
-		G_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), xmPathList->LeftBit(path, mStage), mBlockLength);
+		FastSscAvx2::G_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), xmPathList->LeftBit(path, mStage), mBlockLength);
 	}
 
 	if(mRight) {

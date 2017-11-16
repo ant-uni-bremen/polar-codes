@@ -74,6 +74,7 @@ void        SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength
 void        SpcDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 void    ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 void    ZeroSpcDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
+void    ZeroOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
 
 
 void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);

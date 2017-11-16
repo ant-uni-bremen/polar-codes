@@ -17,7 +17,8 @@ public:
 	CRC8();
 	~CRC8();
 	CRC8* clone();
-	
+
+	unsigned getCheckBitCount(){return 8;}
 	void generate(void *pData, int bytes);
 	bool check(void *pData, int bytes);
 	int multiCheck(void **pData, int nArrays, int nBytes);

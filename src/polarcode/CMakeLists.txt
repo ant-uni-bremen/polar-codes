@@ -24,7 +24,6 @@ add_library(PolarEncoder OBJECT
 
 add_library(PolarDecoder OBJECT
         decoding/decoder
-        decoding/avx2_char
         decoding/fastssc_avx2_char
         decoding/scl_avx2_char
         decoding/avx_float

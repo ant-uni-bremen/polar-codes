@@ -37,7 +37,7 @@ void DecodingTest::testSpecialDecoders() {
 	bits = _mm256_set1_epi8(-1);
 	expectedResult = _mm256_setzero_si256();
 	PolarCode::Decoding::FastSscAvx2::RateZeroDecode(&llr, &bits, 32);
-	bits = PolarCode::Decoding::hardDecode(bits);
+	bits = PolarCode::Decoding::FastSscAvx2::hardDecode(bits);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
 	// Rate-1
@@ -45,7 +45,7 @@ void DecodingTest::testSpecialDecoders() {
 	bits           = _mm256_set1_epi8(-1);
 	expectedResult = _mm256_set_epi8(-128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 	PolarCode::Decoding::FastSscAvx2::RateOneDecode(&llr, &bits, 32);
-	bits = PolarCode::Decoding::hardDecode(bits);
+	bits = PolarCode::Decoding::FastSscAvx2::hardDecode(bits);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
 	// Repetition
@@ -53,7 +53,7 @@ void DecodingTest::testSpecialDecoders() {
 	bits           = _mm256_set1_epi8(-1);
 	expectedResult = _mm256_set_epi8(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 	PolarCode::Decoding::FastSscAvx2::RepetitionDecode(&llr, &bits, 32);
-	bits = PolarCode::Decoding::hardDecode(bits);
+	bits = PolarCode::Decoding::FastSscAvx2::hardDecode(bits);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
 	// SPC
@@ -61,7 +61,7 @@ void DecodingTest::testSpecialDecoders() {
 	bits           = _mm256_set1_epi8(-1);
 	expectedResult = _mm256_set_epi8(-128,0,-128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-128,-128);
 	PolarCode::Decoding::FastSscAvx2::SpcDecode(&llr, &bits, 32);
-	bits = PolarCode::Decoding::hardDecode(bits);
+	bits = PolarCode::Decoding::FastSscAvx2::hardDecode(bits);
 	CPPUNIT_ASSERT(testVectors(bits, expectedResult));
 
 	llr            = _mm256_set_epi8(-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
@@ -113,7 +113,7 @@ void DecodingTest::testGeneralDecodingFunctions() {
 	llr[0]   = _mm256_set_epi8( 0, 1, 2, 3, 4, 5, 6,-7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1);
 	llr[1]   = _mm256_set_epi8(-1, 2, 3,-4, 5, 6,-7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2);
 	expected = _mm256_set_epi8( 0, 1, 2,-3, 4, 5,-6,-7, 8, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 1);
-	PolarCode::Decoding::F_function(llr, &child, 32);
+	PolarCode::Decoding::FastSscAvx2::F_function(llr, &child, 32);
 	CPPUNIT_ASSERT(testVectors(child, expected));
 
 	// G-function
@@ -121,14 +121,14 @@ void DecodingTest::testGeneralDecodingFunctions() {
 	llr[0]   = _mm256_set_epi8( 0, 1, 2,    3, 4, 5,    6,   -7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1);
 	bits     = _mm256_set_epi8( 0, 0, 0, -128, 0, 0, -128, -128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	expected = _mm256_set_epi8(-1, 3, 5,   -7, 9,11,  -13,   15,17, 9, 1, 3, 5, 7, 9,11,13,15,17, 9, 1, 3, 5, 7, 9,11,13,15,17, 9, 1, 3);
-	PolarCode::Decoding::G_function(llr, &child, &bits, 32);
+	PolarCode::Decoding::FastSscAvx2::G_function(llr, &child, &bits, 32);
 	CPPUNIT_ASSERT(testVectors(child, expected));
 
 	// Combine-function
 	llr[0]   = _mm256_setr_epi8( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	llr[1]   = _mm256_setr_epi8( 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	expected = _mm256_setr_epi8( 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	PolarCode::Decoding::CombineShortBits(llr, llr+1, &bits, 8);
+	PolarCode::Decoding::FastSscAvx2::CombineShortBits(llr, llr+1, &bits, 8);
 	CPPUNIT_ASSERT(testVectors(bits, expected));
 }
 

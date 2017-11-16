@@ -318,12 +318,8 @@ void SimulationWorker::selectFrozenBits() {
 void SimulationWorker::setCoders() {
 	if(featureCheckAvx2())
 		mEncoder = new PolarCode::Encoding::ButterflyAvx2Packed(mJob->N, mFrozenBits);
-	else if(featureCheckAvx())
-		//mEncoder = new PolarCode::Encoding
-#warning TODO: Add SSE-based packed encoder
-		mEncoder = nullptr;
 	else {
-		std::cerr << "No encoder available (neither AVX2 nor SSE)" << std::endl;
+		std::cerr << "No encoder available" << std::endl;
 		exit(1);
 	}
 

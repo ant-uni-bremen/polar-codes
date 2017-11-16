@@ -6,41 +6,41 @@ unsigned _mm256_minpos_epu8(__m256i x, char *val)
 	const __m128i l0 = _mm256_extracti128_si256(x, 0);//low lane
 	const __m128i l1 = _mm256_extracti128_si256(x, 1);//high lane
 
-    //Convert them to epu16
+	//Convert them to epu16
 	const __m256i ext0 = _mm256_cvtepu8_epi16(l0);
 	const __m256i ext1 = _mm256_cvtepu8_epi16(l1);
 
-    //Get the four sublanes
+	//Get the four sublanes
 	const __m128i sl0 = _mm256_extracti128_si256(ext0, 0);
 	const __m128i sl1 = _mm256_extracti128_si256(ext0, 1);
 	const __m128i sl2 = _mm256_extracti128_si256(ext1, 0);
 	const __m128i sl3 = _mm256_extracti128_si256(ext1, 1);
 
+	union {
+		__m128i mp;
+		unsigned short smp[8];
+		unsigned short cmp[16];
+	} p[4];
+
 	//Find their minpos using the SSE4.1 intrinsic
-	const __m128i mp0 = _mm_minpos_epu16(sl0);
-	const __m128i mp1 = _mm_minpos_epu16(sl1);
-	const __m128i mp2 = _mm_minpos_epu16(sl2);
-	const __m128i mp3 = _mm_minpos_epu16(sl3);
+	p[0].mp = _mm_minpos_epu16(sl0);
+	p[1].mp = _mm_minpos_epu16(sl1);
+	p[2].mp = _mm_minpos_epu16(sl2);
+	p[3].mp = _mm_minpos_epu16(sl3);
 
-    //Get u16 access
-	const unsigned short *p[4] = {reinterpret_cast<const unsigned short*>(&mp0),
-							reinterpret_cast<const unsigned short*>(&mp1),
-							reinterpret_cast<const unsigned short*>(&mp2),
-							reinterpret_cast<const unsigned short*>(&mp3)};
+	//Get four local minima and fill unused entries with dummy value 127
+	const __m128i collection = _mm_setr_epi16(p[0].smp[0], p[1].smp[0], p[2].smp[0], p[3].smp[0], 127, 127, 127, 127);
 
-    //Get four local minima and fill unused entries with dummy value 127
-	const __m128i collection = _mm_setr_epi16(p[0][0], p[1][0], p[2][0], p[3][0], 127, 127, 127, 127);
-
-    //Get index of total minimum
+	//Get index of total minimum
 	const __m128i minIdx = _mm_minpos_epu16(collection);
 	const unsigned short selectedLane = reinterpret_cast<const unsigned short*>(&minIdx)[1];
-	const unsigned ret = p[selectedLane][1]+selectedLane*8;
+	const unsigned ret = p[selectedLane].smp[1]+selectedLane*8;
 
 	if(val!=nullptr) {
-		*val = ((char*)&x)[ret];
+		*val = p[selectedLane].cmp[0];
 	}
 
-    return ret;
+	return ret;
 }
 
 __m256i _mm256_subVectorShift_epu8(__m256i x, int shift) {
