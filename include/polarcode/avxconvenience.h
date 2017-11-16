@@ -6,6 +6,7 @@
 #endif
 
 #include <immintrin.h>
+#include <string>
 
 
 /*
@@ -15,6 +16,8 @@
 */
 #define FLOATSPERVECTOR 8
 #define BYTESPERVECTOR 32
+
+class Avx2NotSupportedException{};
 
 static inline float reduce_add_ps(__m256 x) {
     /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
@@ -148,6 +151,21 @@ __m256i _mm256_subVectorBackShiftBytes_epu8(__m256i x, int shift);
 
 __m256 _mm256_subVectorShift_ps(__m256 x, int shift);
 __m256 _mm256_subVectorBackShift_ps(__m256 x, int shift);
+
+/*!
+ * \brief Check if AVX2 is available
+ */
+bool featureCheckAvx2();
+
+/*!
+ * \brief Check if AVX2 is available
+ */
+bool featureCheckAvx();
+
+/*!
+ * \brief Check if CPU architecture is available
+ */
+bool featureCheckArch(std::string arch_string);
 
 #endif //AVXCONVENIENCE
 
