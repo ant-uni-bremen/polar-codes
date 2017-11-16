@@ -201,14 +201,65 @@ def simulate_awgn_polar_code_err_frames(constellation_order, inv_coderate, info_
                         python_ns, c_ns, results)
 
 
+def polar_scl_simulation_run():
+    info_len_list = np.array([32, 64, 128, 256, 512, 1024, ], dtype=int)
+    info_len_list = np.array([32, 64, 128, ], dtype=int)
+    info_len_list = np.array([64, 128, ], dtype=int)
+    info_len_list = np.array([512, 2048, ], dtype=int)
+    info_len_list = np.array([int(2 ** 8), ], dtype=int)
+    print(info_len_list)
+    inv_coderate = 2
+    ebn0_list = np.arange(0.0, 3.25, .25)  # overall
+    # ebn0_list = np.arange(0.7, 2.0, .1)  # overall
+    # ebn0_list = np.arange(-7.0, -3.25, .25)  # BPSK
+    # ebn0_list = np.arange(-2.0, 4.25, .25)  # QPSK
+    # ebn0_list = np.arange(4.0, 8.25, .25)  # 8-PSK
+    # ebn0_list = np.arange(4.0, 4.55, .25)  # overall
+    fer_list = np.ones(len(ebn0_list))
+    ber_list = np.ones(len(ebn0_list))
+    num_err_frames = 2 ** 9
+    scl_size_list = 2 ** np.arange(4)
+    print(scl_size_list)
+    constellation_order = 2
+
+
+    plt.ion()
+    plt.semilogy(ebn0_list, fer_list)
+    my_figure = plt.gcf()
+    plt.draw()
+    plt.grid()
+
+    for scl_size in scl_size_list:
+        for info_length in info_len_list:
+            for i, ebn0 in enumerate(ebn0_list):
+                print('\nConstellationOrder {}, invCoderate {}, SCL List size {}, info length {}, EbN0 {:.2f}'.format(constellation_order, inv_coderate, scl_size, info_length, ebn0))
+                res = simulate_awgn_polar_code_err_frames(constellation_order, inv_coderate, info_length, ebn0,
+                                                          num_err_frames, scl_size)
+                results = res['results']
+                fer_list[i] = calculate_fer(results, info_length)
+                ber_list[i] = calculate_ber(results, info_length)
+
+                my_figure.clear()
+                plt.semilogy(ebn0_list, fer_list)
+                plt.semilogy(ebn0_list, ber_list)
+                plt.xlabel('Eb/N0 [dB]')
+                plt.title('Polar Code ({}, {}), constellation order {}'.format(int(info_length * inv_coderate), info_length, constellation_order))
+                plt.grid()
+                plt.draw()
+    plt.ioff()
+    plt.show()
+
+
 def polar_simulation_run():
     info_len_list = np.array([32, 64, 128, 256, 512, 1024, ], dtype=int)
     info_len_list = np.array([32, 64, 128, ], dtype=int)
     info_len_list = np.array([64, 128, ], dtype=int)
     info_len_list = np.array([512, 2048, ], dtype=int)
+    info_len_list = np.array([int(2 ** 16), ], dtype=int)
     print(info_len_list)
     inv_coderate = 2
     ebn0_list = np.arange(-4.0, 5.25, .25)  # overall
+    ebn0_list = np.arange(0.7, 2.0, .1)  # overall
     # ebn0_list = np.arange(-7.0, -3.25, .25)  # BPSK
     # ebn0_list = np.arange(-2.0, 4.25, .25)  # QPSK
     # ebn0_list = np.arange(4.0, 8.25, .25)  # 8-PSK
@@ -247,7 +298,8 @@ def polar_simulation_run():
 
 def main():
     np.set_printoptions(precision=2, linewidth=150)
-    polar_simulation_run()
+    # polar_simulation_run()
+    polar_scl_simulation_run()
 
 
 if __name__ == '__main__':

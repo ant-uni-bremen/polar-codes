@@ -3,7 +3,8 @@
 # Install public header files
 ########################################################################
 install(FILES
-    errordetector.h DESTINATION include/polarcode/errordetection
+    errordetector.h
+    crc8.h DESTINATION include/polarcode/errordetection
 )
 
 

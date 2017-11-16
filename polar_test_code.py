@@ -8,7 +8,7 @@ import sys, time
 # sys.path.append('./build/lib')
 # sys.path.append('./build/lib.linux-x86_64-2.7')
 import pypolar
-
+from polar_code_tools import design_snr_to_bec_eta, calculate_bec_channel_capacities, get_frozenBitMap, get_frozenBitPositions, get_polar_generator_matrix
 
 
 '''
@@ -17,62 +17,6 @@ EncoderA of the paper:
     "Efficient Algorithms for Systematic Polar Encoding",
     IEEE Communication Letters, 2015.
 '''
-
-
-def odd_rec(iwn):
-    return iwn ** 2
-
-
-def even_rec(iwn):
-    return 2 * iwn - iwn ** 2
-
-
-def calc_vector_capacities_one_recursion(iw0):
-    degraded = odd_rec(iw0)
-    upgraded = even_rec(iw0)
-    iw1 = np.empty(2 * len(iw0), dtype=degraded.dtype)
-    iw1[0::2] = degraded
-    iw1[1::2] = upgraded
-    return iw1
-
-
-def calculate_bec_channel_capacities_vector(initial_channel, block_power):
-    # compare [0, Arikan] eq. 6
-    # this version is ~ 180 times faster than the loop version with 2**22 synthetic channels
-    iw = np.array([initial_channel, ], dtype=float)
-    for i in range(block_power):
-        iw = calc_vector_capacities_one_recursion(iw)
-    return iw
-
-
-def calculate_bec_channel_capacities(eta, block_size):
-    # compare [0, Arikan] eq. 6
-    iw = 1 - eta  # holds for BEC as stated in paper
-    lw = int(np.log2(block_size))
-    return calculate_bec_channel_capacities_vector(iw, lw)
-
-
-def design_snr_to_bec_eta(design_snr, coderate):
-    # minimum design snr = -1.5917 corresponds to BER = 0.5
-    s = 10. ** (design_snr / 10.)
-    s *= 2.
-    s *= coderate
-    # float linearDesignSNR = pow(10.0, designSNR/10.0);
-    # mInitialParameter = exp(-2.0 * linearDesignSNR
-    #                         * mInformationLength / mBlockLength);
-    return np.exp(-s)
-
-
-def get_frozenBitPositions(capacities, n_frozen):
-    indices = np.argsort(capacities)[0:n_frozen]
-    return indices
-
-
-def get_frozenBitMap(capacities, n_frozen):
-    frozenBitMap = np.ones(len(capacities), dtype=int) * -1
-    indices = get_frozenBitPositions(capacities, n_frozen)
-    frozenBitMap[indices] = 0
-    return frozenBitMap
 
 
 def polar_encode_systematic(u, N, frozenBitMap):
@@ -134,14 +78,6 @@ def encode_matrix(u, N, frozenBitMap):
     x[np.where(frozenBitMap == -1)] = u
     x = x.dot(G) % 2
     return x
-
-
-def get_polar_generator_matrix(n):
-    F = Fk = np.array([[1, 0], [1, 1]]).astype(int)
-    for i in range(n - 1):
-        F = np.kron(F, Fk)
-    # print F
-    return F
 
 
 def verify_encode_systematic():
@@ -213,22 +149,6 @@ def spc_most_efficient(u, N, frozenBitMap):
     return x
 
 
-def bit_reverse(val, bitwidth):
-    # print(val, bitwidth)
-    b = np.binary_repr(val, bitwidth)
-    # print(b, b[::-1])
-    r = int(b[::-1], 2)
-    # print(r)
-    return r
-
-
-def get_bitreversed_vector(bitwidth):
-    v = np.zeros(2**bitwidth, dtype=int)
-    for i in np.arange(2**bitwidth):
-        v[i] = bit_reverse(i, bitwidth)
-    return v
-
-
 def matrix_row_weight(G):
     w = np.sum(G, axis=1)
     print(w)
@@ -236,18 +156,26 @@ def matrix_row_weight(G):
     print(w)
 
 
-def verify_cpp_encoder_impl():
-    N = 2 ** 4
-    K = N // 2 - 3
+def verify_cpp_encoder_impls():
+    for i in range(4, 11):
+        N = 2 ** i
+        K = N // 2
+        verify_cpp_encoder_impl(N, K)
+
+
+def verify_cpp_encoder_impl(N=2 ** 4, K=5):
+    # N = 2 ** 4
+    # K = N // 2 - 3
     eta = design_snr_to_bec_eta(2, 1.0)
     polar_capacities = calculate_bec_channel_capacities(eta, N)
     f = get_frozenBitPositions(polar_capacities, N - K)
     frozenBitMap = get_frozenBitMap(polar_capacities, N - K)
-    print(frozenBitMap)
+    # print(frozenBitMap)
     print(f)
 
     p = pypolar.PolarEncoder(N, f)
     pu = pypolar.PolarEncoder(N, f, 'Unpacked')
+    print("Encoder CPP test ({}, {})".format(N, K))
 
     ctr = 0
     md = 0
@@ -256,7 +184,7 @@ def verify_cpp_encoder_impl():
     for i in np.arange(10):
         u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
         d = np.packbits(u)
-        print(N, K, len(u), len(d), u, d)
+        # print(N, K, len(u), len(d), u, d)
 
         sm = time.time()
         xm = encode_systematic_matrix(u, N, frozenBitMap)
@@ -268,7 +196,7 @@ def verify_cpp_encoder_impl():
         md += um - sm
         mu += pm - um
         mp += em - pm
-        print(xm, cw_pack)
+        # print(xm, cw_pack)
 
         assert np.all(cw_char == cw_pack)
         assert np.all(np.packbits(xm) == cw_pack)
@@ -280,48 +208,67 @@ def verify_cpp_encoder_impl():
     print('N={}, matrix: {:.2f}us, unpacked: {:.2f}us, packed: {:.2f}us'.format(N, m[0], m[1], m[2]))
 
 
-def verify_cpp_decoder_impl(N=2 ** 6, n_iterations=100):
-    print('verify CPP decoder implementation with codeword size: ', N)
-    K = N // 4
-
-    eta = design_snr_to_bec_eta(2, 1.0)
+def verify_cpp_decoder_impl(N=2 ** 6, K=2 ** 5, n_iterations=100):
+    print('verify CPP decoder implementation with ({}, {}) polar code'.format(N, K))
+    eta = design_snr_to_bec_eta(2, float(1. * K / N))
     polar_capacities = calculate_bec_channel_capacities(eta, N)
     f = get_frozenBitPositions(polar_capacities, N - K)
+    f = np.sort(f)
     print(f)
+    # f = pypolar.frozen_bits(N, K, 2)
 
     p = pypolar.PolarEncoder(N, f)
-    dec = pypolar.PolarDecoder(N, 1, f)
-    # u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
-    # d = np.packbits(u)
-
-    # cw_pack = p.encode_vector(d)
-    # b = np.unpackbits(cw_pack)
-    # llrs = -2 * b + 1
-    # llrs = llrs.astype(dtype=np.float32)
-
-    # bhat = dec.decode_vector(llrs)
+    dec = pypolar.PolarDecoder(N, 1, f, 'char')
 
     ctr = 0
+    num_errors = 0
     for i in np.arange(n_iterations):
         u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
         d = np.packbits(u)
 
         cw_pack = p.encode_vector(d)
         b = np.unpackbits(cw_pack)
-        llrs = -2 * b + 1
+        llrs = -2. * b + 1.
         llrs = llrs.astype(dtype=np.float32)
+        llrs += np.random.normal(0.0, .001, len(llrs))
         dhat = dec.decode_vector(llrs)
         # print(d)
         # print(dhat)
         if not np.all(dhat == d):
+            print('Decoder test fails in iteration', i)
             ud = np.unpackbits(d)
             udhat = np.unpackbits(dhat)
             print(ud)
             print(udhat)
             print(np.sum(udhat == ud) - len(ud))
+            num_errors += 1
 
         assert np.all(dhat == d)
         ctr += 1
+    if num_errors > 0:
+        print('Decoder test failed in {} out of {}'.format(num_errors, n_iterations))
+    assert num_errors == 0
+
+
+def verify_cpp_decoder_impls():
+    n_iterations = 100
+    inv_coderate = 4 / 3
+    for n in range(5, 11):
+        N = 2 ** n
+        K = int(N // inv_coderate)
+        verify_cpp_decoder_impl(N, K, n_iterations)
+
+    inv_coderate = 2
+    for n in range(5, 11):
+        N = 2 ** n
+        K = int(N // inv_coderate)
+        verify_cpp_decoder_impl(N, K, n_iterations)
+
+    inv_coderate = 4
+    for n in range(5, 9):
+        N = 2 ** n
+        K = int(N // inv_coderate)
+        verify_cpp_decoder_impl(N, K, n_iterations)
 
 
 def verify_frozen_bit_positions():
@@ -339,8 +286,10 @@ def verify_frozen_bit_positions():
                 pf = np.sort(pf)
                 encoder = pypolar.PolarEncoder(N, cf)
                 decoder = pypolar.PolarDecoder(N, 1, cf)
+
                 pp = encoder.frozenBits()
                 pd = decoder.frozenBits()
+
                 if not np.all(pf == cf):
                     print(cf)
                     print(pf)
@@ -348,47 +297,6 @@ def verify_frozen_bit_positions():
                 assert np.all(pf == cf)
                 assert np.all(pp == cf)
                 assert np.all(pd == cf)
-
-
-def plot_capacity_rate():
-    ebnos_db = np.arange(-1.0, 10., .1)
-    ebnos_lin = 10 ** (ebnos_db / 10.)
-    R = .5
-    # r0 = 1 - np.log2(1 + np.exp(-R * ebnos_lin))
-    # plt.plot(r0, ebnos_db)
-    r = np.arange(0.01, 1.0, .01)
-    en = -1 * (np.log((2 ** (1 - r)) - 1) / r)
-    en_db = 10 * np.log10(en)
-
-    ec = ((2 ** r) - 1) / r
-    ec_db = 10. * np.log10(ec)
-
-    plt.plot(r, en_db)
-    plt.plot(r, ec_db)
-
-    plt.show()
-
-
-def search_code_weights(N, K, design_snr_db):
-    f = pypolar.frozen_bits(N, K, design_snr_db)
-    p = pypolar.PolarEncoder(N, f)
-
-    numInfoWords = 2 ** K
-    weights = {}
-    for i in range(numInfoWords):
-        b = np.binary_repr(i, K)
-        u = np.array([int(l) for l in b], dtype=np.uint8)
-        nbp = np.packbits(u)
-        cw = p.encode_vector(nbp)
-        c = np.unpackbits(cw)
-        weight = np.sum(c)
-        if weight in weights:
-            weights[weight] += 1
-        else:
-            weights[weight] = 1
-    weights.pop(0)
-    print(weights)
-    return weights
 
 
 def calculate_code_properties(N, K, design_snr_db):
@@ -510,86 +418,13 @@ def get_polar_encoder_matrix_systematic(N, f):
     return gm.dot(G) % 2
 
 
-def q_func(x_vals):
-    return .5 * sps.erfc(x_vals)
-
-
-def calculate_awgn_fer_bound(Ar, R, ebnos_lin):
-    pw = np.zeros(len(ebnos_lin))
-    for r, a in enumerate(Ar):
-        pw += a * q_func(np.sqrt(2 * R * r * ebnos_lin))
-    return pw
-
-
-def plot_channel_coding_bounds():
-    N = 32
-    ebnos_db = np.arange(-1.0, 10., .1)
-    ebnos_lin = 10 ** (ebnos_db / 10.)
-    design_snr_db = 0.0
-    ks = np.array([4, 8, 16], dtype=int)
-
-    for k in ks:
-        R = 1. * k / N
-        print(N, k, R)
-        weights = search_code_weights(N, k, design_snr_db)
-        dmin = np.min(weights.keys())
-        Ar = np.zeros(N + 1, dtype=int)
-        Ar[weights.keys()] = weights.values()
-        # Ar = weights.values()
-        awgn_fer = calculate_awgn_fer_bound(Ar, R, ebnos_lin)
-        print(awgn_fer)
-        # f = pypolar.frozen_bits(N, k, design_snr_db)
-        # Gs = get_polar_encoder_matrix_systematic(N, f)
-        # dmin = validate_generator_and_check_matrix(Gs, f)
-        my_plot = plt.semilogy(ebnos_db, awgn_fer, ls='dashed')
-
-
-        x_vals = np.sqrt(2 * R * dmin * ebnos_lin)
-        q_vals = q_func(x_vals)
-        pw_vals = (2 ** k - 1) * q_vals
-        plt.semilogy(ebnos_db, pw_vals, c=my_plot[0].get_color(), label='K{}, R{:.2f}'.format(k, R))
-    # plt.ylim((1e-10, 1))
-    plt.legend()
-    plt.show()
-
-
-def calculate_r0_fer(codeword_len, info_len, ebn0s):
-    print(ebn0s)
-    rb = 1. * info_len / codeword_len
-    print(rb)
-    ebn0s_lin = 10. ** (ebn0s / 10.)
-    print(ebn0s_lin)
-    snr = rb * ebn0s_lin
-    print(snr)
-    r0 = 1 - np.log2(1 + np.exp(-1. * snr))
-    print(r0)
-    print(r0 - rb)
-    fer = 2 ** (-1. * codeword_len * (r0 - rb))
-    fer[np.where(r0 < rb)] = 1.
-    return fer
-
-
-def plot_r0_fer():
-    ebn0s = np.arange(0.0, 4., .25)
-    fer = calculate_r0_fer(512, 256, ebn0s)
-    plt.semilogy(ebn0s, fer)
-    plt.grid()
-    plt.show()
-
-
 def main():
-    calculate_code_properties(32, 17, 0.0)
-
-    plot_channel_coding_bounds()
-    plot_capacity_rate()
-    # return
+    calculate_code_properties(32, 16, 0.0)
     verify_frozen_bit_positions()
     verify_encode_systematic()
-    verify_cpp_encoder_impl()
+    verify_cpp_encoder_impls()
+    verify_cpp_decoder_impls()
     return
-    for n in range(5, 9):
-        N = 2 ** n
-        verify_cpp_decoder_impl(N, 10000)
     G = get_polar_generator_matrix(3)
     print(G)
     # matrix_row_weight(G)
@@ -604,11 +439,6 @@ def main():
     u = np.random.randint(0, 2, K)
     u = np.ones(K)
     xm = encode_systematic_matrix(u, 8, frozenBitMap)
-    # x = spc_most_efficient(u, N, frozenBitMap)
-    # print(x)
-
-    print('')
-    print(xm)
 
     N = 2 ** 5
     K = N // 2
@@ -616,40 +446,8 @@ def main():
     eta = design_snr_to_bec_eta(2, 1.0)
     polar_capacities = calculate_bec_channel_capacities(eta, N)
     f = get_frozenBitPositions(polar_capacities, N - K)
-    print(f)
 
-    p = pypolar.PolarEncoder(N, f)
-    u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
-    d = np.packbits(u)
-    print(d)
-    cw_pack = p.encode_vector(d)
-    b = np.unpackbits(cw_pack)
-    llrs = -2 * b + 1
-    llrs = llrs.astype(dtype=np.float32)
 
-    dec = pypolar.PolarDecoder(N, 1, f)
-    print(dec.infoLength())
-    bhat = dec.decode_vector(llrs)
-    print(bhat)
-    print('Polar Coder Test')
-    ctr = 0
-    for i in np.arange(100000):
-        u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
-        d = np.packbits(u)
-
-        cw_pack = p.encode_vector(d)
-        b = np.unpackbits(cw_pack)
-        llrs = -2 * b + 1
-        llrs = llrs.astype(dtype=np.float32)
-        dhat = dec.decode_vector(llrs)
-        #print d
-        #print dhat
-        if not np.all(dhat == d):
-            print(np.unpackbits(d))
-            print(np.unpackbits(dhat))
-
-        assert np.all(dhat == d)
-        ctr += 1
 
 
 

@@ -4,9 +4,9 @@ from __future__ import print_function, division
 import sys, os
 my_dir = os.path.dirname(os.path.realpath(__file__))
 # print(my_dir)
-test_module_dir = os.path.join(my_dir, 'build/lib.linux-x86_64-2.7/')
-test_module_dir = os.path.abspath(test_module_dir)
-sys.path.insert(0, test_module_dir)
+# test_module_dir = os.path.join(my_dir, 'build/lib.linux-x86_64-2.7/')
+# test_module_dir = os.path.abspath(test_module_dir)
+# sys.path.insert(0, test_module_dir)
 # print sys.path
 
 import time
@@ -27,6 +27,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 import csv
+from matplotlib2tikz import save
 
 
 def load_results(prefix=None):
@@ -155,9 +156,7 @@ def plot_convolutional_graph(ax, ldMlist=np.arange(8, dtype=int)):
             ax.semilogy(ebn0s, bers, label=ll, linestyle=line_styles[ii % len(line_styles)], color=line_colors[ic % len(line_colors)])
 
 
-def main():
-    np.set_printoptions(precision=2, linewidth=150)
-    filename = 'testrange_codelength.csv'
+def load_pcs_csv_file(filename):
     with open(filename, 'rb') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
         # print(', '.join(spamreader[0]))
@@ -165,7 +164,80 @@ def main():
             print(', '.join(row))
 
     sim_res = np.genfromtxt(filename, delimiter=',')
+    return sim_res
+
+
+def separate_simulation_results(res_mat):
+    res_mat[np.isnan(res_mat)] = 0.0
+    res = {}
+    for row in res_mat:
+        if row[0] in res.keys():
+            res[row[0]] = np.vstack((res[row[0]], row))
+        else:
+            res[row[0]] = row
+    for k in res.keys():
+        res[k] = res[k][:, 1:]
+    return res
+
+
+def separate_dict_simulation_results(res_dict):
+    res = {}
+    for k in res_dict.keys():
+        if isinstance(res_dict[k], dict):
+            res[k] = separate_dict_simulation_results(res_dict[k])
+        else:
+            res[k] = separate_simulation_results(res_dict[k])
+    return res
+
+
+def main():
+    np.set_printoptions(precision=2, linewidth=150)
+    filename = 'cpp_build/polar_list_decoder_N512_listlength.csv'
+    sim_res = load_pcs_csv_file(filename)
+    sim_res = sim_res[1:, :]
     print(sim_res)
+    results = separate_simulation_results(sim_res)
+    for i in range(3):
+        results = separate_dict_simulation_results(results)
+    print(results)
+    print('now strip common values')
+    common_keys = []
+    while 0 < len(results.keys()) < 2:
+        common_keys.append(results.keys()[0])
+        results = results[results.keys()[0]]
+    print(results)
+    print(common_keys)
+
+    keys = np.sort(results.keys())
+    for k in keys:
+        ebno = results[k][:, 0]
+        fer = results[k][:, 1]
+        plt.semilogy(ebno, fer, label='{}'.format(int(k)))
+    plt.legend()
+    plt.ylim((1e-3, 1))
+    plt.xlim((0.0, 3.6))
+    plt.ylabel('FER')
+    plt.xlabel(r'$E_b / N_0$ [dB]')
+    plt.grid()
+    plt.title('List sizes for Polar Code ({}, {}) with dSNR {}dB'.format(int(common_keys[0]), int(common_keys[0] / common_keys[1]), common_keys[2]))
+    save('polar_code_N512_list_sizes.pgf')
+    plt.show()
+
+    for k in keys:
+        ebno = results[k][:, 0]
+        thr = results[k][:, 9] / 1e6
+        plt.plot(ebno, thr, label='{}'.format(int(k)))
+    plt.legend(loc='lower right')
+    # plt.ylim((1e-3, 1))
+    # plt.xlim((0.0, 3.6))
+    plt.ylabel('Throughput [Mbps]')
+    plt.xlabel(r'$E_b / N_0$ [dB]')
+    plt.grid()
+    plt.title('Throughput for Polar Code ({}, {}) with dSNR {}dB'.format(int(common_keys[0]), int(common_keys[0] / common_keys[1]), common_keys[2]))
+    save('polar_code_N512_list_sizes_throughput.pgf')
+    plt.show()
+
+    return
     blockLengths = np.array(sim_res[1:, 0]).astype(int)
     blockLengths = np.reshape(blockLengths, (4, -1))
     invRates = sim_res[1:, 1]

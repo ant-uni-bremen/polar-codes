@@ -26,10 +26,12 @@ cdef class PolarEncoder:
 
     def __cinit__(self, block_size, np.ndarray frozen_bit_positions, encoder_impl='Packed'):
         frozen_bit_positions = np.sort(frozen_bit_positions)
+        frozen_bit_positions = frozen_bit_positions.astype(np.uint32)
         if encoder_impl is 'Unpacked':
             self.kernel = new polar_interface.ButterflyAvx2Char(block_size, frozen_bit_positions)
         else:
             self.kernel = new polar_interface.ButterflyAvx2Packed(block_size, frozen_bit_positions)
+        detector = new polar_interface.CRC8()
 
     def __del__(self):
         del self.kernel
@@ -79,6 +81,7 @@ cdef class PolarDecoder:
 
     def __cinit__(self, block_size, list_size, np.ndarray frozen_bit_positions, decoder_impl="char"):
         frozen_bit_positions = np.sort(frozen_bit_positions)
+        frozen_bit_positions = frozen_bit_positions.astype(np.uint32)
 
         self.decoder_impl_flag = 1 if decoder_impl == "float" else 0
         print(self.decoder_impl_flag)
@@ -101,6 +104,7 @@ cdef class PolarDecoder:
         return self.kernel.infoLength()
 
     def decode_vector(self, np.ndarray[np.float32_t, ndim=1] llrs):
+        #print "float decoder "
         cdef np.ndarray[np.uint8_t, ndim=1] infoword = np.zeros((self.kernel.infoLength() // 8, ), dtype=np.uint8)
         self.kernel.decode_vector(<float*> llrs.data, <void*> infoword.data)
         return infoword

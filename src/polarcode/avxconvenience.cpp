@@ -164,21 +164,22 @@ __m256 _mm256_subVectorBackShift_ps(__m256 x, int shift) {
 }
 
 bool featureCheckAvx2() {
-	return featureCheckArch(std::string("avx2"));
+	/*
+	 * Apparently GCC5.x has a bug which prevents shared libraries to use '__builtin_cpu_supports(...)'
+	 * https://bugs.launchpad.net/ubuntu/+source/gcc-5/+bug/1568899
+	 * Preprocessor Macros are the quick and dirty fix!
+	 */
+#if defined(__GNUC__) && __GNUC__ == 5
+	return true;
+#else
+	return __builtin_cpu_supports("avx2");
+#endif
 }
 
 bool featureCheckAvx() {
-    return featureCheckArch(std::string("avx"));
-}
-
-bool featureCheckArch(std::string arch_string) {
-    // Apparently GCC5.x has a bug which prevents shared libraries to use this function
-    // https://bugs.launchpad.net/ubuntu/+source/gcc-5/+bug/1568899
-	//return __builtin_cpu_supports("avx2");
-	
 #if defined(__GNUC__) && __GNUC__ == 5
-    return true;
+	return true;
 #else
-    return __builtin_cpu_supports(arch_string.c_str());
+	return __builtin_cpu_supports("avx");
 #endif
 }

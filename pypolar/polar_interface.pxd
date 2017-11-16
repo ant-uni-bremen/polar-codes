@@ -45,6 +45,14 @@ cdef extern from "polarcode/decoding/decoder.h" namespace "PolarCode::Decoding":
 
     Decoder* makeDecoder(size_t, size_t, vector[unsigned int], int decoder_impl)
 
+cdef extern from "polarcode/errordetection/errordetector.h" namespace "PolarCode::ErrorDetection":
+    cdef cppclass Detector:
+        Detector() except +
+
+cdef extern from "polarcode/errordetection/crc8.h" namespace "PolarCode::ErrorDetection":
+    cdef cppclass CRC8(Detector):
+        CRC8() except +
+
 
 cdef extern from "polarcode/construction/constructor.h" namespace "PolarCode::Construction":
     vector[unsigned int] frozen_bits(const int blockLength, const int infoLength, const float designSNR)

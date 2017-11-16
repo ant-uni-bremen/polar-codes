@@ -162,10 +162,5 @@ bool featureCheckAvx2();
  */
 bool featureCheckAvx();
 
-/*!
- * \brief Check if CPU architecture is available
- */
-bool featureCheckArch(std::string arch_string);
-
 #endif //AVXCONVENIENCE
 
