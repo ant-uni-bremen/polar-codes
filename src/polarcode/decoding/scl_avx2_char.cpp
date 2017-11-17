@@ -212,9 +212,9 @@ DecoderNode::DecoderNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	mRight = createDecoder(rightFrozenBits, this, &rightDecoder);
 
 	if(mBlockLength < 32) {
-		combineFunction = mSoftOutput ? FastSscAvx2::CombineSoftBitsShort : FastSscAvx2::CombineHardBitsShort;
+		combineFunction = FastSscAvx2::CombineSoftBitsShort;
 	} else {
-		combineFunction = mSoftOutput ? FastSscAvx2::CombineSoftBits : FastSscAvx2::CombineHardBits;
+		combineFunction = FastSscAvx2::CombineSoftBits;
 	}
 }
 

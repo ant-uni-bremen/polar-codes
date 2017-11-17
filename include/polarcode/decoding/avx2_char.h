@@ -17,34 +17,6 @@ size_t nBit2cvecCount(size_t blockLength);
 
 
 namespace FastSscAvx2 {
-/*
-__m256i hardDecode(__m256i x);
-char hardDecode(char llr);
-
-void F_function_calc(__m256i &Left, __m256i &Right, __m256i *Out);
-void G_function_calc(__m256i &Left, __m256i &Right, __m256i &Bits, __m256i *Out);
-
-void F_function(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength);
-void G_function(__m256i *LLRin, __m256i *LLRout, __m256i *BitsIn, unsigned subBlockLength);
-void G_function_0R(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength);
-void G_function_0RShort(__m256i *LLRin, __m256i *LLRout, unsigned subBlockLength);
-
-void Combine(__m256i *Bits, const unsigned vecCount);
-void Combine_0R(__m256i *Bits, const unsigned blockLength);
-void Combine_0RShort(__m256i *Bits, __m256i *RightBits, const unsigned blockLength);
-void CombineShortBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
-void CombineBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
-
-void CombineSoftBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
-void CombineSoftBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
-void CombineSoftBitsLong(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength);
-
-void RepetitionPrepare(__m256i* x, const size_t codeLength);
-void SpcPrepare(__m256i* x, const size_t codeLength);
-*/
-
-
-
 
 inline __m256i hardDecode(__m256i x) {
 	static const __m256i mask = _mm256_set1_epi8(-128);
@@ -148,48 +120,24 @@ inline void MoveRightBits(__m256i* Right, const unsigned subBlockLength) {
 /* Following combine functions are named by this scheme:
  *
  *
- * 'Combine' + option 1 + option 2 + option 3
+ * 'Combine' + 'Soft' +  option 1 + option 2
  *
- * 1. 'Soft' for Boxplus combination
- *    or 'Hard' for XOR combination
- *
- * 2. 'InPlace' for in-place combination
+ * 1. 'InPlace' for in-place combination
  *    or 'Bits', when left and right bits are in different sources
  *                    and output will be written toa third location
  *
- * 3. 'Short', when block length is shorter than vector length (32)
+ * 2. 'Short', when block length is shorter than vector length (32)
  *    or nothing, for fully vectorized operations
  *    or 'Flexible', for adaptive selection of Short or Long
  *
  * 'InPlace' and 'Short' is impossible.
  */
 
-inline void CombineHardInPlace(__m256i *Bits, const unsigned vecCount) {
-	for(unsigned i=0; i<vecCount; i++) {
-		__m256i tempL = _mm256_load_si256(Bits+i);
-		__m256i tempR = _mm256_load_si256(Bits+vecCount+i);
-		tempL = _mm256_xor_si256(tempL, tempR);
-		_mm256_store_si256(Bits+i, tempL);
-	}
-}
-
 inline void CombineSoftInPlace(__m256i *Bits, const unsigned vecCount) {
 	for(unsigned i=0; i<vecCount; i++) {
 		__m256i tempL = _mm256_load_si256(Bits+i);
 		__m256i tempR = _mm256_load_si256(Bits+vecCount+i);
 		F_function_calc(tempL, tempR, Bits+i);
-	}
-}
-
-
-inline void CombineHardBits(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
-	const unsigned vecCount = nBit2cvecCount(subBlockLength);
-	for(unsigned i=0; i<vecCount; ++i) {
-		__m256i tempL = _mm256_load_si256(Left+i);
-		__m256i tempR = _mm256_load_si256(Right+i);
-		tempL = _mm256_xor_si256(tempL, tempR);
-		_mm256_store_si256(Out+i, tempL);
-		_mm256_store_si256(Out+vecCount+i, tempR);
 	}
 }
 
@@ -207,14 +155,6 @@ inline void CombineSoftBits(__m256i *Left, __m256i *Right, __m256i *Out, const u
 		//Copy lower bits
 		_mm256_store_si256(Out+vecCount+i, RightV);
 	}
-}
-
-inline void CombineHardBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
-	*Left = _mm256_xor_si256(*Left, *Right);
-	PrepareForShortOperation(Left, subBlockLength);
-	MoveRightBits(Right, subBlockLength);
-	__m256i result = _mm256_or_si256(*Left, *Right);
-	_mm256_store_si256(Out, result);
 }
 
 inline void CombineSoftBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
