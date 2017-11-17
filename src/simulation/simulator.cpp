@@ -5,6 +5,20 @@
 #include <iostream>
 #include <cmath>
 
+#include <polarcode/encoding/butterfly_avx2_packed.h>
+
+#include <polarcode/decoding/fastssc_avx_float.h>
+#include <polarcode/decoding/fastssc_avx2_char.h>
+#include <polarcode/decoding/scl_avx2_char.h>
+#include <polarcode/decoding/scl_avx_float.h>
+#include <polarcode/decoding/adaptive_float.h>
+#include <polarcode/decoding/adaptive_char.h>
+#include <polarcode/decoding/adaptive_mixed.h>
+
+#include <polarcode/errordetection/dummy.h>
+#include <polarcode/errordetection/crc8.h>
+#include <polarcode/errordetection/crc32.h>
+
 namespace Simulation {
 
 Simulator::Simulator(Setup::Configurator *config)
@@ -234,24 +248,28 @@ void Simulator::saveResults() {
 	fileName += ".csv";
 	std::ofstream file(fileName);
 
-	file << "\"N\",\"R\",\"dSNR\",\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"RER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\",\"Encoder Bitrate\",\"Amplification\"" << std::endl;
+	file << "\"N\",\"K\",\"dSNR\",\"C\",\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"RER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\",\"Encoder Bitrate\",\"Amplification\"" << std::endl;
 
 	for(auto job : mJobList) {
 		file<< job->N << ','
-			<< ((float)job->N/job->K) << ','
+			<< job->K << ','
 			<< job->designSNR << ','
+			<< job->errorDetection << ','
 			<< job->L << ','
 			<< job->EbN0 << ',';
 		if(job->BLER > 0.0)         file << job->BLER << ',';   else file << "nan,";
 		if(job->BER  > 0.0)         file << job->BER  << ',';   else file << "nan,";
 		if(job->RER  > 0.0)         file << job->RER  << ',';   else file << "nan,";
-		file << job->runs << ',' << job->errors << ',' << job->time << ',' << job->blps << ',';
-		if(job->cbps > 0)           file << job->cbps << ',';   else file << "nan,";
-		if(job->pbps > 0)           file << job->pbps << ',';   else file << "nan,";
-		if(job->effectiveRate != 0) file << job->effectiveRate << ','; else file << "nan,";
-		file << job->ebps << ',';
-		file << job->amplification;
-		file << std::endl;
+		file << job->runs << ','
+			 << job->errors << ','
+			 << job->time << ','
+			 << job->blps << ','
+			 << job->cbps << ','
+			 << job->pbps << ','
+			 << job->effectiveRate << ','
+			 << job->ebps << ','
+			 << job->amplification;
+			 << std::endl;
 	}
 	file.close();
 }

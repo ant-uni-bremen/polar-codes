@@ -60,7 +60,7 @@ struct DataPoint
 	int N;///< Blocklength
 	int K;///< Information length
 	int L;///< List length for list-decoding
-	int errorDetection;///< 0=none,8/32=crc
+	int errorDetection;///< 0=none,8/32=crc (effectively the number of check bits)
 	bool systematic;///< True, if systematic coding will be used
 
 	//Simulation-Parameters
