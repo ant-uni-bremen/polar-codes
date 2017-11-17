@@ -14,6 +14,9 @@ namespace Encoding {
  * \brief The skeleton-class for encoders
  */
 class Encoder {
+private:
+		size_t mEncoderDuration;
+
 protected:
 	ErrorDetection::Detector* mErrorDetector;///< Error detecting object
 	size_t mBlockLength;           ///< Block length of the Polar Code
@@ -26,6 +29,17 @@ public:
 	Encoder();
 	virtual ~Encoder();
 	virtual void encode() = 0;///< Execute the encoding algorithm.
+
+	/*!
+	 * \brief Encode packed vector
+	 */
+	void encode_vector(void *pInfo, void *pCode);
+
+	/*!
+	 * \brief Encoder duration
+	 * \return Number of ticks in nanoseconds for last encoder call.
+	 */
+	size_t duration_ns() { return mEncoderDuration; }
 
 	/*!
 	 * \brief Set the encoder's parameters.

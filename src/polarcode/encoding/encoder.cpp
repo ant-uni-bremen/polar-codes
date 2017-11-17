@@ -1,5 +1,6 @@
 #include <polarcode/encoding/encoder.h>
 #include <polarcode/errordetection/dummy.h>
+#include <chrono>
 
 namespace PolarCode {
 namespace Encoding {
@@ -54,6 +55,15 @@ void Encoder::getEncodedData(void *pData) {
 
 void Encoder::clearFrozenBits() {
 	mBitContainer->resetFrozenBits();
+}
+
+void Encoder::encode_vector(void *pInfo, void *pCode){
+	std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+	setInformation(pInfo);
+	encode();
+	getEncodedData(pCode);
+	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	mEncoderDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 }//namespace Encoding

@@ -22,19 +22,18 @@ def frozen_bits(blockLength, infoLength, designSNR):
 
 cdef class PolarEncoder:
     cdef polar_interface.Encoder* kernel
-    cdef int enc_dur
 
-    def __cinit__(self, block_size, np.ndarray frozen_bit_positions, encoder_impl='Packed'):
+    def __cinit__(self, block_size, np.ndarray frozen_bit_positions):
         frozen_bit_positions = np.sort(frozen_bit_positions)
         frozen_bit_positions = frozen_bit_positions.astype(np.uint32)
-        if encoder_impl is 'Unpacked':
-            self.kernel = new polar_interface.ButterflyAvx2Char(block_size, frozen_bit_positions)
-        else:
-            self.kernel = new polar_interface.ButterflyAvx2Packed(block_size, frozen_bit_positions)
-        detector = new polar_interface.CRC8()
+        self.kernel = new polar_interface.ButterflyAvx2Packed(block_size, frozen_bit_positions)
 
     def __del__(self):
         del self.kernel
+
+    def setErrorDetection(self):
+        detector = new polar_interface.CRC8()
+        self.kernel.setErrorDetection(detector)
 
     def encode(self):
         self.kernel.encode()
@@ -61,16 +60,11 @@ cdef class PolarEncoder:
         return codeword
 
     def encoder_duration(self):
-        return self.enc_dur
+        return self.kernel.duration_ns()
 
     def encode_vector(self, np.ndarray[np.uint8_t, ndim=1] info_bytes):
         cdef np.ndarray[np.uint8_t, ndim=1] codeword = np.zeros((self.kernel.blockLength() // 8, ), dtype=np.uint8)
-        s = time.time()
-        self.kernel.setInformation(<void*> info_bytes.data)
-        self.kernel.encode()
-        self.kernel.getEncodedData(<void*> codeword.data)
-        e = time.time()
-        self.enc_dur = int(1e9 * (e - s))
+        self.kernel.encode_vector(<void*> info_bytes.data, <void*> codeword.data)
         return codeword
 
 
@@ -84,11 +78,15 @@ cdef class PolarDecoder:
         frozen_bit_positions = frozen_bit_positions.astype(np.uint32)
 
         self.decoder_impl_flag = 1 if decoder_impl == "float" else 0
-        print(self.decoder_impl_flag)
+        #print(self.decoder_impl_flag)
         self.kernel = polar_interface.makeDecoder(block_size, list_size, frozen_bit_positions, self.decoder_impl_flag)
 
     def __del__(self):
         del self.kernel
+
+    def setErrorDetection(self):
+        detector = new polar_interface.CRC8()
+        self.kernel.setErrorDetection(detector)
 
     def decode(self):
         self.kernel.decode()

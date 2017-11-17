@@ -190,23 +190,19 @@ def separate_dict_simulation_results(res_dict):
     return res
 
 
-def main():
-    np.set_printoptions(precision=2, linewidth=150)
+def plot_pcs_results():
     filename = 'cpp_build/polar_list_decoder_N512_listlength.csv'
+    # filename = 'polar_list_decoder_N512_soft_test_listlength.csv'
     sim_res = load_pcs_csv_file(filename)
     sim_res = sim_res[1:, :]
-    print(sim_res)
     results = separate_simulation_results(sim_res)
     for i in range(3):
         results = separate_dict_simulation_results(results)
-    print(results)
-    print('now strip common values')
+
     common_keys = []
     while 0 < len(results.keys()) < 2:
         common_keys.append(results.keys()[0])
         results = results[results.keys()[0]]
-    print(results)
-    print(common_keys)
 
     keys = np.sort(results.keys())
     for k in keys:
@@ -220,7 +216,7 @@ def main():
     plt.xlabel(r'$E_b / N_0$ [dB]')
     plt.grid()
     plt.title('List sizes for Polar Code ({}, {}) with dSNR {}dB'.format(int(common_keys[0]), int(common_keys[0] / common_keys[1]), common_keys[2]))
-    save('polar_code_N512_list_sizes.pgf')
+    # save('polar_code_N512_list_sizes.pgf')
     plt.show()
 
     for k in keys:
@@ -234,9 +230,28 @@ def main():
     plt.xlabel(r'$E_b / N_0$ [dB]')
     plt.grid()
     plt.title('Throughput for Polar Code ({}, {}) with dSNR {}dB'.format(int(common_keys[0]), int(common_keys[0] / common_keys[1]), common_keys[2]))
-    save('polar_code_N512_list_sizes_throughput.pgf')
+    # save('polar_code_N512_list_sizes_throughput.pgf')
     plt.show()
 
+
+def plot_coherence_time():
+    fc = 5.8e9
+    c = 3e8
+    v = np.arange(10.0, 16., 0.1)
+    fd = fc * v / c
+    factor = 9. / (16 * np.pi)
+    plt.plot(v, 1. / fd, label='1/fd')
+    plt.plot(v, factor / fd, label='restrictive')
+    plt.plot(v, np.sqrt(factor) / fd, label='Clarke')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+
+def main():
+    np.set_printoptions(precision=2, linewidth=150)
+    # plot_pcs_results()
+    plot_coherence_time()
     return
     blockLengths = np.array(sim_res[1:, 0]).astype(int)
     blockLengths = np.reshape(blockLengths, (4, -1))
