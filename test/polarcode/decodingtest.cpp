@@ -145,7 +145,7 @@ void DecodingTest::testAvx2Short() {
 	float signal[]={-5, -6, -4, 1, -4, -5, -7, 2};
 	unsigned char output = 0;
 
-	PolarCode::Decoding::Decoder *decoder = new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits, true);
+	PolarCode::Decoding::Decoder *decoder = new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits);
 
 	TimeStart = high_resolution_clock::now();
 	decoder->setSignal(signal);

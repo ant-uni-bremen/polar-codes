@@ -355,7 +355,7 @@ void SimulationWorker::setCoders() {
 		switch(mJob->precision) {
 		case 8:
 		case 832:
-			mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits, mJob->softOutput);
+			mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits);
 			break;
 		case 32:
 			mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);

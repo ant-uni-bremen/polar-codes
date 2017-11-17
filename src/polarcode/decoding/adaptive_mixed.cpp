@@ -16,7 +16,7 @@ AdaptiveMixed::AdaptiveMixed
 	mSoftOutput = softOutput;
 	mExternalContainers = true;
 
-	mFastDecoder = new FastSscAvx2Char(mBlockLength, mFrozenBits, mSoftOutput);
+	mFastDecoder = new FastSscAvx2Char(mBlockLength, mFrozenBits);
 	mListDecoder = new SclAvxFloat(mBlockLength, mListSize, mFrozenBits, mSoftOutput);
 }
 

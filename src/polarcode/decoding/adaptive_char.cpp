@@ -16,7 +16,7 @@ AdaptiveChar::AdaptiveChar
 	mSoftOutput = softOutput;
 	mExternalContainers = true;
 
-	mFastDecoder = new FastSscAvx2Char(mBlockLength, mFrozenBits, mSoftOutput);
+	mFastDecoder = new FastSscAvx2Char(mBlockLength, mFrozenBits);
 	mListDecoder = new SclAvx2Char(mBlockLength, mListSize, mFrozenBits, mSoftOutput);
 }
 

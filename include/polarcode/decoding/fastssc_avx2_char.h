@@ -26,7 +26,6 @@ protected:
 	datapool_t *xmDataPool;///< Pointer to a DataPool object.
 	size_t mBlockLength,   ///< Length of the subcode.
 		   mVecCount;      ///< Number of AVX-vectors the data can be stored in.
-	bool mSoftOutput;      ///< Whether to use XOR or Boxplus for bit combination.
 
 public:
 	Node();
@@ -36,7 +35,7 @@ public:
 	 * \param pool Pointer to a DataPool, which provides lazy-copyable memory blocks.
 	 * \param softOutput Whether XOR or Boxplus will be used for bit combination.
 	 */
-	Node(size_t blockLength, datapool_t *pool, bool softOutput);
+	Node(size_t blockLength, datapool_t *pool);
 	virtual ~Node();
 
 	virtual void decode(__m256i *LlrIn, __m256i *BitsOut);///< Execute a specialized decoding algorithm.
@@ -102,8 +101,6 @@ protected:
 	void (*leftDecoder)(__m256i*, __m256i*, size_t);///< Pointer to special decoding function of left child.
 	void (*rightDecoder)(__m256i*, __m256i*, size_t);///< Pointer to special decoding function of right child.
 
-	void (*combineFunction)(__m256i*, const unsigned);///< Pointer to soft-output or faster XOR combine function
-
 public:
 	/*!
 	 * \brief Using the set of frozen bits, specialized subcodes are selected.
@@ -121,7 +118,6 @@ public:
 class ShortRateRNode : public RateRNode {
 protected:
 	Block<__m256i> *LeftBits, *RightBits;
-	void (*shortCombineFunction)(__m256i*, __m256i*, __m256i*, const unsigned);
 
 public:
 	/*!
@@ -221,7 +217,7 @@ public:
 	 * \param blockLength Length of the Polar Code.
 	 * \param frozenBits Set of frozen bits in the code word.
 	 */
-	FastSscAvx2Char(size_t blockLength, const std::vector<unsigned> &frozenBits, bool softOutput);
+	FastSscAvx2Char(size_t blockLength, const std::vector<unsigned> &frozenBits);
 	~FastSscAvx2Char();
 
 	bool decode();
