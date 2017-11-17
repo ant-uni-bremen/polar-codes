@@ -105,6 +105,7 @@ DataPoint* Simulator::getDefaultDataPoint() {
 	dp->L =                mConfiguration->getInt("pathlimit");
 	dp->errorDetection =   errorDetectionStringToId(mConfiguration->getString("error-detection"));
 	dp->systematic =      !mConfiguration->getSwitch("non-systematic");
+	dp->softOutput =       mConfiguration->getSwitch("soft-output");
 
 	// Set simulation parameters
 	dp->EbN0 =             mConfiguration->getFloat("snr-max");
@@ -268,7 +269,7 @@ void Simulator::saveResults() {
 			 << job->pbps << ','
 			 << job->effectiveRate << ','
 			 << job->ebps << ','
-			 << job->amplification;
+			 << job->amplification
 			 << std::endl;
 	}
 	file.close();
@@ -354,7 +355,7 @@ void SimulationWorker::setCoders() {
 		switch(mJob->precision) {
 		case 8:
 		case 832:
-			mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits);
+			mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits, mJob->softOutput);
 			break;
 		case 32:
 			mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);
@@ -364,11 +365,6 @@ void SimulationWorker::setCoders() {
 			exit(1);
 		}
 	}
-	//Other options:
-	//mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);
-	//mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits);
-	//mDecoder = new PolarCode::Decoding::SclAvxFloat(mJob->N, mJob->L, mFrozenBits);
-
 }
 void SimulationWorker::setErrorDetector() {
 	switch(mJob->errorDetection) {

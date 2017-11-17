@@ -128,7 +128,7 @@ void DecodingTest::testGeneralDecodingFunctions() {
 	llr[0]   = _mm256_setr_epi8( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	llr[1]   = _mm256_setr_epi8( 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	expected = _mm256_setr_epi8( 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	PolarCode::Decoding::FastSscAvx2::CombineShortBits(llr, llr+1, &bits, 8);
+	PolarCode::Decoding::FastSscAvx2::CombineSoftBitsShort(llr, llr+1, &bits, 8);
 	CPPUNIT_ASSERT(testVectors(bits, expected));
 }
 
@@ -145,7 +145,7 @@ void DecodingTest::testAvx2Short() {
 	float signal[]={-5, -6, -4, 1, -4, -5, -7, 2};
 	unsigned char output = 0;
 
-	PolarCode::Decoding::Decoder *decoder = new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits);
+	PolarCode::Decoding::Decoder *decoder = new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits, true);
 
 	TimeStart = high_resolution_clock::now();
 	decoder->setSignal(signal);

@@ -56,7 +56,7 @@ void PolarCodeTest::testAvx2() {
 			= new PolarCode::Encoding::ButterflyAvx2Packed(blockLength, frozenBits);
 
 	PolarCode::Decoding::FastSscAvx2Char* decoder
-			= new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits);
+			= new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits, false);
 
 	//memset(input, 0xF0, infoLength/8);
 	{
