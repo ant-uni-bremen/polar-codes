@@ -158,11 +158,16 @@ inline void CombineSoftBits(__m256i *Left, __m256i *Right, __m256i *Out, const u
 }
 
 inline void CombineSoftBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
+	static const __m256i absCorrector = _mm256_set1_epi8(-127);
 	PrepareForShortOperation(Left, subBlockLength);
+	PrepareForShortOperation(Right, subBlockLength);
 
 	__m256i LeftV = _mm256_loadu_si256(Left);
 	__m256i RightV = _mm256_loadu_si256(Right);
 	__m256i OutV;
+
+	LeftV = _mm256_max_epi8(LeftV, absCorrector);
+	RightV = _mm256_max_epi8(RightV, absCorrector);
 
 	//Boxplus operation for upper bits
 	F_function_calc(LeftV, RightV, &OutV);

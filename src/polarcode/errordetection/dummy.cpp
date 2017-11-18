@@ -11,10 +11,6 @@ Dummy::Dummy() {
 Dummy::~Dummy() {
 }
 
-Dummy* Dummy::clone() {
-	return new Dummy();
-}
-
 unsigned Dummy::getCheckBitCount() {
 	return 0;
 }

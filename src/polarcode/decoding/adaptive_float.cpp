@@ -9,6 +9,7 @@ AdaptiveFloat::AdaptiveFloat
 	, size_t listSize
 	, const std::vector<unsigned> &frozenBits
 	, bool softOutput)
+	: mListSize(listSize)
 {
 	mBlockLength = blockLength;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
@@ -16,21 +17,21 @@ AdaptiveFloat::AdaptiveFloat
 	mExternalContainers = true;
 
 	mFastDecoder = new FastSscAvxFloat(mBlockLength, mFrozenBits);
-	mListDecoder = new SclAvxFloat(mBlockLength, listSize, mFrozenBits, mSoftOutput);
+	mListDecoder = new SclAvxFloat(mBlockLength, mListSize, mFrozenBits, mSoftOutput);
 }
 
 AdaptiveFloat::~AdaptiveFloat() {
 	delete mFastDecoder;
 	delete mListDecoder;
+	mOutputContainer = nullptr;
+	mBitContainer = nullptr;
 }
 
 bool AdaptiveFloat::decode() {
-	bool success;
-	if(mFastDecoder->decode()) {
-		mOutputContainer = mFastDecoder->packedOutput();
-		mBitContainer = mFastDecoder->outputContainer();
-		success = true;
-	} else {
+	bool success = mFastDecoder->decode();
+	mOutputContainer = mFastDecoder->packedOutput();
+	mBitContainer = mFastDecoder->outputContainer();
+	if(!success && mListSize > 1) {
 		success = mListDecoder->decode();
 		mOutputContainer = mListDecoder->packedOutput();
 		mBitContainer = mListDecoder->outputContainer();
@@ -44,7 +45,7 @@ void AdaptiveFloat::setSystematic(bool sys) {
 }
 
 void AdaptiveFloat::setErrorDetection(ErrorDetection::Detector* pDetector) {
-	mFastDecoder->setErrorDetection(pDetector->clone());
+	mFastDecoder->setErrorDetection(pDetector);
 	mListDecoder->setErrorDetection(pDetector);
 }
 

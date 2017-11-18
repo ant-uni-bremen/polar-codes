@@ -21,12 +21,6 @@ public:
 	Dummy();
 	~Dummy();
 
-	/*!
-	 * \brief Get another Dummy error detection object.
-	 * \return A new Dummy object.
-	 */
-	Dummy* clone();
-
 	unsigned getCheckBitCount();
 
 	/*!

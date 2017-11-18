@@ -18,6 +18,7 @@ namespace Decoding {
 class AdaptiveFloat : public Decoder {
 	FastSscAvxFloat *mFastDecoder;
 	SclAvxFloat	*mListDecoder;
+	size_t mListSize;
 
 public:
 	/*!

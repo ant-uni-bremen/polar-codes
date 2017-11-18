@@ -392,7 +392,7 @@ void SimulationWorker::setChannel() {
 void SimulationWorker::allocateMemory() {
 	mInputData = new unsigned char[mJob->K / 8];
 	mEncodedData = new PolarCode::PackedContainer(mJob->N);
-	mDecodedData = new unsigned char[mJob->K / 8];
+	mDecodedData = nullptr;
 }
 
 void SimulationWorker::generateData() {
@@ -406,9 +406,11 @@ void SimulationWorker::generateData() {
 	for(unsigned i=0; i<nLongs; ++i) {
 		generator.get64(lData + i);
 	}
-	unsigned long rem;
-	generator.get64(&rem);
-	memcpy(lData + nLongs, &rem, nBytes);
+	if(nBytes) {
+		unsigned long rem;
+		generator.get64(&rem);
+		memcpy(lData + nLongs, &rem, nBytes);
+	}
 }
 
 void SimulationWorker::encode() {
@@ -442,7 +444,7 @@ void SimulationWorker::decode() {
 	startTiming();
 	mDecoder->setSignal(mSignal->data());
 	success = mDecoder->decode();
-	mDecoder->getDecodedInformationBits(mDecodedData);
+	mDecodedData = mDecoder->packedOutput();
 	stopTiming();
 
 	if(!success) mJob->reportedErrors++;
@@ -461,10 +463,12 @@ void SimulationWorker::countErrors() {
 	for(unsigned i=0; i<nLongs; ++i) {
 		biterrors += _mm_popcnt_u64(liData[i] ^ loData[i]);
 	}
-	unsigned long remIn = 0, remOut = 0;
-	memcpy(&remIn, liData+nLongs, nBytes);
-	memcpy(&remOut, loData+nLongs, nBytes);
-	biterrors += _mm_popcnt_u64(remIn ^ remOut);
+	if(nBytes) {
+		unsigned long remIn = 0, remOut = 0;
+		memcpy(&remIn, liData+nLongs, nBytes);
+		memcpy(&remOut, loData+nLongs, nBytes);
+		biterrors += _mm_popcnt_u64(remIn ^ remOut);
+	}
 	mJob->biterrors += biterrors;
 	if(biterrors) {
 		mJob->errors++;
@@ -529,12 +533,10 @@ void SimulationWorker::jobEndingOutput() {
 void SimulationWorker::cleanup() {
 	delete [] mInputData;
 	delete mEncodedData;
-	delete [] mDecodedData;
 
 	delete mDecoder;
 	delete mEncoder;
 	delete mErrorDetector;
-	mFrozenBits.clear();
 	delete mConstructor;
 }
 

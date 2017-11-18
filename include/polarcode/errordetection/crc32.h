@@ -20,7 +20,6 @@ class CRC32 : public Detector {
 public:
 	CRC32();
 	~CRC32();
-	CRC32* clone();
 
 	unsigned getCheckBitCount(){return 32;}
 	void generate(void *pData, int bytes);

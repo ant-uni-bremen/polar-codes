@@ -182,14 +182,6 @@ public:
 	void swapBitBlocks(unsigned stage);
 
 	/*!
-	 * \brief Export a bit array lazily.
-	 * \param path The path to export.
-	 * \param stage The stage to export.
-	 * \return Pointer to the exported block.
-	 */
-	block_t* exportBits(unsigned path, unsigned stage);
-
-	/*!
 	 * \brief Get a pointer to a future LLR-block.
 	 *
 	 * \param path Index of the path.

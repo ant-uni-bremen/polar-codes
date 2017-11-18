@@ -71,6 +71,7 @@ public:
 			if(ptr == nullptr) {
 				std::cerr << "Can't allocate aligned memory." << std::endl;
 			}
+			memset(ptr, 0, sizeof(T)*size);
 			block->data = reinterpret_cast<T*>(ptr);
 			block->useCount = 1;
 			block->size = size;

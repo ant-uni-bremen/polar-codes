@@ -22,7 +22,6 @@ add_library(PolarDecoder OBJECT
         decoding/decoder
         decoding/fastssc_avx2_char
         decoding/scl_avx2_char
-        decoding/avx_float
         decoding/fastssc_avx_float
         decoding/scl_avx_float
         decoding/adaptive_float

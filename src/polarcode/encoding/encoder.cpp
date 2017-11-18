@@ -45,7 +45,7 @@ void Encoder::getInformation(void *pData) {
 }
 
 void Encoder::setCodeword(void *pData) {
-	mBitContainer->insertPackedBits(pData);
+	xmInputData = static_cast<unsigned char*>(pData);
 }
 
 void Encoder::getEncodedData(void *pData) {

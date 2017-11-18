@@ -98,17 +98,16 @@ static inline unsigned _mm_minidx_ps(__m128 x)
 }
 
 static inline unsigned _mm256_minidx_ps(__m256 x, float *minVal) {
-	//Lazy version
+	const __m256 fourMin = _mm256_min_ps(x, _mm256_permute2f128_ps(x, x, 0b00000001));
+	const __m256 twoMin = _mm256_min_ps(fourMin, _mm256_permute_ps(fourMin, 0b01001110));
+	const __m256 oneMin = _mm256_min_ps(twoMin, _mm256_permute_ps(twoMin, 0b10110001));
+	const __m256 mask = _mm256_cmp_ps(x, oneMin, _CMP_EQ_OQ);
+	unsigned minIdx = __tzcnt_u32(_mm256_movemask_ps(mask));
 
-	const unsigned a = _mm_minidx_ps(_mm256_extractf128_ps(x, 0));
-	const unsigned b = _mm_minidx_ps(_mm256_extractf128_ps(x, 1))+4;
+	float *fx = reinterpret_cast<float*>(&x);
 
-	if(x[a] < x[b]) {
-		*minVal = x[a];
-		return a;
-	}//else
-		*minVal = x[b];
-		return b;
+	*minVal = fx[minIdx];
+	return minIdx;
 }
 
 /*!

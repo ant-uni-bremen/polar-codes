@@ -223,15 +223,15 @@ void FloatContainer::getPackedInformationBits(void* pData) {
 	if(mInformationBitCount % 8 == 0) {
 		for(unsigned bit = 0; bit < mInformationBitCount; bit+=8) {
 			// less conditionals in this loop
-			currentByte  = (iBit[*(lutPtr++)]&0x80000000)>>24;
-			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>25;
-			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>26;
-			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>27;
-			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>28;
-			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>29;
-			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>30;
-			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>31;
-			*(charPtr++) = static_cast<unsigned char>(currentByte);
+			currentByte  = (iBit[mLUT[bit+0]]&0x80000000)>>24;
+			currentByte |= (iBit[mLUT[bit+1]]&0x80000000)>>25;
+			currentByte |= (iBit[mLUT[bit+2]]&0x80000000)>>26;
+			currentByte |= (iBit[mLUT[bit+3]]&0x80000000)>>27;
+			currentByte |= (iBit[mLUT[bit+4]]&0x80000000)>>28;
+			currentByte |= (iBit[mLUT[bit+5]]&0x80000000)>>29;
+			currentByte |= (iBit[mLUT[bit+6]]&0x80000000)>>30;
+			currentByte |= (iBit[mLUT[bit+7]]&0x80000000)>>31;
+			charPtr[bit/8] = static_cast<unsigned char>(currentByte);
 		}
 	} else {
 		for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {

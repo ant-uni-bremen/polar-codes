@@ -41,8 +41,6 @@ void PolarCodeTest::testAvx2() {
 	const size_t blockLength = 1<<12;
 	const size_t infoLength = blockLength*3/4;
 
-	if(!__builtin_cpu_supports("avx2")) return;
-
 	unsigned char *input = new unsigned char[infoLength/8];
 	unsigned char *inputBlock = new unsigned char[blockLength/8];
 	char *inputSignal = new char[blockLength];
@@ -100,8 +98,6 @@ void PolarCodeTest::testAvx2List() {
 	const size_t blockLength = 1<<12;
 	const size_t infoLength = blockLength*3/4;
 	const size_t pathLimit = 4;
-
-	if(!__builtin_cpu_supports("avx2")) return;
 
 	unsigned char *input = new unsigned char[infoLength/8];
 	unsigned char *inputBlock = new unsigned char[blockLength/8];
@@ -175,4 +171,20 @@ void PolarCodeTest::testAvx2List() {
 
 	CPPUNIT_ASSERT_ASSERTION_PASS_MESSAGE("Decoder failed",
 	CPPUNIT_ASSERT(decoderSuccess));
+}
+
+void PolarCodeTest::testAvxConvenience() {
+	// Test _mm256_minidx_ps
+	union {
+		__m256 testV;
+		float testF[8];
+	};
+	float minVal;
+	for(unsigned i=0; i<8; ++i) {
+		minVal = 6.0;
+		testV = _mm256_set1_ps(5.0);
+		testF[i] = 4.0;
+		CPPUNIT_ASSERT_EQUAL(i, _mm256_minidx_ps(testV, &minVal));
+		CPPUNIT_ASSERT_EQUAL(minVal, 4.0f);
+	}
 }

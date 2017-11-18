@@ -581,6 +581,7 @@ void SclAvx2Char::initialize(size_t blockLength, const std::vector<unsigned> &fr
 		clear();
 	}
 	mBlockLength = blockLength;
+	mFrozenBits.clear();
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 	mDataPool = new SclAvx2::datapool_t();
 	mPathList = new SclAvx2::PathList(mListSize, __builtin_ctz(mBlockLength)+1, mDataPool);

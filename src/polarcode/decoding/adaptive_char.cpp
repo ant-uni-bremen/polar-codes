@@ -26,11 +26,10 @@ AdaptiveChar::~AdaptiveChar() {
 }
 
 bool AdaptiveChar::decode() {
-	bool success;
-	if((success = mFastDecoder->decode()) == true) {
-		mOutputContainer = mFastDecoder->packedOutput();
-		mBitContainer = mFastDecoder->outputContainer();
-	} else if(mListSize > 1){
+	bool success = mFastDecoder->decode();
+	mOutputContainer = mFastDecoder->packedOutput();
+	mBitContainer = mFastDecoder->outputContainer();
+	if(!success && mListSize > 1) {
 		success = mListDecoder->decode();
 		mOutputContainer = mListDecoder->packedOutput();
 		mBitContainer = mListDecoder->outputContainer();
@@ -44,7 +43,7 @@ void AdaptiveChar::setSystematic(bool sys) {
 }
 
 void AdaptiveChar::setErrorDetection(ErrorDetection::Detector* pDetector) {
-	mFastDecoder->setErrorDetection(pDetector->clone());
+	mFastDecoder->setErrorDetection(pDetector);
 	mListDecoder->setErrorDetection(pDetector);
 }
 

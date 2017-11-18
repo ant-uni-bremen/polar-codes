@@ -17,12 +17,6 @@ public:
 	virtual ~Detector(){}
 
 	/*!
-	 * \brief Get a copy of this object with the same parameters, if there are some.
-	 * \return Copy of this error detector.
-	 */
-	virtual Detector* clone() = 0;
-
-	/*!
 	 * \brief Get the number of bits that are added by the detecter.
 	 * \return Number of check bits.
 	 */

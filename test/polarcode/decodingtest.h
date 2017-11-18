@@ -7,7 +7,8 @@
 class DecodingTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST_SUITE(DecodingTest);
 	CPPUNIT_TEST(testSpecialDecoders);
-	CPPUNIT_TEST(testGeneralDecodingFunctions);
+	CPPUNIT_TEST(testGeneralDecodingFunctionsAvx);
+	CPPUNIT_TEST(testGeneralDecodingFunctionsAvx2);
 	CPPUNIT_TEST(testAvx2Short);
 	CPPUNIT_TEST(testAvx2Performance);
 	CPPUNIT_TEST(testListDecoder);
@@ -20,7 +21,8 @@ public:
 	void tearDown();
 
 	void testSpecialDecoders();
-	void testGeneralDecodingFunctions();
+	void testGeneralDecodingFunctionsAvx();
+	void testGeneralDecodingFunctionsAvx2();
 	void testAvx2Short();
 	void testAvx2Performance();
 

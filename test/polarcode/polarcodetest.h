@@ -9,6 +9,7 @@ class PolarCodeTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST_SUITE(PolarCodeTest);
 	CPPUNIT_TEST(testAvx2);
 	CPPUNIT_TEST(testAvx2List);
+	CPPUNIT_TEST(testAvxConvenience);
 	CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -17,6 +18,7 @@ public:
 
 	void testAvx2();
 	void testAvx2List();
+	void testAvxConvenience();
 };
 
 #endif //PC_TEST_POLARCODE_H

@@ -23,10 +23,6 @@ CRC8::CRC8() {
 CRC8::~CRC8() {
 }
 
-CRC8* CRC8::clone() {
-	return new CRC8();
-}
-
 unsigned char CRC8::gen(unsigned char *data, int bytes) {
 	unsigned char chkSum = 0;
 	for(int i=0; i<bytes; ++i) {

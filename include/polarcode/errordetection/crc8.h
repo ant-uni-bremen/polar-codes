@@ -16,7 +16,6 @@ class CRC8 : public Detector {
 public:
 	CRC8();
 	~CRC8();
-	CRC8* clone();
 
 	unsigned getCheckBitCount(){return 8;}
 	void generate(void *pData, int bytes);
