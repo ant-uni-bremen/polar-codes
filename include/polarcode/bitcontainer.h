@@ -229,8 +229,11 @@ public:
  */
 class PackedContainer : public BitContainer {
 	char *mData;
+	unsigned long *mInformationMask;
 	size_t mFakeSize;
 	bool mDataIsExternal;
+
+	void buildInformationMask();
 
 	void insertBit(unsigned int bit, char value);
 	void clearBit(unsigned int bit);
@@ -239,14 +242,11 @@ class PackedContainer : public BitContainer {
 	void vectorWiseInjection(const void *pData);
 	void fullyVectorizedInjection(const void *pData);
 
-	void resetFrozenBitsSimple();
-	void resetFrozenBitsVectorized();
-
 public:
 	PackedContainer();
 	PackedContainer(size_t size);///<Initialize the container to specified size.
 	PackedContainer(size_t size, std::vector<unsigned> &frozenBits);///<Configure this container to a given Polar Code.
-	PackedContainer(char *external, size_t size);///<Assign an external storage to this container.
+	PackedContainer(char *external, size_t size, std::vector<unsigned> &frozenBits);///<Assign an external storage to this container.
 	~PackedContainer();
 	void setSize(size_t newSize);
 	void insertPackedBits(const void* pData);

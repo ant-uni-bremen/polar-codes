@@ -511,34 +511,42 @@ char* CharContainer::data() {
 
 
 PackedContainer::PackedContainer()
-	: mData(nullptr),
-	  mDataIsExternal(false) {
+	: mData(nullptr)
+	, mInformationMask(nullptr)
+	, mDataIsExternal(false) {
 }
 
 PackedContainer::PackedContainer(size_t size)
-	: BitContainer(size),
-	  mData(nullptr),
-	  mDataIsExternal(false) {
+	: BitContainer(size)
+	, mData(nullptr)
+	, mInformationMask(nullptr)
+	, mDataIsExternal(false) {
 	setSize(size);
 }
 
 PackedContainer::PackedContainer(size_t size, std::vector<unsigned> &frozenBits)
-	: BitContainer(size, frozenBits),
-	  mData(nullptr),
-	  mDataIsExternal(false) {
+	: BitContainer(size, frozenBits)
+	, mData(nullptr)
+	, mInformationMask(nullptr)
+	, mDataIsExternal(false) {
 	setSize(size);
 }
 
-PackedContainer::PackedContainer(char *external, size_t size)
-	: BitContainer(size),
-	  mData(external),
-	  mFakeSize(std::max((size_t)256, size)),
-	  mDataIsExternal(true) {
+PackedContainer::PackedContainer(char *external, size_t size, std::vector<unsigned> &frozenBits)
+	: BitContainer(size, frozenBits)
+	, mData(external)
+	, mFakeSize(std::max((size_t)256, size))
+	, mDataIsExternal(true) {
+	mInformationMask = new unsigned long[mFakeSize/8];
+	buildInformationMask();
 }
 
 PackedContainer::~PackedContainer() {
 	if(mData != nullptr && !mDataIsExternal) {
 		_mm_free(mData);
+	}
+	if(mInformationMask != nullptr) {
+		delete [] mInformationMask;
 	}
 }
 
@@ -552,12 +560,29 @@ void PackedContainer::setSize(size_t newSize) {
 	// Free previously allocated memory, if neccessary
 	if(mData != nullptr) {
 		_mm_free(mData);
+		delete [] mInformationMask;
 	}
 
 	// Allocate new memory
 	mData = static_cast<char*>(_mm_malloc(mFakeSize/8, 32));
 	if(mData == nullptr) {
 		throw "Allocating memory for packed bit container failed.";
+	}
+	mInformationMask = new unsigned long[mFakeSize/64];
+	buildInformationMask();
+}
+
+void PackedContainer::buildInformationMask() {
+	unsigned frozenCounter = 0, frozenBitCount = mFrozenBits.size();
+	for(unsigned i=0; i<mFakeSize/64; ++i) {
+		unsigned long mask = ~0ULL;//set all bits
+		//clear frozen bits
+		while(frozenCounter < frozenBitCount && mFrozenBits[frozenCounter] < (i+1)*64) {//while the next frozen bit is in this qword
+			unsigned long bit = mFrozenBits[frozenCounter++]%64;
+			bit = (bit&~7ULL) + (7-(bit%8));//pay attention to endianness
+			mask ^= (1ULL<<bit);//clear the mask bit
+		}
+		mInformationMask[i] = mask;
 	}
 }
 
@@ -671,9 +696,10 @@ void PackedContainer::fullyVectorizedInjection(const void *pData) {
 }
 
 void PackedContainer::insertPackedInformationBits(const void *pData) {
+
+#if 1
 	unsigned nPackedVectors = mFakeSize/256;
 	memset(mData, 0, mFakeSize/8);
-
 	if(nPackedVectors == 1) {
 		byteWiseInjection(pData);
 	} else if (mInformationBitCount < 32) {
@@ -681,6 +707,59 @@ void PackedContainer::insertPackedInformationBits(const void *pData) {
 	} else {
 		fullyVectorizedInjection(pData);
 	}
+#else
+
+#warning TODO Check this
+
+	Problem: the pdep function works from low bit to high bit, but bit insertion
+			is expected to work from high to low. Otherwise this code would
+			work nicely.
+
+	unsigned long *uliData = (unsigned long*)pData;
+	unsigned long *uloData = reinterpret_cast<unsigned long*>(mData);
+	unsigned long input = __bswap_64(uliData[0]), newBits;
+	unsigned long loadedBits = 64;
+	unsigned long mask, bitCount, availableBitCount = 64;
+
+	for(unsigned i = 0; i<mFakeSize/64; ++i) {
+		//Get information bit positions and count
+		mask = __bswap_64(mInformationMask[i]);
+		bitCount = _mm_popcnt_u64(mask);
+
+		//Load new bits, if neccessary
+		while(bitCount > availableBitCount) {
+			unsigned long nextWordToLoadFrom = loadedBits/64;
+			unsigned long startBit = loadedBits%64;
+			unsigned long bitsAvailableInThatWord =
+					(startBit>availableBitCount) ? //check, if this word has enough new bits
+					64-startBit : //if not, load all it provides
+					64-startBit-availableBitCount;//if yes, load only the needed amount
+			//load the bit providing qword
+			unsigned long resourceWord = __bswap_64(uliData[nextWordToLoadFrom]);
+			//extract the needed bits
+			unsigned long freshBits = _bextr_u64(resourceWord, startBit, bitsAvailableInThatWord);
+			//shift them to their new position in the input word
+			freshBits <<= availableBitCount;
+			//save them in the input word
+			input |= freshBits;
+			//update counters
+			availableBitCount += bitsAvailableInThatWord;
+			loadedBits += bitsAvailableInThatWord;
+		}
+
+		//Insert information bits and save
+		newBits = _pdep_u64(input, mask);// <- such magic, much wow!
+		uloData[i] = __bswap_64(newBits);
+
+		//Shift away inserted bits
+		if(bitCount < 64)
+			input >>= bitCount;
+		else
+			input = 0;
+		//Update counter
+		availableBitCount -= bitCount;
+	}
+#endif
 }
 
 void PackedContainer::insertCharBits(const void *pData) {
@@ -726,38 +805,10 @@ void PackedContainer::getPackedBits(void* pData) {
 }
 
 void PackedContainer::resetFrozenBits() {
-	if(mElementCount < 256) {
-		resetFrozenBitsSimple();
-	} else {
-		resetFrozenBitsVectorized();
+	unsigned long *lData = reinterpret_cast<unsigned long*>(mData);
+	for(unsigned i=0; i<mFakeSize/64; ++i) {
+		lData[i] &= mInformationMask[i];
 	}
-}
-
-void PackedContainer::resetFrozenBitsSimple() {
-	for(unsigned i : mFrozenBits) {
-		clearBit(i);
-	}
-}
-
-void PackedContainer::resetFrozenBitsVectorized() {
-	__m256i currentChunk;
-	char* chunkPtr = reinterpret_cast<char*>(&currentChunk);
-	const int chunkSize = 32;
-	unsigned int *uiData = reinterpret_cast<unsigned int*>(mData);//get mask expects unsigned as input
-	int *iData = reinterpret_cast<int*>(mData);//movemask creates signed as output
-	currentChunk = _mm256_get_mask_epi8(uiData[0]);
-	unsigned chunkIndex = 0;
-	for(unsigned frozenIndex : mFrozenBits) {
-		unsigned bitChunkIndex = frozenIndex/chunkSize;
-		if(bitChunkIndex != chunkIndex) {
-			iData[chunkIndex] = _mm256_movemask_epi8(currentChunk);
-			currentChunk = _mm256_get_mask_epi8(uiData[bitChunkIndex]);
-			chunkIndex = bitChunkIndex;
-		}
-		unsigned address = bitVecAddress(frozenIndex%chunkSize);
-		chunkPtr[address] = 0;
-	}
-	iData[chunkIndex] = _mm256_movemask_epi8(currentChunk);
 }
 
 char* PackedContainer::data() {

@@ -239,8 +239,7 @@ void RecursiveAvx2Packed::initialize(size_t blockLength, const std::vector<unsig
 		mFrozenBits = frozenBits;
 		mNodeBase = new RecursiveAvx2::Node(blockLength);
 		mRootNode = RecursiveAvx2::createEncoder(mFrozenBits, mNodeBase);
-		mBitContainer = new PackedContainer(reinterpret_cast<char*>(mNodeBase->block()), mBlockLength);
-		mBitContainer->setFrozenBits(mFrozenBits);
+		mBitContainer = new PackedContainer(reinterpret_cast<char*>(mNodeBase->block()), mBlockLength, mFrozenBits);
 	}
 }
 

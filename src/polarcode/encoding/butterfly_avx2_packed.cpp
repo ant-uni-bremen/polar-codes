@@ -26,7 +26,7 @@ ButterflyAvx2Packed::~ButterflyAvx2Packed() {
 void ButterflyAvx2Packed::initialize(size_t blockLength,
 		const std::vector<unsigned> &frozenBits) {
 	mBlockLength = blockLength;
-	mFrozenBits = frozenBits;
+	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 
 	if(mBitContainer != nullptr) delete mBitContainer;
 	mBitContainer = new PackedContainer(mBlockLength, mFrozenBits);
