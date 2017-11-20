@@ -54,7 +54,7 @@ StatisticsOutput Statistics::evaluate() {
 		float tmp = mContainer[i]-mean;
 		sum += tmp*tmp;
 	}
-	ret.dev = sqrt(sum);
+	ret.dev = sqrt(sum/(size-1));
 
 	return ret;
 }
