@@ -263,7 +263,7 @@ void Simulator::saveResults() {
 		if(job->RER  > 0.0)         file << job->RER  << ',';   else file << "nan,";
 		file << job->runs << ','
 			 << job->errors << ','
-			 << job->time << ','
+			 << job->time.sum << ','
 			 << job->blps << ','
 			 << job->cbps << ','
 			 << job->pbps << ','
@@ -304,6 +304,20 @@ void SimulationWorker::run() {
 		allocateMemory();
 
 		unsigned long blocksToSimulate = mJob->BlocksToSimulate;
+
+		//Warmup
+		warmup = true;
+		for(unsigned block = 0; block < 10000; ++block) {
+			generateData();
+			encode();
+			modulate();
+			transmit();
+			decode();
+			countErrors();
+		}
+
+		//Actual simulation
+		warmup = false;
 		for(unsigned block = 0; block < blocksToSimulate; ++block) {
 			generateData();
 			encode();
@@ -419,7 +433,8 @@ void SimulationWorker::encode() {
 	mEncoder->encode();
 	mEncoder->getEncodedData(mEncodedData->data());
 	stopTiming();
-	mJob->encTime += mTimeUsed.count();
+	if(!warmup)
+		mJob->encTime += mTimeUsed.count();
 }
 
 void SimulationWorker::modulate() {
@@ -447,8 +462,8 @@ void SimulationWorker::decode() {
 	mDecodedData = mDecoder->packedOutput();
 	stopTiming();
 
-	if(!success) mJob->reportedErrors++;
-	mJob->time += mTimeUsed.count();
+	if(!success && !warmup) mJob->reportedErrors++;
+	if(!warmup)	mJob->timeStat.insert(mTimeUsed.count());
 }
 
 void SimulationWorker::countErrors() {
@@ -469,31 +484,33 @@ void SimulationWorker::countErrors() {
 		memcpy(&remOut, loData+nLongs, nBytes);
 		biterrors += _mm_popcnt_u64(remIn ^ remOut);
 	}
-	mJob->biterrors += biterrors;
-	if(biterrors) {
-		mJob->errors++;
+	if(!warmup) {
+		mJob->biterrors += biterrors;
+		if(biterrors) {
+			mJob->errors++;
+		}
+		mJob->runs++;
 	}
-	mJob->runs++;
 }
 
 void SimulationWorker::calculateStatistics() {
+	mJob->time = mJob->timeStat.evaluate();
+	//mJob->timeStat.printContents();
 	mJob->bits = mJob->runs * (mJob->K - mJob->errorDetection);
-
 	mJob->BLER = (float)mJob->errors/mJob->runs;
 	mJob->BER = (float)mJob->biterrors/mJob->bits;
 	mJob->RER = (float)mJob->reportedErrors/mJob->runs;
-	//mJob->time = time;
 	mJob->blps = mJob->runs;
 	mJob->cbps = mJob->runs*mJob->N;
 	mJob->pbps = mJob->bits;
 	mJob->ebps = mJob->cbps;
-	mJob->blps /= mJob->time;
-	mJob->cbps /= mJob->time;
-	mJob->pbps /= mJob->time;
+	mJob->blps /= mJob->time.sum;
+	mJob->cbps /= mJob->time.sum;
+	mJob->pbps /= mJob->time.sum;
 	mJob->ebps /= mJob->encTime;
 	mJob->effectiveRate = (mJob->runs-mJob->errors+0.0)
 						* (mJob->K - mJob->errorDetection)
-						/ mJob->time;
+						/ mJob->time.sum;
 
 }
 
@@ -523,8 +540,11 @@ void SimulationWorker::jobEndingOutput() {
 	output += ", BER=" + std::to_string(mJob->BER);
 	output += ", RER=" + std::to_string(mJob->RER);
 	output += ", payload:" + std::to_string(mJob->pbps * 1e-6);
-	output += "Mbps, delay=" + std::to_string(mJob->time / mJob->runs * 1e6);
-	output += "µs\n";
+	output += "Mbps, delay[µs]=" + std::to_string(mJob->time.min * 1e6);
+	output += "/" + std::to_string(mJob->time.max * 1e6);
+	output += "/" + std::to_string(mJob->time.mean * 1e6);
+	output += "/" + std::to_string(mJob->time.dev * 1e6);
+	output += " (min/max/mean/dev)\n";
 
 	std::cout << output;
 

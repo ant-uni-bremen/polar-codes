@@ -33,6 +33,7 @@
 #include <signalprocessing/transmission/rayleigh.h>
 
 #include "setup.h"
+#include "statistics.h"
 
 namespace Simulation {
 
@@ -82,7 +83,8 @@ struct DataPoint
 	float BLER;///< Block Error Rate
 	float BER;///< Bit Error Rate
 	float RER;///< Reported Error Rate
-	float time;///< Decoding time in seconds
+	Statistics timeStat;///< Decoding time in seconds
+	StatisticsOutput time;
 	float blps;///< Blocks per second
 	float cbps;///< Channel bits per second
 	float pbps;///< Payload bits per second (including errors)
@@ -169,6 +171,7 @@ class SimulationWorker {
 	std::chrono::duration<float> mTimeUsed;
 
 	int mWorkerId;
+	bool warmup;
 
 	void startTiming();
 	void stopTiming();
