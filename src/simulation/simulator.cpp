@@ -236,6 +236,14 @@ void Simulator::snrInflateJobList() {
 			DataPoint* newJob = new DataPoint;
 			memcpy(newJob, job, sizeof(DataPoint));
 			newJob->EbN0 = snrMin + i*scale;
+			if(newJob->precision == 32) {
+				//For float-only decoding: Correct LLR-coefficient is
+				// L_ch = 4 * abs(alpha)^2 * E_S/N_0
+				//and LLR(y|x) = L_ch*y', with y' = y / (abs(alpha) * sqrt(E_S * T_S))
+				//
+				//Direct source: See Channel Coding II lecture, held by Dr.-Ing. Dirk Wübben, Universität Bremen
+				newJob->amplification = 4 * newJob->EbN0;//assume abs(alpha)=1
+			}
 			mJobList.push_back(newJob);
 		}
 		delete job;
@@ -447,10 +455,8 @@ void SimulationWorker::transmit() {
 	mTransmitter->setSignal(mSignal);
 	mTransmitter->transmit();
 
-	if((mJob->precision == 8 || mJob->precision == 832) && mJob->amplification != 1.0) {
-		mAmplifier->setSignal(mSignal);
-		mAmplifier->transmit();
-	}
+	mAmplifier->setSignal(mSignal);
+	mAmplifier->transmit();
 }
 
 void SimulationWorker::decode() {

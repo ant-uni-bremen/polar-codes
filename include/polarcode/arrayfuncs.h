@@ -97,6 +97,8 @@ public:
 	void simplePartialSortDescending(float *data, int size, int n);
 };
 
+//TODO: Clean up the following mess of partial sorting functions.
+
 template<typename IdxType, typename ValueType>
 void simplePartialSortDescending(
 		std::vector<IdxType> &Indices,
@@ -148,6 +150,30 @@ void simplePartialSortDescending(
 }
 
 template<typename IdxType, typename ValueType>
+void simplePartialSortDescending(
+		std::vector<IdxType> &Indices,
+		std::vector<ValueType> &Values,
+		const unsigned int n,
+		const unsigned int size) {
+	for(unsigned i=0; i<size; ++i) {
+		Indices[i] = i;
+	}
+
+	const unsigned lim = std::min(size-1, n);
+
+	for(unsigned i=0; i<lim; ++i) {
+		unsigned index = i;
+		for(unsigned j=i+1; j<size; ++j) {
+			if(Values[j] > Values[index]) {
+				index = j;
+			}
+		}
+		std::swap(Values[i], Values[index]);
+		std::swap(Indices[i], Indices[index]);
+	}
+}
+
+template<typename IdxType, typename ValueType>
 void sortMetrics(
 		std::vector<IdxType> &Indices,
 		std::vector<ValueType> &Values,
@@ -170,6 +196,31 @@ void sortMetrics(
 		}
 	}
 }
+
+template<typename IdxType, typename ValueType>
+void findWeakLlrs(
+		std::vector<IdxType> &Indices,
+		ValueType *Values,
+		const unsigned int size,
+		const unsigned int n) {
+	for(unsigned i=0; i<size; ++i) {
+		Indices[i] = i;
+	}
+
+	const unsigned lim = std::min(size-1, n);
+
+	for(unsigned i=0; i<lim; ++i) {
+		unsigned index = i;
+		for(unsigned j=i+1; j<size; ++j) {
+			if(Values[j] < Values[index]) {
+				index = j;
+			}
+		}
+		std::swap(Values[i], Values[index]);
+		std::swap(Indices[i], Indices[index]);
+	}
+}
+
 
 void Bits2Bytes(std::vector<float> &bits, unsigned char *bytes, int nBytes);
 void Bits2Bytes(float* fbits, unsigned char *bytes, int nBytes);

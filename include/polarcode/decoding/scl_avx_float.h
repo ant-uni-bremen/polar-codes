@@ -38,8 +38,6 @@ class PathList {
 	float mSelectedPathMetric;  ///< Information for statistics calculation
 
 public:
-	block_t* tempBlock;///< Pointer to a permanently allocated block for temporary storage.
-
 	PathList();
 
 	/*!
@@ -128,17 +126,15 @@ public:
 	 *        path of it.
 	 *
 	 * \param pLlr Pointer to LLRs.
-	 * \param bitCount Number of bits to copy.
 	 */
-	void setFirstPath(void* pLlr, unsigned bitCount);
+	void setFirstPath(void* pLlr);
 
 	/*!
 	 * \brief Allocate LLR- and bit-blocks for the given stage.
 	 *
 	 * \param stage
-	 * \param bitCount Number of bits.
 	 */
-	void allocateStage(unsigned stage, unsigned bitCount);
+	void allocateStage(unsigned stage);
 
 	/*!
 	 * \brief Return LLR- and bit-blocks to the data pool for the given stage.
@@ -309,14 +305,17 @@ protected:
 		 *mRight;   ///< Right child node
 	unsigned mStage;///< Recursion depth of this node
 
-	void (*leftDecoder)(PathList*, unsigned);///< Pointer to a specialized decoder for left child.
-	void (*rightDecoder)(PathList*, unsigned);///< Pointer to a specialized decoder for right child.
-
-	/*! Pointer to fast XOR or slow Boxplus combination function */
+	/*! Pointer to combination function */
 	void (*combineFunction)(float*, float*, float*, const unsigned);
 
 public:
 	DecoderNode();
+
+	/*!
+	 * \brief Parent constructor for derived special decoders
+	 * \param parent The parent node to copy all information from.
+	 */
+	DecoderNode(Node *parent);
 
 	/*!
 	 * \brief Create a decoder node.
@@ -324,19 +323,40 @@ public:
 	 * \param parent The parent node to copy all information from.
 	 */
 	DecoderNode(const std::vector<unsigned> &frozenBits, Node *parent);
-	~DecoderNode();
+	virtual ~DecoderNode();
+	virtual void decode();
+};
+
+class RateZeroDecoder : public DecoderNode {
+public:
+	RateZeroDecoder(Node *parent);
+	~RateZeroDecoder();
 	void decode();
 };
 
-Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(PathList*, unsigned));
+class RateOneDecoder : public DecoderNode {
+	std::vector<unsigned> mIndices;
+	std::vector<float> mMetrics;
+	std::vector<std::vector<unsigned>> mBitFlipHints;
 
-void RateZeroDecode(PathList* pathList, unsigned stage);
-void RateOneDecode(PathList* pathList, unsigned stage);
-void RepetitionDecode(PathList* pathList, unsigned stage);
+public:
+	RateOneDecoder(Node *parent);
+	~RateOneDecoder();
+	void decode();
+};
 
+class RepetitionDecoder : public DecoderNode {
+	std::vector<unsigned> mIndices;
+	std::vector<float> mMetrics;
+	std::vector<float> mResults;
 
-void RateZeroDecodeSingleBit(PathList* pathList, unsigned);
-void RateOneDecodeSingleBit(PathList* pathList, unsigned);
+public:
+	RepetitionDecoder(Node *parent);
+	~RepetitionDecoder();
+	void decode();
+};
+
+Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent);
 
 }// namespace SclAvx
 
