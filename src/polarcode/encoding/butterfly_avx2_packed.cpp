@@ -33,8 +33,10 @@ void ButterflyAvx2Packed::initialize(size_t blockLength,
 }
 
 void ButterflyAvx2Packed::encode() {
-	mErrorDetector->generate(xmInputData, (mBlockLength - mFrozenBits.size()) / 8);
-	mBitContainer->insertPackedInformationBits(xmInputData);
+	if(!mCodewordReady) {
+		mErrorDetector->generate(xmInputData, (mBlockLength - mFrozenBits.size()) / 8);
+		mBitContainer->insertPackedInformationBits(xmInputData);
+	}
 
 	transform();
 
@@ -42,6 +44,7 @@ void ButterflyAvx2Packed::encode() {
 		mBitContainer->resetFrozenBits();
 		transform();
 	}
+	mCodewordReady = false;
 }
 
 void ButterflyAvx2Packed::transform() {

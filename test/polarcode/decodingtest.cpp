@@ -5,6 +5,7 @@
 #include <polarcode/decoding/fastssc_avx_float.h>
 #include <polarcode/decoding/scl_avx2_char.h>
 #include <polarcode/decoding/scl_avx_float.h>
+#include <polarcode/decoding/avx2_templates.txx>
 #include <polarcode/construction/bhattacharrya.h>
 #include <chrono>
 #include <random>
@@ -123,6 +124,8 @@ void DecodingTest::testGeneralDecodingFunctionsAvx2() {
 	expected = _mm256_set_epi8( 0, 1, 2,-3, 4, 5,-6,-7, 8, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 1);
 	PolarCode::Decoding::FastSscAvx2::F_function(llr, &child, 32);
 	CPPUNIT_ASSERT(testVectors(child, expected));
+	PolarCode::Decoding::Template::F_function<32>(llr, &child);
+	CPPUNIT_ASSERT(testVectors(child, expected));
 
 	// G-function
 	llr[1]   = _mm256_set_epi8(-1, 2, 3,   -4, 5, 6,   -7,    8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2);
@@ -131,12 +134,16 @@ void DecodingTest::testGeneralDecodingFunctionsAvx2() {
 	expected = _mm256_set_epi8(-1, 3, 5,   -7, 9,11,  -13,   15,17, 9, 1, 3, 5, 7, 9,11,13,15,17, 9, 1, 3, 5, 7, 9,11,13,15,17, 9, 1, 3);
 	PolarCode::Decoding::FastSscAvx2::G_function(llr, &child, &bits, 32);
 	CPPUNIT_ASSERT(testVectors(child, expected));
+	PolarCode::Decoding::Template::G_function<32>(llr, &child, &bits);
+	CPPUNIT_ASSERT(testVectors(child, expected));
 
 	// Combine-function
 	llr[0]   = _mm256_setr_epi8(   127,   127,   127,   127,   127,   127,   127,   127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	llr[1]   = _mm256_setr_epi8(  -128,  -128,  -128,  -128,  -128,  -128,  -128,  -128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	expected = _mm256_setr_epi8(  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	PolarCode::Decoding::FastSscAvx2::CombineSoftBitsShort(llr, llr+1, &bits, 8);
+	CPPUNIT_ASSERT(testVectors(bits, expected));
+	PolarCode::Decoding::Template::CombineSoftBits<8>(llr, llr+1, &bits);
 	CPPUNIT_ASSERT(testVectors(bits, expected));
 }
 

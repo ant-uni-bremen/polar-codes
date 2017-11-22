@@ -87,13 +87,10 @@ void PathList::switchToNext() {
 }
 
 void PathList::setFirstPath(void *pLlr, unsigned bitCount) {
-	unsigned expandedBitCount = nBit2fCount(bitCount);
-	mLlrTree[0][mStageCount-1] = xmDataPool->allocate(expandedBitCount);
-	mBitTree[0][mStageCount-1] = xmDataPool->allocate(expandedBitCount);
-	mLeftBitTree[0][mStageCount-1] = xmDataPool->allocate(expandedBitCount);
 	mPathCount = 1;
+	allocateStage(mStageCount-1, bitCount);
 
-	memcpy(Llr(0, mStageCount-1), pLlr, 4*expandedBitCount);
+	memcpy(Llr(0, mStageCount-1), pLlr, 4*bitCount);
 }
 
 void PathList::allocateStage(unsigned stage, unsigned bitCount) {
@@ -567,6 +564,8 @@ bool SclAvxFloat::decode() {
 
 	if(mRootNode) {
 		mRootNode->decode();
+	} else {
+		mSpecialDecoder(mPathList, __builtin_ctz(mBlockLength));
 	}
 
 	return extractBestPath();
@@ -574,7 +573,7 @@ bool SclAvxFloat::decode() {
 
 void SclAvxFloat::makeInitialPathList() {
 	mPathList->clear();
-	mPathList->setFirstPath(dynamic_cast<FloatContainer*>(mLlrContainer)->data(), nBit2fCount(mBlockLength));
+	mPathList->setFirstPath(dynamic_cast<FloatContainer*>(mLlrContainer)->data(), mBlockLength);
 }
 
 bool SclAvxFloat::extractBestPath() {

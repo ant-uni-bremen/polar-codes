@@ -239,9 +239,12 @@ void FloatContainer::getPackedInformationBits(void* pData) {
 			if(currentBit == 32) {
 				*charPtr = static_cast<unsigned char>(currentByte);
 				currentByte = 0;
-				currentBit = 0;
+				currentBit = 24;
 				++charPtr;
 			}
+		}
+		if(currentBit != 24) {
+			*charPtr = static_cast<unsigned char>(currentByte);
 		}
 	}
 }

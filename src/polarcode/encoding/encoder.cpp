@@ -9,6 +9,7 @@ Encoder::Encoder()
 	: mErrorDetector(&ErrorDetection::globalDummyDetector)
 	, mBlockLength(0)
 	, mSystematic(true)
+	, mCodewordReady(false)
 	, xmInputData(nullptr)
 	, mBitContainer(nullptr)
 	, mFrozenBits(std::vector<unsigned>())
@@ -47,6 +48,8 @@ void Encoder::getInformation(void *pData) {
 
 void Encoder::setCodeword(void *pData) {
 	xmInputData = static_cast<unsigned char*>(pData);
+	mBitContainer->insertPackedBits(pData);
+	mCodewordReady = true;
 }
 
 void Encoder::getEncodedData(void *pData) {

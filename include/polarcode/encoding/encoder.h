@@ -21,6 +21,7 @@ protected:
 	ErrorDetection::Detector* mErrorDetector;///< Error detecting object
 	size_t mBlockLength;           ///< Block length of the Polar Code
 	bool mSystematic;              ///< Whether to use systematic coding
+	bool mCodewordReady;           ///< If true, the data has been copied into mBitContainer before encoding
 	unsigned char *xmInputData;    ///< Pointer to memory location of bits to encode
 	BitContainer *mBitContainer;   ///< Internal bit memory
 	std::vector<unsigned> mFrozenBits; ///< Indices for frozen bits

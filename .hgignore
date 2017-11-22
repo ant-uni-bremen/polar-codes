@@ -28,3 +28,4 @@ results/
 pypolar/pypolar.cpp
 Polar Coding Simulation.cbp
 
+src/polarcode/decoding/decoderfactory/fixeddecoders.cpp
