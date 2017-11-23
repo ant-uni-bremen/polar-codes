@@ -42,7 +42,6 @@ void Configurator::setupArgumentDefaults() {
 
 	defaultStrings.insert({"errorDetection","crc32"});
 
-	defaultBools.insert({"soft-output", false});
 	defaultBools.insert({"non-systematic", false});
 
 	defaultInts.insert({"precision", 832});
@@ -152,9 +151,7 @@ void Configurator::setupArgumentErrorDetection() {
 }
 
 void Configurator::setupSwitchArguments() {
-	auto SoftOutput = new SwitchArg("f", "soft-output", "Enable soft-output decoding.", defaultBools["soft-output"]);
 	auto Systematic = new SwitchArg("s", "non-systematic", "Disable systematic polar coding.", defaultBools["non-systematic"]);
-	insertArgument(SoftOutput);
 	insertArgument(Systematic);
 }
 

@@ -356,6 +356,18 @@ public:
 	void decode();
 };
 
+class SpcDecoder : public DecoderNode {
+	std::vector<unsigned> mIndices;
+	std::vector<float> mMetrics;
+	std::vector<std::vector<unsigned>> mBitFlipHints;
+	std::vector<unsigned> mBitFlipCount;
+
+public:
+	SpcDecoder(Node *parent);
+	~SpcDecoder();
+	void decode();
+};
+
 Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent);
 
 }// namespace SclAvx

@@ -63,7 +63,6 @@ struct DataPoint
 	int L;///< List length for list-decoding
 	int errorDetection;///< 0=none,8/32=crc (effectively the number of check bits)
 	bool systematic;///< True, if systematic coding will be used
-	bool softOutput;///< True, if soft-output should be generated correctly, instead of fast
 
 	//Simulation-Parameters
 	float EbN0;///< Bit-energy to noise-energy ratio for AWGN-channel

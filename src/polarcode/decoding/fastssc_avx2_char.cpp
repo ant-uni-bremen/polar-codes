@@ -77,18 +77,6 @@ __m256i* Node::output() {
 
 // Constructors of nodes
 
-std::string decoderName(void (*specialDecoder)(__m256i*, __m256i*, size_t)) {
-	if(specialDecoder == &RateZeroDecode)
-		return std::string("Zero");
-	if(specialDecoder == &RateOneDecode)
-		return std::string("One");
-	if(specialDecoder == &RepetitionDecode)
-		return std::string("Rep");
-	if(specialDecoder == &SpcDecode)
-		return std::string("SPC");
-	return std::string("R");
-}
-
 RateRNode::RateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	: mParent(parent){
 	xmDataPool = parent->pool();

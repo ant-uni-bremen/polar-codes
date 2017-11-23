@@ -464,6 +464,145 @@ void RepetitionDecoder::decode() {
 	xmPathList->switchToNext();
 }
 
+/*************
+ * SpcDecoder
+ * ***********/
+SpcDecoder::SpcDecoder(Node *parent)
+	: DecoderNode(parent)
+{
+	mIndices.resize(std::max(mBlockLength, mListSize*8));
+	mMetrics.resize(mListSize * 8);
+	mBitFlipHints.resize(mListSize * 8);
+	for(auto& hintList : mBitFlipHints) {
+		hintList.resize(4);
+	}
+
+	mBitFlipCount.resize(mListSize * 8);
+}
+
+SpcDecoder::~SpcDecoder() {
+}
+
+void SpcDecoder::decode() {
+	const __m256 sgnMask = _mm256_set1_ps(-0.0);
+	unsigned pathCount = xmPathList->PathCount();
+	block_t *tempBlock = xmDataPool->allocate(mBlockLength);
+	float *temp = tempBlock->data;
+
+	__m256 vParity;
+	float fParityInv;
+
+	union {
+		float uFloat;
+		unsigned int uInt;
+	};
+
+	for(unsigned path = 0; path < pathCount; ++path) {
+		float metric = xmPathList->Metric(path);
+		float* LlrSource = xmPathList->Llr(path, mStage);
+		vParity = _mm256_set1_ps(0.0f);
+
+		//For short SPC codes (N<8), neutralize unused vector elements
+		for(unsigned i=mBlockLength; i<8; ++i) {
+			LlrSource[i] = INFINITY;
+		}
+
+		//Calculate parity and save absolute values
+		for(unsigned i=0; i<mBlockLength; i+=8) {
+			__m256 Llr = _mm256_load_ps(LlrSource+i);
+			vParity = _mm256_xor_ps(vParity, Llr);
+			Llr = _mm256_andnot_ps(sgnMask, Llr);
+			_mm256_store_ps(temp+i, Llr);
+		}
+
+		findWeakLlrs(mIndices, temp, mBlockLength, 4);
+
+		//Create candidates
+		uFloat = reduce_xor_ps(vParity);
+		if(uInt&0x80000000) {
+			fParityInv = 0.0;
+			metric -= temp[0];
+			mBitFlipCount[path*8  ] = 1; mBitFlipHints[path*8  ][0] = mIndices[0];
+			mBitFlipCount[path*8+1] = 0;
+			mBitFlipCount[path*8+2] = 0;
+			mBitFlipCount[path*8+3] = 0;
+			mBitFlipCount[path*8+4] = 1; mBitFlipHints[path*8+4][0] = mIndices[0];
+			mBitFlipCount[path*8+5] = 1; mBitFlipHints[path*8+5][0] = mIndices[0];
+			mBitFlipCount[path*8+6] = 1; mBitFlipHints[path*8+6][0] = mIndices[0];
+			mBitFlipCount[path*8+7] = 0;
+		} else {
+			fParityInv = 1.0;
+			mBitFlipCount[path*8  ] = 0;
+			mBitFlipCount[path*8+1] = 1; mBitFlipHints[path*8+1][0] = mIndices[0];
+			mBitFlipCount[path*8+2] = 1; mBitFlipHints[path*8+2][0] = mIndices[0];
+			mBitFlipCount[path*8+3] = 1; mBitFlipHints[path*8+3][0] = mIndices[0];
+			mBitFlipCount[path*8+4] = 0;
+			mBitFlipCount[path*8+5] = 0;
+			mBitFlipCount[path*8+6] = 0;
+			mBitFlipCount[path*8+7] = 1; mBitFlipHints[path*8+7][0] = mIndices[0];
+		}
+
+		mMetrics[path*8  ] = metric;
+		mMetrics[path*8+1] = metric - fParityInv * temp[0] - temp[1];
+		mMetrics[path*8+2] = metric - fParityInv * temp[0] - temp[2];
+		mMetrics[path*8+3] = metric - fParityInv * temp[0] - temp[3];
+		mMetrics[path*8+4] = metric -              temp[1] - temp[2];
+		mMetrics[path*8+5] = metric -              temp[1] - temp[3];
+		mMetrics[path*8+6] = metric -              temp[2] - temp[3];
+		mMetrics[path*8+7] = metric - fParityInv * temp[0] - temp[1] - temp[2] - temp[3];
+
+		mBitFlipHints[path*8+1][mBitFlipCount[path*8+1]++] = mIndices[1];
+		mBitFlipHints[path*8+2][mBitFlipCount[path*8+2]++] = mIndices[2];
+		mBitFlipHints[path*8+3][mBitFlipCount[path*8+3]++] = mIndices[3];
+		mBitFlipHints[path*8+4][mBitFlipCount[path*8+4]++] = mIndices[1];
+		mBitFlipHints[path*8+4][mBitFlipCount[path*8+4]++] = mIndices[2];
+		mBitFlipHints[path*8+5][mBitFlipCount[path*8+5]++] = mIndices[1];
+		mBitFlipHints[path*8+5][mBitFlipCount[path*8+5]++] = mIndices[3];
+		mBitFlipHints[path*8+6][mBitFlipCount[path*8+6]++] = mIndices[2];
+		mBitFlipHints[path*8+6][mBitFlipCount[path*8+6]++] = mIndices[3];
+		mBitFlipHints[path*8+7][mBitFlipCount[path*8+7]++] = mIndices[1];
+		mBitFlipHints[path*8+7][mBitFlipCount[path*8+7]++] = mIndices[2];
+		mBitFlipHints[path*8+7][mBitFlipCount[path*8+7]++] = mIndices[3];
+	}
+	xmDataPool->release(tempBlock);
+
+	unsigned newPathCount = std::min(pathCount*8, (unsigned)mListSize);
+	xmPathList->setNextPathCount(newPathCount);
+	simplePartialSortDescending<unsigned,float>(mIndices, mMetrics, newPathCount, pathCount*8);
+
+	for(unsigned path = 0; path < newPathCount; ++path) {
+		xmPathList->duplicatePath(path, mIndices[path]/8, mStage);
+	}
+
+	for(unsigned path = 0; path < pathCount; ++path) {
+		xmPathList->clearOldPath(path, mStage);
+	}
+
+	union {
+		float* fBitDestination;
+		unsigned int* iBitDestination;
+	};
+
+	for(unsigned path = 0; path < newPathCount; ++path) {
+		xmPathList->getWriteAccessToNextBit(path, mStage);
+		xmPathList->NextMetric(path) = mMetrics[path];
+		float* LlrSource = xmPathList->NextLlr(path, mStage);
+		fBitDestination = xmPathList->NextBit(path, mStage);
+		for(unsigned i=0; i<mBlockLength; i+=8) {
+			__m256 Llr = _mm256_load_ps(LlrSource+i);
+			_mm256_store_ps(fBitDestination+i, Llr);
+		}
+
+		unsigned source = mIndices[path], max = mBitFlipCount[source];
+		for(unsigned i=0; i<max; ++i) {
+			iBitDestination[mBitFlipHints[source][i]] ^= 0x80000000;
+		}
+	}
+
+	xmPathList->switchToNext();
+}
+
+
 
 Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 	size_t blockLength = parent->blockLength();
@@ -477,7 +616,12 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 		return new RepetitionDecoder(parent);
 	}
 
-	if(frozenBitCount == 0 && blockLength <= 8) {
+	if(frozenBitCount == 1/* && blockLength == 4 / this limitation has no significant effect */) {
+		/* Minimal block length: 4 */
+		return new SpcDecoder(parent);
+	}
+
+	if(frozenBitCount == 0/* && blockLength <= 8 / after adding the SPC decoder, this limitation has no effect either */) {
 		return new RateOneDecoder(parent);
 		/* The block length limitation ensures, that enough bit flips are
 		 * examined at higher list lengths. If this limit is set too high, the

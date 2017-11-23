@@ -105,7 +105,6 @@ DataPoint* Simulator::getDefaultDataPoint() {
 	dp->L =                mConfiguration->getInt("pathlimit");
 	dp->errorDetection =   errorDetectionStringToId(mConfiguration->getString("error-detection"));
 	dp->systematic =      !mConfiguration->getSwitch("non-systematic");
-	dp->softOutput =       mConfiguration->getSwitch("soft-output");
 
 	// Set simulation parameters
 	dp->EbN0 =             mConfiguration->getFloat("snr-max");
