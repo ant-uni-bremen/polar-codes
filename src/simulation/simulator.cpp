@@ -506,14 +506,14 @@ void SimulationWorker::calculateStatistics() {
 	mJob->BER = (float)mJob->biterrors/mJob->bits;
 	mJob->RER = (float)mJob->reportedErrors/mJob->runs;
 	mJob->blps = mJob->runs;
-	mJob->cbps = mJob->runs*mJob->N;
+	mJob->cbps = mJob->runs * mJob->N;
 	mJob->pbps = mJob->bits;
 	mJob->ebps = mJob->cbps;
 	mJob->blps /= mJob->time.sum;
 	mJob->cbps /= mJob->time.sum;
 	mJob->pbps /= mJob->time.sum;
 	mJob->ebps /= mJob->encTime;
-	mJob->effectiveRate = (mJob->runs-mJob->errors+0.0)
+	mJob->effectiveRate = (mJob->runs-mJob->errors+0.0f)
 						* (mJob->K - mJob->errorDetection)
 						/ mJob->time.sum;
 

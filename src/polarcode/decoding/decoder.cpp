@@ -16,14 +16,9 @@ namespace Decoding {
 Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits, int decoder_impl){
   Decoder* dec;
   if(listSize == 1){
-//		if(decoder_impl == 1){
-//			dec = new FastSscAvxFloat(blockLength, frozenBits);
-//		} else{
-//			dec = new FastSscAvx2Char(blockLength, frozenBits);
-//		}
     switch(decoder_impl){
-      case 1: dec = new SclAvxFloat(blockLength, listSize, frozenBits); break;
-      default: dec = new SclAvx2Char(blockLength, listSize, frozenBits); break;
+      case 1: dec = new FastSscAvxFloat(blockLength, frozenBits); break;
+      default: dec = new FastSscAvx2Char(blockLength, frozenBits); break;
     }
   }
   else{
@@ -32,13 +27,6 @@ Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsi
       case 2: dec = new AdaptiveFloat(blockLength, listSize, frozenBits, false); break;
       default: dec = new SclAvx2Char(blockLength, listSize, frozenBits); break;
     }
-//    dec->setErrorDetection(new ErrorDetection::CRC8());
-//    if(decoder_impl == 1){
-//      dec = new SclAvxFloat(blockLength, listSize, frozenBits);
-//      dec = new AdaptiveFloat(blockLength, listSize, frozenBits, false);
-//    } else{
-//      dec = new SclAvx2Char(blockLength, listSize, frozenBits);
-//    }
   }
   dec->setErrorDetection(new ErrorDetection::CRC8());
   return dec;

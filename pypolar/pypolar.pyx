@@ -122,11 +122,11 @@ cdef class PolarDecoder:
         return self.kernel.hasSoftOutput()
 
     def getSoftCodeword(self):
-        cdef np.ndarray[np.int8_t, ndim=1] llrs = np.zeros((self.kernel.blockLength(), ), dtype=np.int8)
+        cdef np.ndarray[np.float32_t, ndim=1] llrs = np.zeros((self.kernel.blockLength(), ), dtype=np.float32)
         self.kernel.getSoftCodeword(llrs.data)
         return llrs
 
     def getSoftInformation(self):
-        cdef np.ndarray[np.int8_t, ndim=1] llrs = np.zeros((self.kernel.infoLength(), ), dtype=np.int8)
+        cdef np.ndarray[np.float32_t, ndim=1] llrs = np.zeros((self.kernel.infoLength(), ), dtype=np.float32)
         self.kernel.getSoftInformation(llrs.data)
         return llrs
