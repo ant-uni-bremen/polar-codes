@@ -26,9 +26,8 @@ public:
 	 * \param blockLength Block length of the Polar Code.
 	 * \param listSize Path limit of the list decoder.
 	 * \param frozenBits The set of frozen bits.
-	 * \param softOutput Whether to calculate soft output.
 	 */
-	AdaptiveChar(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits, bool softOutput = false);
+	AdaptiveChar(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits);
 	~AdaptiveChar();
 	bool decode();
 

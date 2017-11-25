@@ -39,6 +39,16 @@ static inline char reduce_adds_epi8(__m256i x) {
 	return ((char*)&x8)[0];
 }
 
+static inline long long reduce_add_epi64(__m256i x) {
+	__m128i x128 = _mm_add_epi64(_mm256_extracti128_si256(x,0), _mm256_extracti128_si256(x,1));
+	union {
+		__m128i x64;
+		long long i64[2];
+	};
+	x64  = _mm_add_epi64(x128, _mm_srli_si128(x128, 8));
+	return i64[0];
+}
+
 static inline short reduce_adds_epi16(__m256i x) {
 	const __m128i x128 = _mm_adds_epi16(_mm256_extracti128_si256(x,0), _mm256_extracti128_si256(x,1));
 	const __m128i x64  = _mm_adds_epi16(x128, _mm_srli_si128(x128, 8));

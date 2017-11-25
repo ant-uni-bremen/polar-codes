@@ -36,7 +36,7 @@ bool testVectors(const __m256 &one, const __m256 &two) {
 }
 
 void DecodingTest::testSpecialDecoders() {
-	__m256i llr, bits, expectedResult;
+/*	__m256i llr, bits, expectedResult;
 
 	// Rate-0
 	bits = _mm256_set1_epi8(-1);
@@ -80,7 +80,7 @@ void DecodingTest::testSpecialDecoders() {
 	expectedResult = _mm256_set_epi8(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 	PolarCode::Decoding::FastSscAvx2::SpcDecode(&llr, &bits, 2);
 	CPPUNIT_ASSERT(testShortVectors(bits, expectedResult, 2));
-}
+*/}
 
 void DecodingTest::testGeneralDecodingFunctionsAvx() {
 	union fv {

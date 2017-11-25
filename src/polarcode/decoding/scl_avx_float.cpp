@@ -473,10 +473,6 @@ SpcDecoder::SpcDecoder(Node *parent)
 	mIndices.resize(std::max(mBlockLength, mListSize*8));
 	mMetrics.resize(mListSize * 8);
 	mBitFlipHints.resize(mListSize * 8);
-	for(auto& hintList : mBitFlipHints) {
-		hintList.resize(4);
-	}
-
 	mBitFlipCount.resize(mListSize * 8);
 }
 
@@ -616,76 +612,16 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 		return new RepetitionDecoder(parent);
 	}
 
-	if(frozenBitCount == 1/* && blockLength == 4 / this limitation has no significant effect */) {
-		/* Minimal block length: 4 */
+	if(frozenBitCount == 1) {
 		return new SpcDecoder(parent);
 	}
 
-	if(frozenBitCount == 0/* && blockLength <= 8 / after adding the SPC decoder, this limitation has no effect either */) {
+	if(frozenBitCount == 0) {
 		return new RateOneDecoder(parent);
-		/* The block length limitation ensures, that enough bit flips are
-		 * examined at higher list lengths. If this limit is set too high, the
-		 * advantage of increasing the list size vanishes.
-		 *
-		 * Lowest block length limit is 2, as the RateOneDecoder examines the 2
-		 * weakest LLRs of the codeword.
-		 * Without the limit, flipped bits are very likely to be undetected,
-		 * regardless of the list size.
-		 */
 	}
 
 	return new DecoderNode(frozenBits, parent);
 }
-/*
-void RateZeroDecodeSingleBit(PathList *pathList, unsigned) {
-	unsigned pathCount = pathList->PathCount();
-	for(unsigned path = 0; path < pathCount; ++path) {
-		*(pathList->Bit(path, 0)) = INFINITY;
-		float Llr = *(pathList->Llr(path, 0));
-		pathList->Metric(path) += std::min(Llr, 0.0f);
-	}
-}
-
-void RateOneDecodeSingleBit(PathList *pathList, unsigned) {
-	std::vector<unsigned> indices;
-	std::vector<float> metrics;
-	unsigned pathCount = pathList->PathCount();
-
-	metrics.resize(pathCount*2);
-
-	for(unsigned path = 0; path < pathCount; ++path) {
-		float metric = pathList->Metric(path);
-		float llr = *(pathList->Llr(path, 0));
-		float absllr = std::fabs(llr);
-		metrics[path*2] = metric;
-		metrics[path*2+1] = metric-absllr;
-	}
-	unsigned newPathCount = std::min(pathCount*2, pathList->PathLimit());
-	pathList->setNextPathCount(newPathCount);
-	simplePartialSortDescending<unsigned,float>(indices, metrics, newPathCount);
-
-	for(unsigned path = 0; path < newPathCount; ++path) {
-		pathList->duplicatePath(path, indices[path]/2, 0);
-	}
-
-	for(unsigned path = 0; path < pathCount; ++path) {
-		pathList->clearOldPath(path, 0);
-	}
-
-	for(unsigned path = 0; path < newPathCount; ++path) {
-		pathList->getWriteAccessToNextBit(path, 0);
-		pathList->NextMetric(path) = metrics[path];
-		union {
-			float fBit;
-			unsigned iBit;
-		};
-		fBit = *(pathList->NextLlr(path, 0));
-		iBit ^= (indices[path]&1)<<31;
-		*(pathList->NextBit(path, 0)) = fBit;
-	}
-
-	pathList->switchToNext();
-}*/
 
 }// namespace SclAvx
 

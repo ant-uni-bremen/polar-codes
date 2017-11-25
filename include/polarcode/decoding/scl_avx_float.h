@@ -359,7 +359,7 @@ public:
 class SpcDecoder : public DecoderNode {
 	std::vector<unsigned> mIndices;
 	std::vector<float> mMetrics;
-	std::vector<std::vector<unsigned>> mBitFlipHints;
+	std::vector<std::array<unsigned, 2>> mBitFlipHints;
 	std::vector<unsigned> mBitFlipCount;
 
 public:

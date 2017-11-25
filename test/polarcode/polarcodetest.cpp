@@ -115,7 +115,7 @@ void PolarCodeTest::testAvx2List() {
 			= new PolarCode::ErrorDetection::CRC32();
 
 	PolarCode::Decoding::Decoder* decoder
-			= new PolarCode::Decoding::SclAvx2Char(blockLength, pathLimit, frozenBits, true);
+			= new PolarCode::Decoding::SclAvx2Char(blockLength, pathLimit, frozenBits);
 	decoder->setErrorDetection(errorDetector);
 
 	{

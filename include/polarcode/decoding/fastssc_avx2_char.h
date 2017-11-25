@@ -17,10 +17,6 @@ class Node {
 	typedef DataPool<__m256i, 32> datapool_t;
 	Block<__m256i> *mLlr, *mBit;
 
-	void clearBlocks();
-	void clearLlrBlock();
-	void clearBitBlock();
-
 protected:
 	//xm = eXternal member (not owned by this Node)
 	datapool_t *xmDataPool;///< Pointer to a DataPool object.
@@ -29,6 +25,7 @@ protected:
 
 public:
 	Node();
+	Node(Node *parent);
 	/*!
 	 * \brief Initialize a polar code's root node
 	 * \param blockLength Length of the code.
@@ -53,12 +50,6 @@ public:
 	size_t blockLength();
 
 	/*!
-	 * \brief Check, if this Node produces soft bits.
-	 * \return True, if soft bits are calculated.
-	 */
-	bool softOutput();
-
-	/*!
 	 * \brief Get a pointer to LLR values of this node.
 	 * \return Pointer to LLRs.
 	 */
@@ -72,21 +63,15 @@ public:
 
 };
 
+class ShortNode : public Node {
+protected:
+	Block<__m256i> *mLeftBits, *mRightBits;
 
-void   RateZeroDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void    RateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void RepetitionDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void RepetitionDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void        SpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void        SpcDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void    ZeroSpcDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void    ZeroSpcDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void    ZeroOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-
-
-void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-void simplifiedRightRateOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const size_t blockLength);
-
+public:
+	ShortNode(Node *parent);
+	virtual ~ShortNode();
+	virtual void decode(__m256i *LlrIn, __m256i *BitsOut) = 0;
+};
 
 
 /*!
@@ -94,12 +79,9 @@ void simplifiedRightRateOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut, const s
  */
 class RateRNode : public Node {
 protected:
-	Node *mParent;///< The parent node
 	Node *mLeft,  ///< Left child node
 		 *mRight; ///< Right child node
 	Block<__m256i> *ChildLlr;///< Temporarily holds the LLRs child nodes have to decode.
-	void (*leftDecoder)(__m256i*, __m256i*, size_t);///< Pointer to special decoding function of left child.
-	void (*rightDecoder)(__m256i*, __m256i*, size_t);///< Pointer to special decoding function of right child.
 
 public:
 	/*!
@@ -116,6 +98,8 @@ public:
  * \brief A rate-R node of subvector length needs child bits in separate blocks.
  */
 class ShortRateRNode : public RateRNode {
+	void simplifiedRightRateOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut);
+
 protected:
 	Block<__m256i> *LeftBits, *RightBits;
 
@@ -134,6 +118,8 @@ public:
  * \brief Optimized decoding, if the right subcode is rate-1.
  */
 class ROneNode : public RateRNode {
+	void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut);
+
 public:
 	/*!
 	 * \brief Initialize the right-rate-1 optimized decoder.
@@ -149,6 +135,7 @@ public:
  * \brief Optimized decoding, if the right subcode is rate-1.
  */
 class ShortROneNode : public ShortRateRNode {
+	void simplifiedRightRateOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut);
 public:
 	/*!
 	 * \brief Initialize the right-rate-1 optimized decoder.
@@ -190,13 +177,83 @@ public:
 	void decode(__m256i *LlrIn, __m256i *BitsOut);
 };
 
+class RateZeroDecoder : public Node {
+public:
+	RateZeroDecoder(Node *parent);
+	~RateZeroDecoder();
+	void decode(__m256i*, __m256i *BitsOut);
+};
+
+class RateOneDecoder : public Node {
+public:
+	RateOneDecoder(Node *parent);
+	~RateOneDecoder();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
+class RepetitionDecoder : public Node {
+public:
+	RepetitionDecoder(Node *parent);
+	~RepetitionDecoder();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
+class ShortRepetitionDecoder : public ShortNode {
+public:
+	ShortRepetitionDecoder(Node *parent);
+	~ShortRepetitionDecoder();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
+class SpcDecoder : public Node {
+public:
+	SpcDecoder(Node *parent);
+	~SpcDecoder();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
+class ShortSpcDecoder : public ShortNode {
+public:
+	ShortSpcDecoder(Node *parent);
+	~ShortSpcDecoder();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
+class ZeroSpcDecoder : public Node {
+	unsigned mSubBlockLength;
+	unsigned mSubVecCount;
+
+public:
+	ZeroSpcDecoder(Node *parent);
+	~ZeroSpcDecoder();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
+class ShortZeroSpcDecoder : public ShortNode {
+	unsigned mSubBlockLength;
+
+public:
+	ShortZeroSpcDecoder(Node *parent);
+	~ShortZeroSpcDecoder();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
+class ShortZeroOneDecoder : public ShortNode {
+	unsigned mSubBlockLength;
+
+public:
+	ShortZeroOneDecoder(Node *parent);
+	~ShortZeroOneDecoder();
+	void decode(__m256i *LlrIn, __m256i *BitsOut);
+};
+
 /*!
  * \brief Create a specialized decoder for the given set of frozen bits.
  * \param frozenBits The set of frozen bits.
  * \param parent The parent node from which the code length is fetched.
  * \return Pointer to a polymorphic decoder object.
  */
-Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(__m256i*, __m256i*, size_t));
+Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent);
 
 }// namespace FastSscAvx2
 
@@ -207,7 +264,6 @@ class FastSscAvx2Char : public Decoder {
 	FastSscAvx2::Node *mNodeBase,///< General code information
 					  *mRootNode;///< Actual decoder
 	DataPool<__m256i, 32> *mDataPool;///< Lazy-copy data-block pool
-	void (*mSpecialDecoder)(__m256i*, __m256i*, size_t);
 
 	void clear();
 

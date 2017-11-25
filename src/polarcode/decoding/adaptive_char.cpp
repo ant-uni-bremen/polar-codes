@@ -7,17 +7,15 @@ namespace Decoding {
 AdaptiveChar::AdaptiveChar
 	( size_t blockLength
 	, size_t listSize
-	, const std::vector<unsigned> &frozenBits
-	, bool softOutput)
+	, const std::vector<unsigned> &frozenBits)
 	: mListSize(listSize)
 {
 	mBlockLength = blockLength;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
-	mSoftOutput = softOutput;
 	mExternalContainers = true;
 
 	mFastDecoder = new FastSscAvx2Char(mBlockLength, mFrozenBits);
-	mListDecoder = new SclAvx2Char(mBlockLength, mListSize, mFrozenBits, mSoftOutput);
+	mListDecoder = new SclAvx2Char(mBlockLength, mListSize, mFrozenBits);
 }
 
 AdaptiveChar::~AdaptiveChar() {
