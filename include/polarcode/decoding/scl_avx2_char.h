@@ -310,6 +310,9 @@ public:
 };
 
 class RateZeroDecoder : public Node {
+	std::vector<unsigned> mIndices;
+	std::vector<long> mMetrics;
+
 public:
 	RateZeroDecoder(Node *parent);
 	~RateZeroDecoder();

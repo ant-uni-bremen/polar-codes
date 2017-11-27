@@ -174,6 +174,28 @@ void simplePartialSortDescending(
 }
 
 template<typename IdxType, typename ValueType>
+void sortMetrics(
+		std::vector<IdxType> &Indices,
+		std::vector<ValueType> &Values,
+		const unsigned int n,
+		const unsigned int size) {
+	for(unsigned i=0; i<size; ++i) {
+		Indices[i] = i;
+	}
+
+	const unsigned lim = std::min(size-1, n);
+
+	for(unsigned i=0; i<lim; ++i) {
+		for(unsigned j=size-1; j>i; --j) {
+			if(Values[i] < Values[j]) {
+				std::swap(Values[i], Values[j]);
+				std::swap(Indices[i], Indices[j]);
+			}
+		}
+	}
+}
+
+template<typename IdxType, typename ValueType>
 void findWeakLlrs(
 		std::vector<IdxType> &Indices,
 		ValueType *Values,

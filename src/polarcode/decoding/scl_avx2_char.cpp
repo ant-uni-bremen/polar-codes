@@ -217,6 +217,8 @@ RateRNode::RateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
 
 RateZeroDecoder::RateZeroDecoder(Node *parent)
 	: Node(parent) {
+	mIndices.resize(mListSize);
+	mMetrics.resize(mListSize);
 }
 
 RateOneDecoder::RateOneDecoder(Node *parent)
@@ -339,8 +341,25 @@ void RateZeroDecoder::decode() {
 				punishment = _mm256_add_epi64(punishment, expanded);
 			}
 		}
-		xmPathList->Metric(path) += reduce_add_epi64(punishment);
+		mMetrics[path] = xmPathList->Metric(path) + reduce_add_epi64(punishment);
 	}
+	unsigned newPathCount = pathCount;
+	xmPathList->setNextPathCount(newPathCount);
+	sortMetrics(mIndices, mMetrics, newPathCount, pathCount);
+
+	for(unsigned path = 0; path < newPathCount; ++path) {
+		xmPathList->duplicatePath(path, mIndices[path], mStage);
+	}
+
+	for(unsigned path = 0; path < pathCount; ++path) {
+		xmPathList->clearOldPath(path, mStage);
+	}
+
+	for(unsigned path = 0; path < newPathCount; ++path) {
+		xmPathList->NextMetric(path) = mMetrics[path];
+	}
+
+	xmPathList->switchToNext();
 }
 
 void RateOneDecoder::decode() {
@@ -396,7 +415,7 @@ void RateOneDecoder::decode() {
 
 	unsigned newPathCount = std::min(pathCount*4, xmPathList->PathLimit());
 	xmPathList->setNextPathCount(newPathCount);
-	simplePartialSortDescending(mIndices, mMetrics, newPathCount, pathCount * 4);
+	sortMetrics(mIndices, mMetrics, newPathCount, pathCount * 4);
 
 	for(unsigned path = 0; path < newPathCount; ++path) {
 		xmPathList->duplicatePath(path, mIndices[path]/4, mStage);
@@ -484,7 +503,7 @@ void RepetitionDecoder::decode() {
 	}
 	unsigned newPathCount = std::min(pathCount * 2, xmPathList->PathLimit());
 	xmPathList->setNextPathCount(newPathCount);
-	simplePartialSortDescending(mIndices, mMetrics, newPathCount, pathCount * 2);
+	sortMetrics(mIndices, mMetrics, newPathCount, pathCount * 2);
 
 	for(unsigned path = 0; path < newPathCount; ++path) {
 		xmPathList->duplicatePath(path, mIndices[path]/2, mStage);
@@ -594,7 +613,7 @@ void SpcDecoder::decode() {
 
 	unsigned newPathCount = std::min(pathCount * 8, xmPathList->PathLimit());
 	xmPathList->setNextPathCount(newPathCount);
-	simplePartialSortDescending(mIndices, mMetrics, newPathCount, pathCount * 8);
+	sortMetrics(mIndices, mMetrics, newPathCount, pathCount * 8);
 
 	for(unsigned path = 0; path < newPathCount; ++path) {
 		xmPathList->duplicatePath(path, mIndices[path]/8, mStage);
