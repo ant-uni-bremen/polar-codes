@@ -299,6 +299,7 @@ SimulationWorker::SimulationWorker(Simulator* Sim, int workerId)
 SimulationWorker::~SimulationWorker() {
 	delete mTransmitter;
 	delete mModem;
+	delete mAmplifier;
 }
 
 void SimulationWorker::run() {

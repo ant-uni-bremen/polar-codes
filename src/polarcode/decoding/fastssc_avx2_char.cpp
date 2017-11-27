@@ -266,7 +266,7 @@ void SpcDecoder::decode(__m256i *LlrIn, __m256i *BitsOut) {
 			__m256i abs = _mm256_abs_epi8(vecIn);
 			unsigned vecMin = _mm256_minpos_epu8(abs, &testAbs);
 			if(testAbs < minAbs) {
-				minIdx = vecMin+i;
+				minIdx = vecMin+i*32;
 				minAbs = testAbs;
 			}
 		}
@@ -320,7 +320,7 @@ void ZeroSpcDecoder::decode(__m256i *LlrIn, __m256i *BitsOut) {
 			__m256i abs = _mm256_abs_epi8(llr);
 			unsigned vecMin = _mm256_minpos_epu8(abs, &testAbs);
 			if(testAbs < minAbs) {
-				minIdx = vecMin+i;
+				minIdx = vecMin+i*32;
 				minAbs = testAbs;
 			}
 		}

@@ -46,9 +46,10 @@ BitContainer::BitContainer(size_t size)
 
 BitContainer::BitContainer(size_t size, const std::vector<unsigned> &frozenBits)
 	: mElementCount(size),
-	  mFrozenBits(frozenBits),
+//	  mFrozenBits(frozenBits),
 	  mInformationBitCount(size-frozenBits.size()),
 	  mLUT(nullptr) {
+	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 	calculateLUT();
 }
 
@@ -460,7 +461,6 @@ void CharContainer::getPackedInformationBits(void* pData) {
 				bits[7-j] = uData[mLUT[bit+j]];
 			}
 			*(charPtr++) = static_cast<unsigned char>(_mm_movemask_pi8(bitmask));
-			currentByte = 0;
 		}
 
 		// Assemble the remaining bits

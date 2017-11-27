@@ -32,20 +32,14 @@ PathList::PathList(size_t listSize, size_t stageCount, datapool_t *dataPool)
 		mNextBitTree[i].resize(stageCount);
 		mNextLeftBitTree[i].resize(stageCount);
 	}
-	tempBlock = xmDataPool->allocate(nBit2cvecCount(1<<stageCount));
 }
 
 PathList::~PathList() {
-	xmDataPool->release(tempBlock);
 	clear();
 }
 
 void PathList::clear() {
-	for(unsigned path=0; path < mPathCount; ++path) {
-		xmDataPool->release(mLlrTree[path][mStageCount-1]);
-		xmDataPool->release(mBitTree[path][mStageCount-1]);
-		xmDataPool->release(mLeftBitTree[path][mStageCount-1]);
-	}
+	clearStage(mStageCount-1);
 	mPathCount = 0;
 }
 
@@ -268,6 +262,23 @@ SpcDecoder::~SpcDecoder() {
 }
 
 // Decoders
+inline
+__m256i llrExpandToLong(__m256i vec, const unsigned i) {
+	switch(i%4) {
+		case 0: break;
+		case 1: vec = _mm256_shuffle_epi32(vec, 1); break;
+		case 2: vec = _mm256_shuffle_epi32(vec, 2); break;
+		case 3: vec = _mm256_shuffle_epi32(vec, 3); break;
+	}
+
+	if(i/4) {
+		return _mm256_cvtepi8_epi64(
+						_mm256_extracti128_si256(vec, 1));
+	} else {
+		return _mm256_cvtepi8_epi64(
+						_mm256_extracti128_si256(vec, 0));
+	}
+}
 
 void RateRNode::decode() {
 	xmPathList->allocateStage(mStage);
@@ -309,6 +320,7 @@ void RateZeroDecoder::decode() {
 
 	for(unsigned path = 0; path < pathCount; ++path) {
 		__m256i punishment = _mm256_setzero_si256();
+		__m256i expanded;
 		vLlrSource = xmPathList->Llr(path, mStage);
 		bitDestination = xmPathList->Bit(path, mStage);
 
@@ -321,15 +333,13 @@ void RateZeroDecoder::decode() {
 
 			__m256i LlrIn = _mm256_load_si256(vLlrSource+vector);
 			LlrIn = _mm256_min_epi8(LlrIn, zero);
-			__m128i epi8a = _mm256_extracti128_si256(LlrIn, 1);
-			__m128i epi8b = _mm256_extracti128_si256(LlrIn, 0);
-			__m256i epi16a = _mm256_cvtepi8_epi16(epi8a);
-			__m256i epi16b = _mm256_cvtepi8_epi16(epi8b);
-			punishment = _mm256_adds_epi16(
-							punishment,
-							_mm256_adds_epi16(epi16a, epi16b));
+
+			for(unsigned group=0; group < 8; ++group) {
+				expanded = llrExpandToLong(LlrIn, group);
+				punishment = _mm256_add_epi64(punishment, expanded);
+			}
 		}
-		xmPathList->Metric(path) += reduce_adds_epi16(punishment);
+		xmPathList->Metric(path) += reduce_add_epi64(punishment);
 	}
 }
 
@@ -419,23 +429,7 @@ void RateOneDecoder::decode() {
 	xmPathList->switchToNext();
 }
 
-inline
-__m256i llrExpandToLong(__m256i vec, const unsigned i) {
-	switch(i%4) {
-		case 0: break;
-		case 1: vec = _mm256_shuffle_epi32(vec, 1); break;
-		case 2: vec = _mm256_shuffle_epi32(vec, 2); break;
-		case 3: vec = _mm256_shuffle_epi32(vec, 3); break;
-	}
 
-	if(i/4) {
-		return _mm256_cvtepi8_epi64(
-						_mm256_extracti128_si256(vec, 1));
-	} else {
-		return _mm256_cvtepi8_epi64(
-						_mm256_extracti128_si256(vec, 0));
-	}
-}
 
 void RepetitionDecoder::decode() {
 	const __m256i zero = _mm256_setzero_si256();
@@ -650,9 +644,9 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 		return new RepetitionDecoder(parent);
 	}
 
-/*	if(frozenBitCount == 1) {
+	if(frozenBitCount == 1) {
 		return new SpcDecoder(parent);
-	}*/
+	}
 
 
 	return new RateRNode(frozenBits, parent);

@@ -110,7 +110,7 @@ inline void G_function_0RShort(__m256i *LLRin, __m256i *LLRout, unsigned subBloc
 
 
 inline void PrepareForShortOperation(__m256i* Left, const unsigned subBlockLength) {
-	memset(reinterpret_cast<char*>(Left)+subBlockLength, 0, subBlockLength);
+	memset(reinterpret_cast<char*>(Left)+subBlockLength, 0, 32-subBlockLength);
 }
 
 inline void MoveRightBits(__m256i* Right, const unsigned subBlockLength) {
@@ -149,25 +149,25 @@ inline void CombineSoftBits(__m256i *Left, __m256i *Right, __m256i *Out, const u
 		LeftV = _mm256_load_si256(Left+i);
 		RightV = _mm256_load_si256(Right+i);
 
-		//Boxplus for upper bits
-		F_function_calc(LeftV, RightV, Out+i);
-
 		//Copy lower bits
 		_mm256_store_si256(Out+vecCount+i, RightV);
+
+		//Boxplus for upper bits
+		F_function_calc(LeftV, RightV, Out+i);
 	}
 }
 
 inline void CombineSoftBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
-	static const __m256i absCorrector = _mm256_set1_epi8(-127);
+//	static const __m256i absCorrector = _mm256_set1_epi8(-127);
 	PrepareForShortOperation(Left, subBlockLength);
 	PrepareForShortOperation(Right, subBlockLength);
 
-	__m256i LeftV = _mm256_loadu_si256(Left);
-	__m256i RightV = _mm256_loadu_si256(Right);
+	__m256i LeftV = _mm256_load_si256(Left);
+	__m256i RightV = _mm256_load_si256(Right);
 	__m256i OutV;
 
-	LeftV = _mm256_max_epi8(LeftV, absCorrector);
-	RightV = _mm256_max_epi8(RightV, absCorrector);
+//	LeftV = _mm256_max_epi8(LeftV, absCorrector);
+//	RightV = _mm256_max_epi8(RightV, absCorrector);
 
 	//Boxplus operation for upper bits
 	F_function_calc(LeftV, RightV, &OutV);

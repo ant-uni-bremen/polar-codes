@@ -34,9 +34,8 @@ class PathList {
 	unsigned mPathLimit, mPathCount, mNextPathCount;
 	unsigned mStageCount;
 	datapool_t *xmDataPool;
-public:
-	block_t* tempBlock;///< Pointer to a permanently allocated block for temporary storage.
 
+public:
 	PathList();
 
 	/*!
