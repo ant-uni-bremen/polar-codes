@@ -194,6 +194,9 @@ def plot_pcs_results():
     # filename = 'polar_list_decoder_N512_listlength.csv'
     filename = 'polar_list_decoder_N512_soft_test8_listlength.csv'
     filename = 'polar_decoder2_N512_K256_L1-8_listlength.csv'
+    filename = 'polar_decoder_unlspc_32bit_N512_K256_L1-16_listlength.csv'
+    # filename = 'polar_decoder_32bit_N512_K256_L1-8_listlength.csv'
+    # filename = 'polar_decoder_8bit_N512_K256_L1-8_listlength.csv'
     sim_res = load_pcs_csv_file(filename)
     sim_res = sim_res[1:, :]
     results = separate_simulation_results(sim_res)
@@ -219,7 +222,7 @@ def plot_pcs_results():
     plt.xlabel(r'$E_b / N_0$ [dB]')
     plt.grid()
     plt.title('List sizes for Polar Code ({}, {}) with dSNR {}dB'.format(int(common_keys[0]), int(common_keys[1]), common_keys[2]))
-    save('polar_code_N{}_K{}_listlength_performance.pgf'.format(int(common_keys[0]), int(common_keys[1])))
+    # save('polar_code_N{}_K{}_listlength_performance.pgf'.format(int(common_keys[0]), int(common_keys[1])))
     plt.show()
 
     for k in keys:
@@ -233,7 +236,7 @@ def plot_pcs_results():
     plt.xlabel(r'$E_b / N_0$ [dB]')
     plt.grid()
     plt.title('Throughput for Polar Code ({}, {}) with dSNR {}dB'.format(int(common_keys[0]), int(common_keys[1]), common_keys[2]))
-    save('polar_code_N{}_K{}_listlength_throughput.pgf'.format(int(common_keys[0]), int(common_keys[1])))
+    # save('polar_code_N{}_K{}_listlength_throughput.pgf'.format(int(common_keys[0]), int(common_keys[1])))
     plt.show()
 
 
