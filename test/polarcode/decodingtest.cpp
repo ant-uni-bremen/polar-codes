@@ -145,6 +145,51 @@ void DecodingTest::testGeneralDecodingFunctionsAvx2() {
 	CPPUNIT_ASSERT(testVectors(bits, expected));
 	PolarCode::Decoding::Template::CombineSoftBits<8>(llr, llr+1, &bits);
 	CPPUNIT_ASSERT(testVectors(bits, expected));
+
+	//Extended combine-test
+	{
+		union charVec {
+			__m256i v;
+			char c[32];
+		};
+
+		charVec llrLeft;
+		charVec llrRight;
+		charVec result;
+		for(int left = -128; left < 0; left++) {
+			for(int right = -128; right < 0; right++) {
+				llrLeft.c[0] = static_cast<char>(left);
+				llrRight.c[0] = static_cast<char>(right);
+				PolarCode::Decoding::FastSscAvx2::CombineSoftBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
+				CPPUNIT_ASSERT(result.c[0] >= 0);
+			}
+		}
+		for(int left = 0; left < 128; left++) {
+			for(int right = 0; right < 128; right++) {
+				llrLeft.c[0] = static_cast<char>(left);
+				llrRight.c[0] = static_cast<char>(right);
+				PolarCode::Decoding::FastSscAvx2::CombineSoftBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
+				CPPUNIT_ASSERT(result.c[0] >= 0);
+			}
+		}
+		for(int left = -128; left < 0; left++) {
+			for(int right = 0; right < 128; right++) {
+				llrLeft.c[0] = static_cast<char>(left);
+				llrRight.c[0] = static_cast<char>(right);
+				PolarCode::Decoding::FastSscAvx2::CombineSoftBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
+				//std::cout << "Left: " << left << ", Right: " << right << ", Result: " << (int)result.c[0] << std::endl;
+				CPPUNIT_ASSERT(result.c[0] < 0);
+			}
+		}
+		for(int left = 0; left < 128; left++) {
+			for(int right = -128; right < 0; right++) {
+				llrLeft.c[0] = static_cast<char>(left);
+				llrRight.c[0] = static_cast<char>(right);
+				PolarCode::Decoding::FastSscAvx2::CombineSoftBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
+				CPPUNIT_ASSERT(result.c[0] < 0);
+			}
+		}
+	}
 }
 
 void DecodingTest::testAvx2Short() {

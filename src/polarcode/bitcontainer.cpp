@@ -451,29 +451,21 @@ void CharContainer::getPackedInformationBits(void* pData) {
 		__m64 bitmask;
 	};
 
-	if(mInformationBitCount>=8) {
-		unsigned safeBytes = mInformationBitCount/8;
-		unsigned safeBits = safeBytes*8;
-		unsigned remainingBits = mInformationBitCount%8;
+	unsigned safeBytes = mInformationBitCount/8;
+	unsigned safeBits = safeBytes*8;
+	unsigned remainingBits = mInformationBitCount%8;
 
-		for(unsigned bit = 0; bit < safeBits; bit+=8) {
-			for(int j=0; j<8; ++j) {
-				bits[7-j] = uData[mLUT[bit+j]];
-			}
-			*(charPtr++) = static_cast<unsigned char>(_mm_movemask_pi8(bitmask));
+	for(unsigned bit = 0; bit < safeBits; bit+=8) {
+		for(int j=0; j<8; ++j) {
+			bits[7-j] = uData[mLUT[bit+j]];
 		}
+		*(charPtr++) = static_cast<unsigned char>(_mm_movemask_pi8(bitmask));
+	}
 
-		// Assemble the remaining bits
-		if(remainingBits) {
-			for(unsigned bit=0; bit < remainingBits; ++bit) {
-				currentByte |= (uData[mLUT[bit+safeBits]]&0x80) >> bit;
-			}
-			*charPtr = currentByte;
-		}
-	} else {
-		// Assemble bits of a very short code of less than 8 information bits
-		for(unsigned bit = 0; bit < mInformationBitCount; bit++) {
-			currentByte |= (uData[mLUT[bit]] & 0x80) >> bit;
+	// Assemble the remaining bits
+	if(remainingBits) {
+		for(unsigned bit=0; bit < remainingBits; ++bit) {
+			currentByte |= (uData[mLUT[bit+safeBits]]&0x80) >> bit;
 		}
 		*charPtr = currentByte;
 	}

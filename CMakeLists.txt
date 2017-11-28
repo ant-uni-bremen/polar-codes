@@ -15,7 +15,10 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 add_definitions(-std=c++11 -Wall -Wno-ignored-attributes)
 add_definitions(-march=native -fPIC)
-add_definitions(-O2 -funroll-loops)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_definitions(-O2 -funroll-loops)
+endif()
+
 #add_definitions(-Wl,--no-as-needed)
 
 add_subdirectory(src)
