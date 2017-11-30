@@ -105,16 +105,15 @@ public:
 	void getWriteAccessToNextBit(unsigned path, unsigned stage);
 
 	/*!
-	 * \brief Mark an old path as unused by decreasing the block's reference
-	 *        counter.
+	 * \brief Mark old paths as unused by decreasing the block's reference
+	 *        counters.
 	 *
 	 * This function cleans up old paths. If a path got abandoned, the data
 	 * blocks associated to it are returned to the data pool.
 	 *
-	 * \param path Index of the path to clear.
 	 * \param stage Index of the minimum stage.
 	 */
-	void clearOldPath(unsigned path, unsigned stage);
+	void clearOldPaths(unsigned stage);
 
 	/*!
 	 * \brief Set the future path list to be the currently active list.
@@ -172,10 +171,10 @@ public:
 	float* LeftBit(unsigned path, unsigned stage);
 
 	/*!
-	 * \brief Swap bit blocks. This eliminates a copy operation.
+	 * \brief Swap bit blocks and grant write access to LLR blocks.
 	 * \param stage The stage to be swapped.
 	 */
-	void swapBitBlocks(unsigned stage);
+	void prepareRightDecoding(unsigned stage);
 
 	/*!
 	 * \brief Get a pointer to a future LLR-block.
@@ -231,12 +230,12 @@ public:
 class Node {
 protected:
 	//xm = eXternal member (not owned by this Node)
-	datapool_t *xmDataPool;///< Pointer to a DataPool object.
-	size_t mBlockLength,   ///< Length of the subcode.
-		   mBitCount,      ///< Number of AVX-aligned bits the data can be stored in.
-		   mListSize;      ///< Limit for number of concurrently active paths.
-	PathList *xmPathList;  ///< Pointer to PathList object.
-	bool mSoftOutput;      ///< Whether to use XOR or Boxplus for bit combination.
+	datapool_t *xmDataPool; ///< Pointer to a DataPool object.
+	unsigned mBlockLength,  ///< Length of the subcode.
+			 mBitCount,     ///< Number of AVX-aligned bits the data can be stored in.
+			 mStage,        ///< Recursion depth of this node
+			 mListSize;     ///< Limit for number of concurrently active paths.
+	PathList *xmPathList;   ///< Pointer to PathList object.
 
 public:
 	Node();
@@ -253,9 +252,8 @@ public:
 	 * \param listSize Limit for number of concurrently active paths.
 	 * \param pool Pointer to a DataPool.
 	 * \param pathList Pointer to the PathList to use.
-	 * \param softOutput Whether XOR or Boxplus will be used for bit combination.
 	 */
-	Node(size_t blockLength, size_t listSize, datapool_t *pool, PathList *pathList, bool softOutput);
+	Node(size_t blockLength, size_t listSize, datapool_t *pool, PathList *pathList);
 
 	virtual ~Node();
 
@@ -298,43 +296,44 @@ public:
 /*!
  * \brief The DecoderNode manages code splitting and combination.
  */
-class DecoderNode : public Node {
+class RateRNode : public Node {
 protected:
-	Node *mParent;  ///< The parent node
 	Node *mLeft,    ///< Left child node
 		 *mRight;   ///< Right child node
-	unsigned mStage;///< Recursion depth of this node
-
-	/*! Pointer to combination function */
-	void (*combineFunction)(float*, float*, float*, const unsigned);
 
 public:
-	DecoderNode();
-
-	/*!
-	 * \brief Parent constructor for derived special decoders
-	 * \param parent The parent node to copy all information from.
-	 */
-	DecoderNode(Node *parent);
+	RateRNode();
 
 	/*!
 	 * \brief Create a decoder node.
 	 * \param frozenBits The set of frozen bits for this code.
 	 * \param parent The parent node to copy all information from.
 	 */
-	DecoderNode(const std::vector<unsigned> &frozenBits, Node *parent);
-	virtual ~DecoderNode();
-	virtual void decode();
+	RateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
+	~RateRNode();
+	void decode();
 };
 
-class RateZeroDecoder : public DecoderNode {
+class ShortRateRNode : public RateRNode {
+public:
+	/*!
+	 * \brief Create a decoder node.
+	 * \param frozenBits The set of frozen bits for this code.
+	 * \param parent The parent node to copy all information from.
+	 */
+	ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
+	~ShortRateRNode();
+	void decode();
+};
+
+class RateZeroDecoder : public Node {
 public:
 	RateZeroDecoder(Node *parent);
 	~RateZeroDecoder();
 	void decode();
 };
 
-class RateOneDecoder : public DecoderNode {
+class RateOneDecoder : public Node {
 	std::vector<unsigned> mIndices;
 	std::vector<float> mMetrics;
 	std::vector<std::vector<unsigned>> mBitFlipHints;
@@ -345,7 +344,7 @@ public:
 	void decode();
 };
 
-class RepetitionDecoder : public DecoderNode {
+class RepetitionDecoder : public Node {
 	std::vector<unsigned> mIndices;
 	std::vector<float> mMetrics;
 	std::vector<float> mResults;
@@ -356,7 +355,7 @@ public:
 	void decode();
 };
 
-class SpcDecoder : public DecoderNode {
+class SpcDecoder : public Node {
 	std::vector<unsigned> mIndices;
 	std::vector<float> mMetrics;
 	std::vector<std::array<unsigned, 2>> mBitFlipHints;
@@ -394,9 +393,8 @@ public:
 	 * \param blockLength Number of bits sent over a channel.
 	 * \param listSize Number of paths to examine while decoding.
 	 * \param frozenBits The set of frozen bits.
-	 * \param softOutput If true, soft output bits are calculated (slower).
 	 */
-	SclAvxFloat(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits, bool softOutput = false);
+	SclAvxFloat(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits);
 	~SclAvxFloat();
 
 	bool decode();

@@ -103,16 +103,15 @@ public:
 	void getWriteAccessToNextBit(unsigned path, unsigned stage);
 
 	/*!
-	 * \brief Mark an old path as unused by decreasing the block's reference
-	 *        counter.
+	 * \brief Mark old paths as unused by decreasing the block's reference
+	 *        counters.
 	 *
 	 * This function cleans up old paths. If a path got abandoned, the data
 	 * blocks associated to it are returned to the data pool.
 	 *
-	 * \param path Index of the path to clear.
 	 * \param stage Index of the minimum stage.
 	 */
-	void clearOldPath(unsigned path, unsigned stage);
+	void clearOldPaths(unsigned stage);
 
 	/*!
 	 * \brief Set the future path list to be the currently active list.
@@ -171,10 +170,10 @@ public:
 	__m256i* LeftBit(unsigned path, unsigned stage);
 
 	/*!
-	 * \brief Swap bit blocks. This eliminates a copy operation.
+	 * \brief Swap bit blocks and grant write access to LLR blocks.
 	 * \param stage The stage to be swapped.
 	 */
-	void swapBitBlocks(unsigned stage);
+	void prepareRightDecoding(unsigned stage);
 
 	/*!
 	 * \brief Get a pointer to a future LLR-block.
@@ -295,9 +294,6 @@ protected:
 	Node *mLeft,    ///< Left child node
 		 *mRight;   ///< Right child node
 
-	/*! Pointer to Boxplus combination function */
-	void (*combineFunction)(__m256i*, __m256i*, __m256i*, const unsigned);
-
 public:
 	/*!
 	 * \brief Create a decoder node.
@@ -306,6 +302,18 @@ public:
 	 */
 	RateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~RateRNode();
+	void decode();
+};
+
+class ShortRateRNode : public RateRNode {
+public:
+	/*!
+	 * \brief Create a decoder node.
+	 * \param frozenBits The set of frozen bits for this code.
+	 * \param parent The parent node to copy all information from.
+	 */
+	ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
+	~ShortRateRNode();
 	void decode();
 };
 

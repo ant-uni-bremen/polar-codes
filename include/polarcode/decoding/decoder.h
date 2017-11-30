@@ -10,6 +10,18 @@
 namespace PolarCode {
 namespace Decoding {
 
+struct CodingScheme {
+	unsigned int blockLength, infoLength;
+	std::vector<unsigned> frozenBits;
+	bool systematic;
+	//CRC?
+};
+
+//Filled by fixed decoder factory
+//Public access allows encoders to be designed corresponding to a given coding
+// scheme.
+extern std::vector<CodingScheme> codeRegistry;
+
 /*!
  * \brief The Decoder skeleton-class.
  *
@@ -23,7 +35,6 @@ protected:
 	ErrorDetection::Detector* mErrorDetector;///< Error detecting object
 	size_t mBlockLength;///< Length of the Polar Code
 	bool mSystematic;///< Whether to use systematic coding
-	bool mSoftOutput;///< Whether to calculate soft output bits
 	BitContainer *mLlrContainer;///< Soft-input container
 	BitContainer *mBitContainer;///< (optionally soft-) Output bit container
 	unsigned char *mOutputContainer;///< Final data container, gets filled for error detection
@@ -103,18 +114,6 @@ public:
 	* Check if the code is systematic.
 	*/
 	bool isSystematic();
-
-	/*!
-	 * \brief Activate soft output decoding. This slows down the bit combination
-	 *       step.
-	 */
-	void enableSoftOutput(bool);
-
-	/*!
-	 * \brief Query if the decoder will provide soft output bits.
-	 * \return True, if soft output was enabled.
-	 */
-	bool hasSoftOutput();
 
 	/*!
 	 * \brief Set an error detection scheme.

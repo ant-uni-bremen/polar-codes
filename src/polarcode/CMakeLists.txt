@@ -26,6 +26,8 @@ add_library(PolarConstructor OBJECT
 
 
 add_executable(pcfactory
+    $<TARGET_OBJECTS:PolarConstructor>
+    arrayfuncs.cpp
     decoding/decoderfactory/main)
 
 #First compilation: Declare, that this command creates the missing file fixeddecoders.cpp
@@ -45,6 +47,7 @@ add_library(PolarDecoder OBJECT
         decoding/scl_avx2_char
         decoding/fastssc_avx_float
         decoding/scl_avx_float
+        decoding/fixed_avx2_char
         decoding/adaptive_float
         decoding/adaptive_char
         decoding/adaptive_mixed

@@ -14,6 +14,7 @@
 #include <polarcode/decoding/adaptive_float.h>
 #include <polarcode/decoding/adaptive_char.h>
 #include <polarcode/decoding/adaptive_mixed.h>
+#include <polarcode/decoding/fixed_avx2_char.h>
 
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
@@ -39,6 +40,8 @@ Simulator::Simulator(Setup::Configurator *config)
 		configureRateSim();
 	} else if(simType == "amplification") {
 		configureAmplificationSim();
+	} else if(simType == "fixed") {
+		configureFixedSim();
 	} else {
 		// Unknown simulation type, should be caught by cmd-parser
 		exit(EXIT_FAILURE);
@@ -105,6 +108,7 @@ DataPoint* Simulator::getDefaultDataPoint() {
 	dp->L =                mConfiguration->getInt("pathlimit");
 	dp->errorDetection =   errorDetectionStringToId(mConfiguration->getString("error-detection"));
 	dp->systematic =      !mConfiguration->getSwitch("non-systematic");
+	dp->codingScheme = -1;
 
 	// Set simulation parameters
 	dp->EbN0 =             mConfiguration->getFloat("snr-max");
@@ -219,6 +223,29 @@ void Simulator::configureAmplificationSim() {
 	delete jobTemplate;
 }
 
+void Simulator::configureFixedSim() {
+	using scheme_t = PolarCode::Decoding::CodingScheme;
+	DataPoint* jobTemplate = getDefaultDataPoint();
+
+	std::vector<scheme_t> &registry = PolarCode::Decoding::codeRegistry;
+
+	for(unsigned i = 0; i < registry.size(); ++i) {
+		DataPoint* job = new DataPoint(*jobTemplate);
+
+		scheme_t &scheme = registry[i];
+
+		job->N = scheme.blockLength;
+		job->K = scheme.infoLength;
+		job->systematic = scheme.systematic;
+		job->codingScheme = i;
+		job->BlocksToSimulate = mConfiguration->getLongInt("workload") / job->N;
+
+		mJobList.push_back(job);
+	}
+
+	delete jobTemplate;
+}
+
 
 void Simulator::snrInflateJobList() {
 	std::vector<DataPoint*> compactList;
@@ -318,7 +345,7 @@ void SimulationWorker::run() {
 		unsigned long blocksToSimulate = mJob->BlocksToSimulate;
 
 		//Warmup
-		warmup = true;
+/*		warmup = true;
 		for(unsigned block = 0; block < 10000; ++block) {
 			generateData();
 			encode();
@@ -326,7 +353,7 @@ void SimulationWorker::run() {
 			transmit();
 			decode();
 			countErrors();
-		}
+		}*/
 
 		//Actual simulation
 		warmup = false;
@@ -355,43 +382,55 @@ void SimulationWorker::stopTiming() {
 }
 
 void SimulationWorker::selectFrozenBits() {
-	mConstructor = new PolarCode::Construction::Bhattacharrya(mJob->N, mJob->K, mJob->designSNR);
-	mFrozenBits = mConstructor->construct();
+	if(mJob->codingScheme < 0) {
+		mConstructor = new PolarCode::Construction::Bhattacharrya(mJob->N, mJob->K, mJob->designSNR);
+		mFrozenBits = mConstructor->construct();
+	} else {
+		mConstructor = nullptr;
+		std::vector<PolarCode::Decoding::CodingScheme> &registry = PolarCode::Decoding::codeRegistry;
+		std::vector<unsigned> &frozenBits = registry[mJob->codingScheme].frozenBits;
+		mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+	}
 }
 
 void SimulationWorker::setCoders() {
 	mEncoder = new PolarCode::Encoding::ButterflyAvx2Packed(mJob->N, mFrozenBits);
 
-	if(mJob->L > 1) {
-		switch(mJob->precision) {
-		case 8:
-			mDecoder = new PolarCode::Decoding::AdaptiveChar(mJob->N, mJob->L, mFrozenBits);
-			break;
-		case 32:
-			mDecoder = new PolarCode::Decoding::AdaptiveFloat(mJob->N, mJob->L, mFrozenBits);
-			break;
-		case 832:
-			mDecoder = new PolarCode::Decoding::AdaptiveMixed(mJob->N, mJob->L, mFrozenBits);
-			break;
-		default:
-			std::cerr << "No decoder present for " << mJob->precision << "-bit decoding." << std::endl;
-			exit(1);
-		}
+	if(mJob->codingScheme >= 0) {
+		mDecoder = new PolarCode::Decoding::FixedChar(mJob->codingScheme);
 	} else {
-		switch(mJob->precision) {
-		case 8:
-		case 832:
-			mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits);
-			break;
-		case 32:
-			mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);
-			break;
-		default:
-			std::cerr << "No decoder present for " << mJob->precision << "-bit decoding." << std::endl;
-			exit(1);
+		if(mJob->L > 1) {
+			switch(mJob->precision) {
+			case 8:
+				mDecoder = new PolarCode::Decoding::AdaptiveChar(mJob->N, mJob->L, mFrozenBits);
+				break;
+			case 32:
+				mDecoder = new PolarCode::Decoding::AdaptiveFloat(mJob->N, mJob->L, mFrozenBits);
+				break;
+			case 832:
+				mDecoder = new PolarCode::Decoding::AdaptiveMixed(mJob->N, mJob->L, mFrozenBits);
+				break;
+			default:
+				std::cerr << "No decoder present for " << mJob->precision << "-bit decoding." << std::endl;
+				exit(1);
+			}
+		} else {
+			switch(mJob->precision) {
+			case 8:
+			case 832:
+				mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits);
+				break;
+			case 32:
+				mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);
+				break;
+			default:
+				std::cerr << "No decoder present for " << mJob->precision << "-bit decoding." << std::endl;
+				exit(1);
+			}
 		}
 	}
 }
+
 void SimulationWorker::setErrorDetector() {
 	switch(mJob->errorDetection) {
 		case 8: mErrorDetector = new PolarCode::ErrorDetection::CRC8(); break;
@@ -567,7 +606,7 @@ void SimulationWorker::cleanup() {
 	delete mDecoder;
 	delete mEncoder;
 	delete mErrorDetector;
-	delete mConstructor;
+	if(mConstructor) delete mConstructor;
 }
 
 }//namespace Simulation

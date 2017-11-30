@@ -213,11 +213,16 @@ ShortZeroOneDecoder::~ShortZeroOneDecoder() {
 // Decoders
 
 void RateZeroDecoder::decode(__m256i *, __m256i *BitsOut) {
-	memset(BitsOut, 127, mBlockLength);
+	const __m256i inf = _mm256_set1_epi8(127);
+	for(unsigned i = 0; i < mVecCount; ++i) {
+		_mm256_store_si256(BitsOut+i, inf);
+	}
 }
 
 void RateOneDecoder::decode(__m256i *LlrIn, __m256i *BitsOut) {
-	memcpy(BitsOut, LlrIn, mBlockLength);
+	for(unsigned i = 0; i < mVecCount; ++i) {
+		_mm256_store_si256(BitsOut+i, _mm256_load_si256(LlrIn+i));
+	}
 }
 
 
@@ -232,13 +237,16 @@ void RepetitionDecoder::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	__m256i LlrSum = _mm256_setzero_si256();
 
 	// Accumulate vectors
-	for(unsigned i=0; i<mVecCount; i++) {
+	for(unsigned i = 0; i < mVecCount; ++i) {
 		LlrSum = _mm256_adds_epi8(LlrSum, _mm256_load_si256(LlrIn+i));
 	}
 
 	// Get final sum and save decoding result
 	char Bits = reduce_adds_epi8(LlrSum);
-	memset(BitsOut, Bits, mBlockLength);
+	LlrSum = _mm256_set1_epi8(Bits);
+	for(unsigned i = 0; i < mVecCount; ++i) {
+		_mm256_store_si256(BitsOut+i, LlrSum);
+	}
 }
 
 void ShortRepetitionDecoder::decode(__m256i *LlrIn, __m256i *BitsOut) {
@@ -246,7 +254,7 @@ void ShortRepetitionDecoder::decode(__m256i *LlrIn, __m256i *BitsOut) {
 
 	// Get sum and save decoding result
 	char Bits = reduce_adds_epi8(_mm256_load_si256(LlrIn));
-	memset(BitsOut, Bits, mBlockLength);
+	_mm256_store_si256(BitsOut, _mm256_set1_epi8(Bits));
 }
 
 void SpcDecoder::decode(__m256i *LlrIn, __m256i *BitsOut) {
@@ -254,10 +262,9 @@ void SpcDecoder::decode(__m256i *LlrIn, __m256i *BitsOut) {
 	unsigned minIdx = 0;
 	char testAbs, minAbs = 127;
 
-	memcpy(BitsOut, LlrIn, mBlockLength);
-
 	for(unsigned i=0; i<mVecCount; i++) {
 		__m256i vecIn = _mm256_load_si256(LlrIn+i);
+		_mm256_store_si256(BitsOut+i, vecIn);
 
 		parVec = _mm256_xor_si256(parVec, vecIn);
 
@@ -531,7 +538,6 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent) {
 }// namespace FastSscAvx2
 
 FastSscAvx2Char::FastSscAvx2Char(size_t blockLength, const std::vector<unsigned> &frozenBits) {
-	mSoftOutput = true;
 	initialize(blockLength, frozenBits);
 }
 

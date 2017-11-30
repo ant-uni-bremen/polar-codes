@@ -186,12 +186,14 @@ void sortMetrics(
 	const unsigned lim = std::min(size-1, n);
 
 	for(unsigned i=0; i<lim; ++i) {
+		unsigned index = i;
 		for(unsigned j=size-1; j>i; --j) {
-			if(Values[i] < Values[j]) {
-				std::swap(Values[i], Values[j]);
-				std::swap(Indices[i], Indices[j]);
+			if(Values[j] < Values[index]) {
+				index = j;
 			}
 		}
+		std::swap(Values[i], Values[index]);
+		std::swap(Indices[i], Indices[index]);
 	}
 }
 

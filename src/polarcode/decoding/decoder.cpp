@@ -24,7 +24,7 @@ Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsi
   else{
     switch(decoder_impl){
       case 1: dec = new SclAvxFloat(blockLength, listSize, frozenBits); break;
-      case 2: dec = new AdaptiveFloat(blockLength, listSize, frozenBits, false); break;
+	  case 2: dec = new AdaptiveFloat(blockLength, listSize, frozenBits); break;
       default: dec = new SclAvx2Char(blockLength, listSize, frozenBits); break;
     }
   }
@@ -36,7 +36,6 @@ Decoder::Decoder()
 	: mErrorDetector(&ErrorDetection::globalDummyDetector),
 	  mBlockLength(0),
 	  mSystematic(true),
-	  mSoftOutput(false),
 	  mLlrContainer(nullptr),
 	  mBitContainer(nullptr),
 	  mOutputContainer(nullptr),
@@ -83,14 +82,6 @@ void Decoder::setSystematic(bool sys) {
 
 bool Decoder::isSystematic() {
 	return mSystematic;
-}
-
-void Decoder::enableSoftOutput(bool so) {
-	mSoftOutput = so;
-}
-
-bool Decoder::hasSoftOutput() {
-	return mSoftOutput;
 }
 
 void Decoder::setErrorDetection(ErrorDetection::Detector *pDetector) {

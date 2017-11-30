@@ -395,8 +395,8 @@ void CharContainer::insertCharBits(const void *pData) {
 }
 
 void vectorizedFtoC(char *cPtr, const float *fPtr, const unsigned size) {
-	static const __m256 maximum = _mm256_set1_ps(127.0);
-	static const __m256 minimum = _mm256_set1_ps(-128.0);
+	const __m256 maximum = _mm256_set1_ps(127.0);
+	const __m256 minimum = _mm256_set1_ps(-128.0);
 	__m256 fvec;
 	__m256i ivec;
 	char* cvec = reinterpret_cast<char*>(&ivec);

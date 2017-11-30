@@ -19,7 +19,7 @@ void Configurator::setupArgumentDefaults() {
 	defaultLongInts.insert({"workload", 4e8L});
 
 	defaultFloats.insert({"snr-min", -1.5});
-	defaultFloats.insert({"snr-max",  6.0});
+	defaultFloats.insert({"snr-max",  5.0});
 	defaultInts.insert({"snr-count", 12});
 
 	defaultFloats.insert({"dsnr-fixed", 0.0});
@@ -68,15 +68,16 @@ void Configurator::setupArgumentSimType() {
 									 "designsnr",
 									 "listlength",
 									 "rate",
-									 "amplification"};
-	ValuesConstraint<string> *AvailableSimTypes = new ValuesConstraint<string>(SimTypesVector);
+									 "amplification",
+									 "fixed"};
+	availableSimTypes = new ValuesConstraint<string>(SimTypesVector);
 
 	auto SimType = new UnlabeledValueArg<string>(
 							"simtype",
 							"The simulation type specifies, which parameter should be varied.",
 							false,//required
 							defaultStrings["simtype"],
-							AvailableSimTypes);
+							availableSimTypes);
 	insertArgument(SimType);
 }
 
@@ -139,14 +140,14 @@ void Configurator::setupArgumentErrorDetection() {
 	vector<string> ErrDetTypesVector = {"none",
 									 "crc8",
 									 "crc32"};
-	auto AvailableErrDets = new ValuesConstraint<string>(ErrDetTypesVector);
+	availableErrDets = new ValuesConstraint<string>(ErrDetTypesVector);
 
 	auto ErrDet = new ValueArg<string>("e",
 							"error-detection",
 							"The error detection scheme to enhance list decoding.",
 							false,//required
 							defaultStrings["errorDetection"],
-							AvailableErrDets);
+							availableErrDets);
 	insertArgument(ErrDet);
 }
 
@@ -212,6 +213,8 @@ void Configurator::cleanupCommandlineArguments() {
 		delete arg.second;
 	}
 	argumentList.clear();
+	delete availableErrDets;
+	delete availableSimTypes;
 }
 
 

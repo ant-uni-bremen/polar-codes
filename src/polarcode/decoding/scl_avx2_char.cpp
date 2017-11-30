@@ -63,11 +63,13 @@ void PathList::getWriteAccessToNextBit(unsigned path, unsigned stage) {
 	xmDataPool->prepareForWrite(mNextBitTree[path][stage]);
 }
 
-void PathList::clearOldPath(unsigned path, unsigned stage) {
-	for(unsigned i = stage; i < mStageCount; ++i) {
-		xmDataPool->release(mLlrTree[path][i]);
-		xmDataPool->release(mBitTree[path][i]);
-		xmDataPool->release(mLeftBitTree[path][i]);
+void PathList::clearOldPaths(unsigned stage) {
+	for(unsigned path = 0; path < mPathCount; ++path) {
+		for(unsigned i = stage; i < mStageCount; ++i) {
+			xmDataPool->release(mLlrTree[path][i]);
+			xmDataPool->release(mBitTree[path][i]);
+			xmDataPool->release(mLeftBitTree[path][i]);
+		}
 	}
 }
 
@@ -116,9 +118,10 @@ __m256i* PathList::LeftBit(unsigned path, unsigned stage) {
 	return mLeftBitTree[path][stage]->data;
 }
 
-void PathList::swapBitBlocks(unsigned stage) {
+void PathList::prepareRightDecoding(unsigned stage) {
 	for(unsigned path = 0; path < mPathCount; ++path) {
 		std::swap(mBitTree[path][stage], mLeftBitTree[path][stage]);
+		xmDataPool->prepareForWrite(mLlrTree[path][stage]);
 	}
 }
 
@@ -207,12 +210,10 @@ RateRNode::RateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
 
 	mLeft = createDecoder(leftFrozenBits, this);
 	mRight = createDecoder(rightFrozenBits, this);
+}
 
-	if(mBlockLength < 32) {
-		combineFunction = FastSscAvx2::CombineSoftBitsShort;
-	} else {
-		combineFunction = FastSscAvx2::CombineSoftBits;
-	}
+ShortRateRNode::ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
+	: RateRNode(frozenBits, parent) {
 }
 
 RateZeroDecoder::RateZeroDecoder(Node *parent)
@@ -249,6 +250,9 @@ SpcDecoder::SpcDecoder(Node *parent)
 RateRNode::~RateRNode() {
 	if(mLeft) delete mLeft;
 	if(mRight) delete mRight;
+}
+
+ShortRateRNode::~ShortRateRNode() {
 }
 
 RateZeroDecoder::~RateZeroDecoder() {
@@ -292,10 +296,9 @@ void RateRNode::decode() {
 
 	mLeft->decode();
 
-	xmPathList->swapBitBlocks(mStage);
+	xmPathList->prepareRightDecoding(mStage);
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
-		xmPathList->getWriteAccessToLlr(path, mStage);
 		FastSscAvx2::G_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), xmPathList->LeftBit(path, mStage), mBlockLength);
 	}
 
@@ -304,7 +307,34 @@ void RateRNode::decode() {
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
 		xmPathList->getWriteAccessToBit(path, mStage+1);
-		combineFunction(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
+		FastSscAvx2::CombineSoftBits(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
+	}
+
+	xmPathList->clearStage(mStage);
+}
+
+void ShortRateRNode::decode() {
+	xmPathList->allocateStage(mStage);
+
+	unsigned pathCount = xmPathList->PathCount();
+	for(unsigned path=0; path < pathCount; ++path) {
+		FastSscAvx2::F_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), mBlockLength);
+	}
+
+	mLeft->decode();
+
+	xmPathList->prepareRightDecoding(mStage);
+	pathCount = xmPathList->PathCount();
+	for(unsigned path=0; path < pathCount; ++path) {
+		FastSscAvx2::G_function(xmPathList->Llr(path, mStage+1), xmPathList->Llr(path, mStage), xmPathList->LeftBit(path, mStage), mBlockLength);
+	}
+
+	mRight->decode();
+
+	pathCount = xmPathList->PathCount();
+	for(unsigned path=0; path < pathCount; ++path) {
+		xmPathList->getWriteAccessToBit(path, mStage+1);
+		FastSscAvx2::CombineSoftBitsShort(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
 	}
 
 	xmPathList->clearStage(mStage);
@@ -341,25 +371,8 @@ void RateZeroDecoder::decode() {
 				punishment = _mm256_add_epi64(punishment, expanded);
 			}
 		}
-		mMetrics[path] = xmPathList->Metric(path) + reduce_add_epi64(punishment);
+		xmPathList->Metric(path) += reduce_add_epi64(punishment);
 	}
-	unsigned newPathCount = pathCount;
-	xmPathList->setNextPathCount(newPathCount);
-	simplePartialSortDescending(mIndices, mMetrics, newPathCount, pathCount);
-
-	for(unsigned path = 0; path < newPathCount; ++path) {
-		xmPathList->duplicatePath(path, mIndices[path], mStage);
-	}
-
-	for(unsigned path = 0; path < pathCount; ++path) {
-		xmPathList->clearOldPath(path, mStage);
-	}
-
-	for(unsigned path = 0; path < newPathCount; ++path) {
-		xmPathList->NextMetric(path) = mMetrics[path];
-	}
-
-	xmPathList->switchToNext();
 }
 
 void RateOneDecoder::decode() {
@@ -421,9 +434,7 @@ void RateOneDecoder::decode() {
 		xmPathList->duplicatePath(path, mIndices[path]/4, mStage);
 	}
 
-	for(unsigned path = 0; path < pathCount; ++path) {
-		xmPathList->clearOldPath(path, mStage);
-	}
+	xmPathList->clearOldPaths(mStage);
 
 	for(unsigned path = 0; path < newPathCount; ++path) {
 		xmPathList->getWriteAccessToNextBit(path, mStage);
@@ -509,9 +520,7 @@ void RepetitionDecoder::decode() {
 		xmPathList->duplicatePath(path, mIndices[path]/2, mStage);
 	}
 
-	for(unsigned path = 0; path < pathCount; ++path) {
-		xmPathList->clearOldPath(path, mStage);
-	}
+	xmPathList->clearOldPaths(mStage);
 
 	for(unsigned path = 0; path < newPathCount; ++path) {
 		xmPathList->getWriteAccessToNextBit(path, mStage);
@@ -619,9 +628,7 @@ void SpcDecoder::decode() {
 		xmPathList->duplicatePath(path, mIndices[path]/8, mStage);
 	}
 
-	for(unsigned path = 0; path < pathCount; ++path) {
-		xmPathList->clearOldPath(path, mStage);
-	}
+	xmPathList->clearOldPaths(mStage);
 
 	for(unsigned path = 0; path < newPathCount; ++path) {
 		xmPathList->getWriteAccessToNextBit(path, mStage);
@@ -667,8 +674,11 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 		return new SpcDecoder(parent);
 	}
 
-
-	return new RateRNode(frozenBits, parent);
+	if(blockLength <= 32) {
+		return new ShortRateRNode(frozenBits, parent);
+	} else {
+		return new RateRNode(frozenBits, parent);
+	}
 }
 
 }// namespace SclAvx2

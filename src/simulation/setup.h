@@ -25,6 +25,9 @@ class Configurator {
 
 	std::map<std::string, TCLAP::Arg*> argumentList;
 
+	TCLAP::ValuesConstraint<std::string> *availableErrDets;
+	TCLAP::ValuesConstraint<std::string> *availableSimTypes;
+
 	void setupArgumentDefaults();
 	void setupCommandlineArguments(TCLAP::CmdLine *cmd);
 

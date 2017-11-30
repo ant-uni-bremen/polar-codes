@@ -7,17 +7,15 @@ namespace Decoding {
 AdaptiveMixed::AdaptiveMixed
 	( size_t blockLength
 	, size_t listSize
-	, const std::vector<unsigned> &frozenBits
-	, bool softOutput)
+	, const std::vector<unsigned> &frozenBits)
 	: mListSize(listSize)
 {
 	mBlockLength = blockLength;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
-	mSoftOutput = softOutput;
 	mExternalContainers = true;
 
 	mFastDecoder = new FastSscAvx2Char(mBlockLength, mFrozenBits);
-	mListDecoder = new SclAvxFloat(mBlockLength, mListSize, mFrozenBits, mSoftOutput);
+	mListDecoder = new SclAvxFloat(mBlockLength, mListSize, mFrozenBits);
 }
 
 AdaptiveMixed::~AdaptiveMixed() {

@@ -50,7 +50,6 @@ inline void F_function_calc(__m256i Left, __m256i Right, __m256i *Out)
     Right = _mm256_max_epi8(Right, one);
 
 	__m256i minV = _mm256_min_epi8(Left, Right);//minimum of absolute values
-
 	__m256i outV = _mm256_sign_epi8(minV, xorV);//merge sign and value
 
 	_mm256_store_si256(Out, outV);//save
@@ -148,7 +147,6 @@ inline void CombineSoftInPlace(__m256i *Bits, const unsigned vecCount) {
 		__m256i tempL = _mm256_load_si256(Bits+i);
 		__m256i tempR = _mm256_load_si256(Bits+vecCount+i);
 		F_function_calc(tempL, tempR, Bits+i);
-		//_mm256_store_si256(Bits+i, _mm256_xor_si256(tempL, tempR));
 	}
 }
 
@@ -165,12 +163,11 @@ inline void CombineSoftBits(__m256i *Left, __m256i *Right, __m256i *Out, const u
 
 		//Boxplus for upper bits
 		F_function_calc(LeftV, RightV, Out+i);
-		//_mm256_store_si256(Out+i, _mm256_xor_si256(LeftV, RightV));
 	}
 }
 
 inline void CombineSoftBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, const unsigned subBlockLength) {
-	static const __m256i absCorrector = _mm256_set1_epi8(-127);
+	const __m256i absCorrector = _mm256_set1_epi8(-127);
 	PrepareForShortOperation(Left, subBlockLength);
 	PrepareForShortOperation(Right, subBlockLength);
 
@@ -183,7 +180,6 @@ inline void CombineSoftBitsShort(__m256i *Left, __m256i *Right, __m256i *Out, co
 
 	//Boxplus operation for upper bits
 	F_function_calc(LeftV, RightV, &OutV);
-	//OutV = _mm256_xor_si256(LeftV, RightV);
 
 	// Copy operation for lower bits
 	MoveRightBits(&RightV, subBlockLength);
