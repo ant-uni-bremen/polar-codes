@@ -156,14 +156,8 @@ def plot_convolutional_graph(ax, ldMlist=np.arange(8, dtype=int)):
             ax.semilogy(ebn0s, bers, label=ll, linestyle=line_styles[ii % len(line_styles)], color=line_colors[ic % len(line_colors)])
 
 
-def load_pcs_csv_file(filename):
-    with open(filename, 'rb') as csvfile:
-        spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-        # print(', '.join(spamreader[0]))
-        for row in spamreader:
-            print(', '.join(row))
-
-    sim_res = np.genfromtxt(filename, delimiter=',')
+def load_pcs_csv_file(filename, skiphead=1, skipfoot=0):
+    sim_res = np.genfromtxt(filename, delimiter=',', skip_header=skiphead, skip_footer=skipfoot)
     return sim_res
 
 
@@ -190,26 +184,29 @@ def separate_dict_simulation_results(res_dict):
     return res
 
 
-def plot_pcs_results():
-    # filename = 'polar_list_decoder_N512_listlength.csv'
-    filename = 'polar_list_decoder_N512_soft_test8_listlength.csv'
-    filename = 'polar_decoder2_N512_K256_L1-8_listlength.csv'
-    filename = 'polar_decoder_unlspc_32bit_N512_K256_L1-16_listlength.csv'
-    # filename = 'polar_decoder_32bit_N512_K256_L1-8_listlength.csv'
-    # filename = 'polar_decoder_8bit_N512_K256_L1-8_listlength.csv'
-    sim_res = load_pcs_csv_file(filename)
-    sim_res = sim_res[1:, :]
-    results = separate_simulation_results(sim_res)
-    for i in range(4):
-        results = separate_dict_simulation_results(results)
+def plot_fer_throughput_combo(results, common_keys):
+    fig, ax0 = plt.subplots()
+    ax1 = ax0.twinx()
+    keys = np.sort(results.keys())
+    for k in keys:
+        ebno = results[k][:, 0]
+        fer = results[k][:, 1]
+        thr = results[k][:, 9] / 1e6
+        ax0.semilogy(ebno, fer, label='{}'.format(int(k)), ls='--')
+        ax1.plot(ebno, thr, label='{}'.format(int(k)))
+    plt.legend()
+    ax0.set_ylim((1e-3, 1))
+    plt.xlim((0.0, 3.6))
+    ax0.set_ylabel('FER')
+    ax1.set_ylabel('Throughput [Mbps]')
+    plt.xlabel(r'$E_b / N_0$ [dB]')
+    plt.grid()
+    plt.title('List sizes for Polar Code ({}, {}) with dSNR {}dB'.format(int(common_keys[0]), int(common_keys[1]), common_keys[2]))
+    # save('polar_code_N{}_K{}_listlength_performance.pgf'.format(int(common_keys[0]), int(common_keys[1])))
+    plt.show()
 
-    common_keys = []
-    while 0 < len(results.keys()) < 2:
-        print(results.keys())
-        common_keys.append(results.keys()[0])
-        results = results[results.keys()[0]]
-    print(common_keys)
 
+def plot_fer(results, common_keys):
     keys = np.sort(results.keys())
     for k in keys:
         ebno = results[k][:, 0]
@@ -225,6 +222,9 @@ def plot_pcs_results():
     # save('polar_code_N{}_K{}_listlength_performance.pgf'.format(int(common_keys[0]), int(common_keys[1])))
     plt.show()
 
+
+def plot_throughput(results, common_keys):
+    keys = np.sort(results.keys())
     for k in keys:
         ebno = results[k][:, 0]
         thr = results[k][:, 9] / 1e6
@@ -238,6 +238,166 @@ def plot_pcs_results():
     plt.title('Throughput for Polar Code ({}, {}) with dSNR {}dB'.format(int(common_keys[0]), int(common_keys[1]), common_keys[2]))
     # save('polar_code_N{}_K{}_listlength_throughput.pgf'.format(int(common_keys[0]), int(common_keys[1])))
     plt.show()
+
+
+def calculate_boxplot_point(dataPoints):
+    # print(np.percentile(dataPoints, [0, 25, 50, 75, 100]))
+    minval, Q01, Q1, median, Q3, Q99, maxval = np.percentile(dataPoints, [0, .1, 25, 50, 75, 99.9, 100])
+    IQR = Q3 - Q1
+    # print(Q1)
+    # print(median)
+
+    loval = Q1 - 1.5 * IQR
+    hival = Q3 + 1.5 * IQR
+
+    wiskhi = np.compress(dataPoints <= hival, dataPoints)
+    wisklo = np.compress(dataPoints >= loval, dataPoints)
+    actual_hival = np.max(wiskhi)
+    actual_loval = np.min(wisklo)
+    # print(actual_hival, maxval)
+    # print(actual_loval, minval)
+    # sortedDataPoints = np.sort(dataPoints)
+    # low_outliers = sortedDataPoints[0:10]
+    # hi_outliers = sortedDataPoints[-10:]
+    low_outliers = np.compress(dataPoints < actual_loval, dataPoints)
+    hi_outliers = np.compress(dataPoints > actual_hival, dataPoints)
+    actual_loval = Q01
+    actual_hival = Q99
+
+    return median, Q1, Q3, actual_loval, actual_hival, low_outliers, hi_outliers
+
+
+def plot_latency_boxwhiskers(results, common_keys):
+    keys = np.sort(results.keys())
+    for k in keys:
+        ebno = results[k][:, 0]
+        mean_time = results[k][:, 15] * 1.e-3
+        dataPoints = results[k][:, 17:] * 1.e-3
+        medians = np.zeros(len(ebno))
+        Q1s = np.zeros(len(ebno))
+        Q3s = np.zeros(len(ebno))
+        lowval = np.zeros(len(ebno))
+        hival = np.zeros(len(ebno))
+        for i, dp in enumerate(dataPoints):
+            medians[i], Q1s[i], Q3s[i], actual_loval, actual_hival, low_outliers, hi_outliers = calculate_boxplot_point(dp)
+            print(len(hi_outliers))
+            hi_outliers = hi_outliers[::-1][::np.maximum(10, len(hi_outliers) / 10)]
+            print(len(hi_outliers))
+            plt.scatter(np.ones(len(hi_outliers)) * ebno[i], hi_outliers)
+            plt.vlines(x=ebno[i], ymin=Q1s[i], ymax=Q3s[i], lw=8)
+            plt.vlines(x=ebno[i], ymin=actual_loval, ymax=actual_hival, color='b')
+            plt.scatter(x=[ebno[i], ebno[i]], y=[actual_loval, actual_hival], marker='_')
+
+            # medians[i] = median
+            # plt.axvline(x=ebno[i], ymin=Q1, ymax=Q3, lw=3)
+        plt.plot(ebno, medians)
+        plt.plot(ebno, mean_time)
+        # for i in range(len(ebno)):
+        #     plt.vlines(x=ebno[i], ymin=Q1s[i], ymax=Q3s[i])
+        # plt.plot(ebno, Q1s)
+        # plt.plot(ebno, Q3s)
+
+
+    #     min_time = results[k][:, 13] * 1.e-3
+    #     max_time = results[k][:, 14] * 1.e-3
+    #     mean_time = results[k][:, 15] * 1.e-3
+    #     dev_time = results[k][:, 16] * 1.e-3
+    #     plt.errorbar(x=ebno, y=mean_time, yerr=dev_time, label='{}'.format(int(k)))
+    #     # plt.boxplot(ebno, mean_time)
+    # plt.legend(loc='upper right')
+    # # plt.ylim((0, 300))
+    # # plt.xlim((0.0, 3.6))
+    # plt.ylabel(r'Latency [$\mu$s]')
+    # plt.xlabel(r'$E_b / N_0$ [dB]')
+    # plt.grid()
+    # plt.title('Latency for Polar Code ({}, {}) with dSNR {}dB'.format(int(common_keys[0]), int(common_keys[1]), common_keys[2]))
+    # # save('polar_code_N{}_K{}_listlength_latency.pgf'.format(int(common_keys[0]), int(common_keys[1])))
+    plt.show()
+
+
+def plot_latency(results, common_keys):
+    keys = np.sort(results.keys())
+    for k in keys:
+        print(results[k][0, 0:20])
+        print(results[k][0, -20:])
+
+        get_boxplot_data(results[k][:, 17:])
+
+
+        ebno = results[k][:, 0]
+        min_time = results[k][:, 13] * 1.e-3
+        max_time = results[k][:, 14] * 1.e-3
+        mean_time = results[k][:, 15] * 1.e-3
+        dev_time = results[k][:, 16] * 1.e-3
+        plt.errorbar(x=ebno, y=mean_time, yerr=dev_time, label='{}'.format(int(k)))
+        # plt.boxplot(ebno, mean_time)
+    plt.legend(loc='upper right')
+    # plt.ylim((0, 300))
+    # plt.xlim((0.0, 3.6))
+    plt.ylabel(r'Latency [$\mu$s]')
+    plt.xlabel(r'$E_b / N_0$ [dB]')
+    plt.grid()
+    plt.title('Latency for Polar Code ({}, {}) with dSNR {}dB'.format(int(common_keys[0]), int(common_keys[1]), common_keys[2]))
+    # # save('polar_code_N{}_K{}_listlength_latency.pgf'.format(int(common_keys[0]), int(common_keys[1])))
+    plt.show()
+
+
+def plot_pcs_rate_results():
+    filename = 'polar_decoder_8bit_N1024_L4_fixed.csv'
+
+    sim_res = load_pcs_csv_file(filename)
+    K = np.copy(sim_res[:, 1])
+    print(K)
+    sim_res[:, 1] = sim_res[:, 4]
+    # sim_res[:, 1] = L
+    sim_res[:, 4] = K
+    print(sim_res[:, 0:13])
+    # sim_res = sim_res[1:, :]
+    results = separate_simulation_results(sim_res)
+    for i in range(4):
+        results = separate_dict_simulation_results(results)
+
+    common_keys = []
+    while 0 < len(results.keys()) < 2:
+        print(results.keys())
+        common_keys.append(results.keys()[0])
+        results = results[results.keys()[0]]
+    print(common_keys)
+
+    # plot_fer_throughput_combo(results, common_keys)
+    plot_fer(results, common_keys)
+    plot_throughput(results, common_keys)
+    plot_latency(results, common_keys)
+    # plot_latency_boxwhiskers(results, common_keys)
+
+
+def plot_pcs_results():
+    # filename = 'polar_list_decoder_N512_listlength.csv'
+    filename = 'polar_list_decoder_N512_soft_test8_listlength.csv'
+    filename = 'polar_decoder2_N512_K256_L1-8_listlength.csv'
+    filename = 'polar_decoder_unlspc_32bit_N512_K256_L1-16_listlength.csv'
+    filename = 'polar_decoder_unlspc_32bit_N2048_K1024_L1-16_listlength.csv'
+    filename = 'polar_decoder_timeDur_unlspc_32bit_N512_K256_L1-8_listlength.csv'
+    # filename = 'polar_decoder_32bit_N512_K256_L1-8_listlength.csv'
+    # filename = 'polar_decoder_8bit_N512_K256_L1-8_listlength.csv'
+    sim_res = load_pcs_csv_file(filename)
+    # sim_res = sim_res[1:, :]
+    results = separate_simulation_results(sim_res)
+    for i in range(4):
+        results = separate_dict_simulation_results(results)
+
+    common_keys = []
+    while 0 < len(results.keys()) < 2:
+        print(results.keys())
+        common_keys.append(results.keys()[0])
+        results = results[results.keys()[0]]
+    print(common_keys)
+
+    # plot_fer_throughput_combo(results, common_keys)
+    # plot_fer(results, common_keys)
+    # plot_throughput(results, common_keys)
+    # plot_latency(results, common_keys)
+    plot_latency_boxwhiskers(results, common_keys)
 
 
 def plot_coherence_time():
@@ -259,7 +419,8 @@ def plot_coherence_time():
 
 def main():
     np.set_printoptions(precision=2, linewidth=150)
-    plot_pcs_results()
+    # plot_pcs_results()
+    plot_pcs_rate_results()
     # plot_coherence_time()
     return
     blockLengths = np.array(sim_res[1:, 0]).astype(int)

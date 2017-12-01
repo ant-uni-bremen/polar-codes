@@ -24,6 +24,8 @@ public:
 	StatisticsOutput evaluate();
 
 	void printContents();
+
+		std::vector<float> valueList(){ return mContainer;};
 };
 
 }

@@ -283,9 +283,11 @@ void Simulator::saveResults() {
 	fileName += ".csv";
 	std::ofstream file(fileName);
 
+
 	file << "\"N\",\"K\",\"dSNR\",\"C\",\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"RER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\",\"Encoder Bitrate\",\"Amplification\",\"time min\",\"time max\",\"time mean\",\"time deviation\"" << std::endl;
 
 	for(auto job : mJobList) {
+    std::vector<float> timeValues = job->timeStat.valueList();
 		file<< job->N << ','
 			<< job->K << ','
 			<< job->designSNR << ','
@@ -307,8 +309,11 @@ void Simulator::saveResults() {
 			 << int(job->time.min * 1e9) << ','
 			 << int(job->time.max * 1e9) << ','
 			 << int(job->time.mean * 1e9) << ','
-			 << int(job->time.dev * 1e9) << ','
-			 << std::endl;
+			 << int(job->time.dev * 1e9);
+      for(auto& tp : timeValues){
+        file << ',' << int(tp * 1e9);
+      }
+    file << std::endl;
 	}
 	file.close();
 }
