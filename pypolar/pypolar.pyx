@@ -173,7 +173,6 @@ cdef class PolarEncoder:
     cdef polar_interface.Encoder* kernel
 
     def __cinit__(self, block_size, np.ndarray frozen_bit_positions):
-        # print('CYTHON POLAR ENCODER')
         frozen_bit_positions = np.sort(frozen_bit_positions)
         frozen_bit_positions = frozen_bit_positions.astype(np.uint32)
         self.kernel = new polar_interface.ButterflyFipPacked(block_size, frozen_bit_positions)
@@ -220,7 +219,6 @@ cdef class PolarEncoder:
         cdef np.ndarray[np.uint8_t, ndim=1] codeword = np.zeros((self.kernel.blockLength() // 8, ), dtype=np.uint8)
         self.kernel.encode_vector(<void*> info_bytes.data, <void*> codeword.data)
         return codeword
-
 
 
 cdef class PolarDecoder:

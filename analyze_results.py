@@ -321,8 +321,7 @@ def plot_latency(results, common_keys):
         print(results[k][0, 0:20])
         print(results[k][0, -20:])
 
-        get_boxplot_data(results[k][:, 17:])
-
+        # get_boxplot_data(results[k][:, 17:])
 
         ebno = results[k][:, 0]
         min_time = results[k][:, 13] * 1.e-3
@@ -343,7 +342,8 @@ def plot_latency(results, common_keys):
 
 
 def plot_pcs_rate_results():
-    filename = 'polar_decoder_8bit_N1024_L4_fixed.csv'
+    filename = RESULTS_DIR + 'polar_code_N512_K256_compressed_cmac_listlength.csv'
+    # filename = 'polar_decoder_8bit_N1024_L4_fixed.csv'
 
     sim_res = load_pcs_csv_file(filename)
     K = np.copy(sim_res[:, 1])
@@ -378,9 +378,14 @@ def plot_pcs_results():
     filename = 'polar_decoder_unlspc_32bit_N512_K256_L1-16_listlength.csv'
     filename = 'polar_decoder_unlspc_32bit_N2048_K1024_L1-16_listlength.csv'
     filename = 'polar_decoder_timeDur_unlspc_32bit_N512_K256_L1-8_listlength.csv'
+    filename = RESULTS_DIR + 'polar_code_N512_K256_compressed_cmac_listlength.csv'
+    filename = RESULTS_DIR + 'polar_code_N512_K256_cmac8_listlength.csv'
+    filename = RESULTS_DIR + 'polar_code_N512_K256_crc8_listlength.csv'
     # filename = 'polar_decoder_32bit_N512_K256_L1-8_listlength.csv'
     # filename = 'polar_decoder_8bit_N512_K256_L1-8_listlength.csv'
+    print(filename)
     sim_res = load_pcs_csv_file(filename)
+    # print(sim_res[:, 0:6])
     # sim_res = sim_res[1:, :]
     results = separate_simulation_results(sim_res)
     for i in range(4):
@@ -394,10 +399,10 @@ def plot_pcs_results():
     print(common_keys)
 
     # plot_fer_throughput_combo(results, common_keys)
-    # plot_fer(results, common_keys)
-    # plot_throughput(results, common_keys)
-    # plot_latency(results, common_keys)
-    plot_latency_boxwhiskers(results, common_keys)
+    plot_fer(results, common_keys)
+    plot_throughput(results, common_keys)
+    plot_latency(results, common_keys)
+    # plot_latency_boxwhiskers(results, common_keys)
 
 
 def plot_coherence_time():
@@ -419,8 +424,8 @@ def plot_coherence_time():
 
 def main():
     np.set_printoptions(precision=2, linewidth=150)
-    # plot_pcs_results()
-    plot_pcs_rate_results()
+    plot_pcs_results()
+    # plot_pcs_rate_results()
     # plot_coherence_time()
     return
     blockLengths = np.array(sim_res[1:, 0]).astype(int)

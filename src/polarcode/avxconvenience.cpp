@@ -1,4 +1,5 @@
 #include <polarcode/avxconvenience.h>
+#include <stdexcept>
 
 #ifdef __AVX2__
 unsigned minpos_epu8(__m256i x, char *val)
@@ -68,7 +69,7 @@ __m256i subVectorShift_epu8(__m256i x, int shift) {
 	case 128:
 		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b00100001);
 	default:
-		throw "Subvector shift of undefined size.";
+		throw std::invalid_argument("Subvector shift of undefined size.");
 	}
 }
 
@@ -85,7 +86,7 @@ __m256i subVectorShiftBytes_epu8(__m256i x, int shift) {
 	case 16:
 		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b00100001);
 	default:
-		throw "Subvector shift of undefined size.";
+    throw std::invalid_argument("Subvector shift of undefined size.");
 	}
 }
 
@@ -113,7 +114,7 @@ __m256i subVectorBackShift_epu8(__m256i x, int shift) {
 	case 128:
 		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b01001110);
 	default:
-		throw "Subvector shift of undefined size.";
+    throw std::invalid_argument("Subvector shift of undefined size.");
 	}
 }
 
@@ -130,7 +131,7 @@ __m256i subVectorBackShiftBytes_epu8(__m256i x, int shift) {
 	case 16:
 		return _mm256_permute2x128_si256(x, _mm256_setzero_si256(), 0b01001110);
 	default:
-		throw "Subvector shift of undefined size.";
+    throw std::invalid_argument("Subvector shift of undefined size.");
 	}
 }
 #else
@@ -260,7 +261,7 @@ __m256 _mm256_subVectorShift_ps(__m256 x, int shift) {
 	case 4:
 		return _mm256_permute2f128_ps(x, _mm256_setzero_ps(), 0b00110001);
 	default:
-		throw "Subvector shift of undefined size.";
+    throw std::invalid_argument("Subvector shift of undefined size.");
 	}
 }
 
@@ -275,6 +276,6 @@ __m256 _mm256_subVectorBackShift_ps(__m256 x, int shift) {
 	case 4:
 		return _mm256_permute2f128_ps(x, _mm256_setzero_ps(), 0b00000010);
 	default:
-		throw "Subvector shift of undefined size.";
+    throw std::invalid_argument("Subvector shift of undefined size.");
 	}
 }

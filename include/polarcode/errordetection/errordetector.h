@@ -17,7 +17,7 @@ public:
 	virtual ~Detector(){}
 
 	/*!
-	 * \brief Get the number of bits that are added by the detecter.
+	 * \brief Get the number of bits that are added by the detector.
 	 * \return Number of check bits.
 	 */
 	virtual unsigned getCheckBitCount() = 0;

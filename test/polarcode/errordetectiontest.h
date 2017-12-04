@@ -6,18 +6,21 @@
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
 #include <polarcode/errordetection/crc32.h>
+#include <polarcode/errordetection/cmac.h>
 
 class ErrorDetectionTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST_SUITE(ErrorDetectionTest);
 	CPPUNIT_TEST(testDummy);
 	CPPUNIT_TEST(testCrc8);
 	CPPUNIT_TEST(testCrc32);
+	CPPUNIT_TEST(testCmac);
 	CPPUNIT_TEST_SUITE_END();
 
 	PolarCode::ErrorDetection::Detector
 		*mDummy,
 		*mCrc8,
-		*mCrc32;
+		*mCrc32,
+    *mCmac;
 
 	size_t mDataLength;
 	char *mData;
@@ -32,6 +35,7 @@ public:
 	void testDummy();
 	void testCrc8();
 	void testCrc32();
+	void testCmac();
 };
 
 #endif //PC_TEST_ERRORDETECTION_H

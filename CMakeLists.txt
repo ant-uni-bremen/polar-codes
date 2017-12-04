@@ -19,6 +19,7 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
 find_package(CppUnit)
 #find_package(Threads)
 find_package(Doxygen)
+find_package(OpenSSL)
 
 SET(BUILD_SHARED_LIBS ON)
 
@@ -32,10 +33,19 @@ IF(NOT HAVE_TCLAP)
   message( FATAL_ERROR "TCLAP is not found (apt install libtclap-dev)" )
 ENDIF()
 
+#link_directories(${OPENSSL_LIBRARY_DIRS})
+#link_directories(${OPENSSL_CRYPTO_LIBRARY})
+#add_library(
+#        ${OPENSSL_LIBRARY_DIRS}
+#        ${OPENSSL_SSL_LIBRARY}
+#        ${OPENSSL_CRYPTO_LIBRARY}
+#)
 
 
 add_definitions(-Wall -Wno-ignored-attributes)
 add_definitions(-march=native -fPIC)
+#add_definitions(-funroll-loops)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-O3)
 else()
@@ -92,3 +102,6 @@ endif(NOT CMAKE_MODULES_DIR)
 install(FILES cmake/Modules/PolarCodeConfig.cmake
     DESTINATION ${CMAKE_MODULES_DIR}/PolarCode
 )
+
+message(STATUS "CMake Build Type:     ${CMAKE_BUILD_TYPE}")
+message(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")

@@ -145,7 +145,8 @@ void Configurator::setupArgumentListLength() {
 void Configurator::setupArgumentErrorDetection() {
 	vector<string> ErrDetTypesVector = {"none",
 									 "crc8",
-									 "crc32"};
+									 "crc32",
+	"cmac8", "cmac16", "cmac32", "cmac64", "cmac128",};
 	availableErrDets = new ValuesConstraint<string>(ErrDetTypesVector);
 
 	auto ErrDet = new ValueArg<string>("e",

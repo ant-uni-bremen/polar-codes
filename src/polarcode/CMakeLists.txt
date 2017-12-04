@@ -3,10 +3,12 @@ add_library(ErrorDetector OBJECT
         errordetection/dummy
         errordetection/crc8
         errordetection/crc32
+        errordetection/cmac
         ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/errordetector.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/dummy.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/crc8.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/crc32.h)
+        ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/crc32.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/cmac.h)
 
 add_library(PolarEncoder OBJECT
         encoding/encoder
@@ -89,6 +91,8 @@ add_library(PolarCode
         ${CMAKE_SOURCE_DIR}/include/polarcode/datapool.txx
         ${CMAKE_SOURCE_DIR}/include/polarcode/polarcode.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/puncturer.h)
+
+target_link_libraries(PolarCode ssl crypto)
 
 target_compile_features(PolarCode PRIVATE cxx_std_14)
 

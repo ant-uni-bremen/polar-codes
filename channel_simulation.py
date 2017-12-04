@@ -14,10 +14,14 @@ def ebn0_to_sigma(ebn0, coderate, constellation_order=1.):
 
 
 def get_complex_noise_vector(vec_len, sigma):
-    # First generate a noise vector with noise power sigma2 = 1.0
-    std_noise = np.sqrt(.5) * (np.random.randn(vec_len) + 1j * np.random.randn(vec_len))
-    # now, scale the noise vector with a sigma value.
-    noise = sigma * std_noise
+    '''
+    Generate a random vector with specified size and noise power. Noise power is given as amplitude.
+    :param vec_len: number of complex noise samples
+    :param sigma: standard deviation of noise. 
+    :return: complex random vector
+    '''
+    dev = np.sqrt(.5) * sigma  # we expect a complex value, needs to be split for I and Q
+    noise = np.random.normal(0.0, dev, vec_len) + 1j * np.random.normal(0.0, dev, vec_len)
     return noise
 
 
@@ -160,7 +164,7 @@ def hiflecs_channel_taps(channel_delay=100.e-9, attenuation_db=-10., samp_rate=2
 
 def main():
     np.set_printoptions(precision=2, linewidth=150)
-    # evaluate_noise_level()
+    evaluate_noise_level()
     evaluate_rayleigh_channel()
 
 

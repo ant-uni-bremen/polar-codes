@@ -122,6 +122,18 @@ def get_polar_encoder_matrix_systematic(N, f):
     return (gm.dot(G) % 2).astype(np.uint8)
 
 
+    print(poly_bits[::-1])
+    crc_matrix = np.zeros((info_len, crc_len)).astype(np.uint8)
+    poly_bits = poly_bits[::-1]
+    poly_bits = poly_bits[1:]
+    crc_matrix[-1] = poly_bits
+    print(crc_matrix)
+    for i in np.arange(info_len - 1, 0, -1):
+        print(i)
+        # for j
+    pass
+
+
 def get_info_indices(frozen_indices, N):
     return np.setdiff1d(np.arange(N, dtype=frozen_indices.dtype),
                         frozen_indices)

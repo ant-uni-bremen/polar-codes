@@ -24,6 +24,7 @@
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
 #include <polarcode/errordetection/crc32.h>
+#include <polarcode/errordetection/cmac.h>
 
 #include "fixedfrozenbits.h"
 
@@ -722,6 +723,37 @@ void SimulationWorker::setErrorDetector() {
 				break;
 			case 32:
 				mErrorDetector = new PolarCode::ErrorDetection::CRC32();
+				break;
+			default:
+				mErrorDetector = new PolarCode::ErrorDetection::Dummy();
+		}
+	} else if(mJob->errorDetectionType == "cmac") {
+//		const unsigned char e_key[] = {0x2b, 0x7e, 0x15, 0x16,
+//																	 0x28, 0xae, 0xd2, 0xa6,
+//																	 0xab, 0xf7, 0x15, 0x88,
+//																	 0x09, 0xcf, 0x4f, 0x3c};
+
+		const unsigned char e_key[] = {0x8e, 0x73, 0xb0, 0xf7,
+																	 0xda, 0x0e, 0x64, 0x52,
+																	 0xc8, 0x10, 0xf3, 0x2b,
+																	 0x80, 0x90, 0x79, 0xe5};
+
+		std::vector<unsigned char> my_key(e_key, e_key + 16);
+		switch(mJob->errorDetection) {
+			case 8:
+				mErrorDetector = new PolarCode::ErrorDetection::cmac(my_key, 8);
+				break;
+			case 16:
+				mErrorDetector = new PolarCode::ErrorDetection::cmac(my_key, 16);
+				break;
+			case 32:
+				mErrorDetector = new PolarCode::ErrorDetection::cmac(my_key, 32);
+				break;
+			case 64:
+				mErrorDetector = new PolarCode::ErrorDetection::cmac(my_key, 64);
+				break;
+			case 128:
+				mErrorDetector = new PolarCode::ErrorDetection::cmac(my_key, 128);
 				break;
 			default:
 				mErrorDetector = new PolarCode::ErrorDetection::Dummy();

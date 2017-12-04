@@ -27,6 +27,16 @@ inline int errorDetectionStringToId(std::string str) {
 		return 8;
 	} else if(str == "crc32") {
 		return 32;
+	} else if(str == "cmac8") {
+		return 8;
+	} else if(str == "cmac16") {
+		return 16;
+	} else if(str == "cmac32") {
+		return 32;
+	} else if(str == "cmac64") {
+		return 64;
+	} else if(str == "cmac128") {
+		return 128;
 	} else {
 		//implicit "none"
 		return 0;
@@ -34,6 +44,18 @@ inline int errorDetectionStringToId(std::string str) {
 }
 
 
+
+inline std::string errorDetectionStringToType(std::string errDetStr) {
+	std::string prefixCRC = "crc";
+	std::string prefixCMAC = "cmac";
+	if(errDetStr.substr(0, prefixCRC.size()) == prefixCRC) {
+		return prefixCRC;
+	} else if (errDetStr.substr(0, prefixCMAC.size()) == prefixCMAC){
+		return prefixCMAC;
+	} else{ // implicit none!
+		return std::string("none");
+	}
+}
 
 inline std::string errorDetectionStringToType(std::string errDetStr) {
 	std::string prefixCRC = "crc";

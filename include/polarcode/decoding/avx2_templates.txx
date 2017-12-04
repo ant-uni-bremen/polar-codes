@@ -121,6 +121,7 @@ inline __m256i _mm256_subVectorShiftBytes_epu8(__m256i x) {
     default:
         std::cerr << "Subvector shift of undefined size.";
     }
+    return _mm256_setzero_si256();
 }
 
 /*****************
