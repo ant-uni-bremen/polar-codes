@@ -629,7 +629,7 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 		return new RateOneDecoder(parent);
 	}
 
-	if(blockLength <= 32) {
+	if(blockLength <= 8) {
 		return new ShortRateRNode(frozenBits, parent);
 	} else {
 		return new RateRNode(frozenBits, parent);

@@ -350,7 +350,7 @@ void SimulationWorker::run() {
 		unsigned long blocksToSimulate = mJob->BlocksToSimulate;
 
 		//Warmup
-/*		warmup = true;
+		warmup = true;
 		for(unsigned block = 0; block < 10000; ++block) {
 			generateData();
 			encode();
@@ -358,7 +358,7 @@ void SimulationWorker::run() {
 			transmit();
 			decode();
 			countErrors();
-		}*/
+		}
 
 		//Actual simulation
 		warmup = false;

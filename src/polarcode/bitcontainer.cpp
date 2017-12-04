@@ -15,7 +15,7 @@ namespace PolarCode {
  * \param max The maximum value
  * \return x, if it is between the boundaries, or the respective boundary.
  */
-float frestrict(float min, float x, float max) {
+inline float frestrict(float min, float x, float max) {
 	return fmin(fmax(x, min), max);
 }
 
@@ -24,7 +24,7 @@ float frestrict(float min, float x, float max) {
  * \param x The value to be quantized.
  * \return An eight-bit integer in the range of -128 to 127.
  */
-char convertFtoC(float x) {
+inline char convertFtoC(float x) {
 	x = frestrict(-128.0, x, 127.0);
 	x = round(x);
 	return static_cast<char>(x);
@@ -255,7 +255,7 @@ void FloatContainer::getSoftBits(void *pData) {
 }
 
 void FloatContainer::vectorizedHardDecode(float *dst) {
-	static const __m256 sgnMask = _mm256_set1_ps(-0.0);
+	const __m256 sgnMask = _mm256_set1_ps(-0.0);
 
 	for(unsigned bit=0; bit < mElementCount; bit+=8) {
 		__m256 softbit = _mm256_load_ps(mData+bit);
@@ -651,7 +651,7 @@ void PackedContainer::vectorWiseInjection(const void *pData) {
 	iData[vectorIndex] = packedBits;
 }
 
-int bitVecAddress(int index) {
+inline int bitVecAddress(int index) {
 	const int byteIndex = (3 - index/8) * 8;
 	const int bitIndex = index%8;
 	const int vectorIndex = 31 - (byteIndex+bitIndex);
