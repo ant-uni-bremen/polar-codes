@@ -48,6 +48,12 @@ inline int errorDetectionStringToId(std::string str) {
 	}
 }
 
+enum DecoderType {
+	Flexible,
+	Fixed,
+	DepthFirst
+};
+
 /*!
  * \brief A collection of simulation input/output, called 'job'.
  *
@@ -63,6 +69,7 @@ struct DataPoint
 	int L;///< List length for list-decoding
 	int errorDetection;///< 0=none,8/32=crc (effectively the number of check bits)
 	bool systematic;///< True, if systematic coding will be used
+	DecoderType decoderType;
 	int codingScheme;///< -1 for flexible decoder, 0 or higher for fixed decoder according to _codeRegistry_
 
 	//Simulation-Parameters
@@ -110,6 +117,7 @@ class Simulator {
 	void configureRateSim();
 	void configureAmplificationSim();
 	void configureFixedSim();
+	void configureDepthFirstSim();
 	void snrInflateJobList();
 
 	void saveResults();

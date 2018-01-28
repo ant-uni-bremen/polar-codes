@@ -69,7 +69,8 @@ void Configurator::setupArgumentSimType() {
 									 "listlength",
 									 "rate",
 									 "amplification",
-									 "fixed"};
+									 "fixed",
+									 "depthfirst"};
 	availableSimTypes = new ValuesConstraint<string>(SimTypesVector);
 
 	auto SimType = new UnlabeledValueArg<string>(

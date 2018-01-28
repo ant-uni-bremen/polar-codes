@@ -30,6 +30,8 @@ class PathList {
 	std::vector<std::vector<block_t*>> mNextBitTree;
 	std::vector<std::vector<block_t*>> mNextLeftBitTree;
 	std::vector<float> mNextMetric;
+//	std::vector<unsigned> mCorrectedNodeIds;
+//	std::vector<unsigned> mNextCorrectedNodeIds;
 	unsigned mPathLimit, mPathCount, mNextPathCount;
 	unsigned mStageCount;
 	datapool_t *xmDataPool;
@@ -235,6 +237,8 @@ protected:
 			 mBitCount,     ///< Number of AVX-aligned bits the data can be stored in.
 			 mStage,        ///< Recursion depth of this node
 			 mListSize;     ///< Limit for number of concurrently active paths.
+//	unsigned mId;
+//	unsigned mLastId;
 	PathList *xmPathList;   ///< Pointer to PathList object.
 
 public:
@@ -286,17 +290,16 @@ public:
 	 */
 	SclAvx::PathList* pathList();
 
-	/*!
-	 * \brief Is soft output enabled?
-	 * \return True, if soft output is enabled.
-	 */
-	bool softOutput();
+//	unsigned id();
+//	virtual unsigned lastId();
+//	virtual void setId(unsigned newId);
 };
 
 /*!
  * \brief The DecoderNode manages code splitting and combination.
  */
 class RateRNode : public Node {
+
 protected:
 	Node *mLeft,    ///< Left child node
 		 *mRight;   ///< Right child node
@@ -312,9 +315,13 @@ public:
 	RateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~RateRNode();
 	void decode();
+//	unsigned lastId();
+//	void setId(unsigned newId);
 };
 
 class ShortRateRNode : public RateRNode {
+	unsigned mLastId;
+
 public:
 	/*!
 	 * \brief Create a decoder node.
@@ -324,6 +331,7 @@ public:
 	ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ShortRateRNode();
 	void decode();
+//	unsigned lastId();
 };
 
 class RateZeroDecoder : public Node {
@@ -381,7 +389,6 @@ class SclAvxFloat : public Decoder {
 				  *mRootNode;
 	SclAvx::datapool_t *mDataPool;
 	SclAvx::PathList *mPathList;
-	void (*mSpecialDecoder)(SclAvx::PathList*, unsigned);
 
 	void clear();
 	void makeInitialPathList();

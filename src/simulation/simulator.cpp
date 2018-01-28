@@ -15,6 +15,7 @@
 #include <polarcode/decoding/adaptive_char.h>
 #include <polarcode/decoding/adaptive_mixed.h>
 #include <polarcode/decoding/fixed_avx2_char.h>
+#include <polarcode/decoding/depth_first.h>
 
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
@@ -42,6 +43,8 @@ Simulator::Simulator(Setup::Configurator *config)
 		configureAmplificationSim();
 	} else if(simType == "fixed") {
 		configureFixedSim();
+	} else if(simType == "depthfirst") {
+		configureDepthFirstSim();
 	} else {
 		// Unknown simulation type, should be caught by cmd-parser
 		exit(EXIT_FAILURE);
@@ -107,8 +110,9 @@ DataPoint* Simulator::getDefaultDataPoint() {
 	dp->K = dp->N *        mConfiguration->getFloat("rate");
 	dp->L =                mConfiguration->getInt("pathlimit");
 	dp->errorDetection =   errorDetectionStringToId(mConfiguration->getString("error-detection"));
-	dp->systematic =      !mConfiguration->getSwitch("non-systematic");
-	dp->codingScheme = -1;
+	dp->systematic     =  !mConfiguration->getSwitch("non-systematic");
+	dp->decoderType    =   DecoderType::Flexible;
+	dp->codingScheme   =   -1;
 
 	// Set simulation parameters
 	dp->EbN0 =             mConfiguration->getFloat("snr-max");
@@ -237,8 +241,26 @@ void Simulator::configureFixedSim() {
 		job->N = scheme.blockLength;
 		job->K = scheme.infoLength;
 		job->systematic = scheme.systematic;
+		job->decoderType = DecoderType::Fixed;
 		job->codingScheme = i;
 		job->BlocksToSimulate = mConfiguration->getLongInt("workload") / job->N;
+
+		mJobList.push_back(job);
+	}
+
+	delete jobTemplate;
+}
+
+void Simulator::configureDepthFirstSim() {
+	DataPoint* jobTemplate = getDefaultDataPoint();
+	unsigned lMin = mConfiguration->getInt("l-min");
+	unsigned lMax = mConfiguration->getInt("l-max");
+
+	for(unsigned l = lMin; l <= lMax; l *= 2) {
+		DataPoint* job = new DataPoint(*jobTemplate);
+
+		job->L = l;
+		job->decoderType = DecoderType::DepthFirst;
 
 		mJobList.push_back(job);
 	}
@@ -401,8 +423,10 @@ void SimulationWorker::selectFrozenBits() {
 void SimulationWorker::setCoders() {
 	mEncoder = new PolarCode::Encoding::ButterflyAvx2Packed(mJob->N, mFrozenBits);
 
-	if(mJob->codingScheme >= 0) {
+	if(mJob->decoderType == Fixed) {
 		mDecoder = new PolarCode::Decoding::FixedChar(mJob->codingScheme);
+	} else if(mJob->decoderType == DepthFirst) {
+		mDecoder = new PolarCode::Decoding::DepthFirst(mJob->N, mJob->L, mFrozenBits);
 	} else {
 		if(mJob->L > 1) {
 			switch(mJob->precision) {

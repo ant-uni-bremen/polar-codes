@@ -21,10 +21,12 @@ PathList::PathList(size_t listSize, size_t stageCount, datapool_t *dataPool)
 	mBitTree.resize(listSize);
 	mLeftBitTree.resize(listSize);
 	mMetric.assign(listSize, 0);
+//	mCorrectedNodeIds.resize(listSize);
 	mNextLlrTree.resize(listSize);
 	mNextBitTree.resize(listSize);
 	mNextLeftBitTree.resize(listSize);
 	mNextMetric.assign(listSize, 0);
+//	mNextCorrectedNodeIds.resize(listSize);
 	for(unsigned i=0; i<mPathLimit; ++i) {
 		mLlrTree[i].resize(stageCount);
 		mBitTree[i].resize(stageCount);
@@ -83,6 +85,7 @@ void PathList::switchToNext() {
 	std::swap(mBitTree, mNextBitTree);
 	std::swap(mLeftBitTree, mNextLeftBitTree);
 	std::swap(mMetric, mNextMetric);
+//	std::swap(mCorrectedNodeIds, mNextCorrectedNodeIds);
 	mPathCount = mNextPathCount;
 }
 
@@ -196,6 +199,17 @@ SclAvx::PathList* Node::pathList() {
 	return xmPathList;
 }
 
+/*unsigned Node::id() {
+	return mId;
+}
+
+void Node::setId(unsigned newId) {
+	mId = newId;
+}
+
+unsigned Node::lastId() {
+	return mLastId;
+}*/
 
 /*************
  * (Short)RateRNode
@@ -247,6 +261,12 @@ void RateRNode::decode() {
 
 	xmPathList->clearStage(mStage);
 }
+/*
+void RateRNode::setId(unsigned newId) {
+	mId = newId;
+	mLeft->setId(newId+1);
+	mRight->setId(mLeft->lastId() + 1);
+}*/
 
 ShortRateRNode::ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	: RateRNode(frozenBits, parent) {
