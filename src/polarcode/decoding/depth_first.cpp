@@ -24,32 +24,102 @@ void Manager::setRootNode(Node *node) {
 }
 
 void Manager::decode() {
-	for(Node* node : mNodeList) {
-		node->resetDecision();
-	}
 	xmRootNode->decode();
 
-	//Collect reliabilities in ascending order
-	mHintList.clear();
-	for(Node* decoder : mNodeList) {
-		mHintList.push_back({decoder, decoder->reliability()});
+	//Create initial configurations, including the base that has just been decoded
+	std::vector<DecoderHint> hintList;
+
+	//Collect a new list of reliabilities and accumulate paths' total reliability
+	hintList.clear();
+	float metric = 0.0f;
+	for(auto decoder : mNodeList) {
+		metric += decoder->reliability();
+		hintList.push_back({decoder, decoder->reliability()});
 	}
-	std::sort(mHintList.begin(), mHintList.end(), compareHints);
+	//Sort all nodes
+	std::sort(hintList.begin(), hintList.end(), compareHints);
+
+	//Create configurations based on changing the most unreliable node
+
+	int optionCount = hintList[0].node->optionCount();
+
+	//mConfigList.clear();
+	while(!mConfigList.empty())mConfigList.pop();
+
+	for(int i=0; i<optionCount; ++i) {
+		Configuration conf;
+		conf.depth = 0;
+		conf.nodeList = hintList;
+		conf.nodeOptions.clear();
+		conf.nodeOptions.push_back(i);//Set option for weakest node
+
+		mConfigList.push(conf);
+	}
+
+	mBestMetric = metric;
+	mBestConfig = mConfigList.front();
 }
 
 
-
 void Manager::decodeNext() {
-	//Select next codeword by counter-like switching of decisions
-	for(DecoderHint hint : mHintList) {
-		if(hint.node->nextDecision()) {
-			break;
-		}
+	std::vector<DecoderHint> hintList;
+	Configuration &currentConfig = mConfigList.front();
+	int depth = currentConfig.depth;
+
+	//Collect a new list of reliabilities
+	hintList.clear();
+	float metric = 0.0f;
+	for(auto hint : currentConfig.nodeList) {
+		metric += hint.node->reliability();
+		hintList.push_back({hint.node, hint.node->reliability()});
+	}
+	//Sort all nodes, excluding the current configuration
+	//to prevent double configuring of alredy considered nodes
+	std::sort(hintList.begin()+depth+1, hintList.end(), compareHints);
+
+	//Create new configurations based on changing the most unreliable node
+
+	DecoderHint &weakestNode = hintList.at(depth+1);
+	int optionCount = weakestNode.node->optionCount();
+
+	for(int i=0; i<optionCount; ++i) {
+		Configuration conf;
+		conf.depth = depth+1;
+		conf.nodeList = hintList;
+		conf.nodeOptions = currentConfig.nodeOptions;
+		conf.nodeOptions.push_back(i);
+		mConfigList.push(conf);
+	}
+
+	//Save current config, if it is better than previous ones
+	if(metric > mBestMetric) {
+		mBestConfig = mConfigList.front();
+	}
+
+	//Remove current config from queue
+	mConfigList.pop();
+
+	//Configure every node according to the next configuration
+	Configuration &newConfig = mConfigList.front();
+	depth = newConfig.depth;
+	for(int i=0; i <= depth; ++i) {
+		newConfig.nodeList[i].node->setOption(newConfig.nodeOptions[i]);
 	}
 
 	//Decode
 	xmRootNode->decode();
 }
+
+void Manager::decodeBestConfig() {
+	int depth = mBestConfig.depth;
+	for(int i=0; i <= depth; ++i) {
+		mBestConfig.nodeList[i].node->setOption(mBestConfig.nodeOptions[i]);
+	}
+
+	//Decode
+	xmRootNode->decode();
+}
+
 
 Node::Node()
 	: mBlockLength(0)
@@ -60,6 +130,7 @@ Node::Node()
 	, mInput(nullptr)
 	, mOutput(nullptr)
 	, mReliability(INFINITY)
+	, mOptionCount(0)
 	, mOption(0)
 {
 }
@@ -73,6 +144,7 @@ Node::Node(unsigned blockLength, datapool_t *pool, Manager *manager)
 	, mInput(mLlr->data)
 	, mOutput(mBit->data)
 	, mReliability(INFINITY)
+	, mOptionCount(0)
 	, mOption(0)
 {
 }
@@ -86,6 +158,7 @@ Node::Node(Node *other)
 	, mInput(other->mInput)
 	, mOutput(other->mOutput)
 	, mReliability(INFINITY)
+	, mOptionCount(0)
 	, mOption(0)
 {
 }
@@ -127,13 +200,12 @@ float Node::reliability() {
 	return mReliability;
 }
 
-bool Node::nextDecision() {
-	//mOption++;
-	return false;
+int Node::optionCount() {
+	return mOptionCount;
 }
 
-void Node::resetDecision() {
-	mOption = 0;
+void Node::setOption(int d) {
+	mOption = d;
 }
 
 
@@ -219,7 +291,7 @@ void ShortRateRNode::decode() {
  * RateZeroDecoder
  * ***********/
 
-/*inline void memFloatFill(float *dst, float value, const size_t blockLength) {
+inline void memFloatFill(float *dst, float value, const size_t blockLength) {
 	if(blockLength>=8) {
 		const __m256 vec = _mm256_set1_ps(value);
 		for(unsigned i=0; i<blockLength; i+=8) {
@@ -230,7 +302,7 @@ void ShortRateRNode::decode() {
 			dst[i] = value;
 		}
 	}
-}*/
+}
 
 RateZeroDecoder::RateZeroDecoder(Node *parent)
 	: Node(parent) {
@@ -240,8 +312,7 @@ RateZeroDecoder::~RateZeroDecoder() {
 }
 
 void RateZeroDecoder::decode() {
-	mOutput[0] = INFINITY;
-	//To be extended for longer codes
+	memFloatFill(mOutput, INFINITY, mBlockLength);
 }
 
 /*************
@@ -251,51 +322,203 @@ void RateZeroDecoder::decode() {
 RateOneDecoder::RateOneDecoder(Node *parent)
 	: Node(parent) {
 	xmManager->pushDecoder(this);
+	mOptionCount = /*mBlockLength == 1 ?*/ 2 /*: 4*/;
+	mFlipIndices = new unsigned[mBlockLength];
 }
 
 RateOneDecoder::~RateOneDecoder() {
+	delete [] mFlipIndices;
+}
+
+void RateOneDecoder::findWeakLlrs() {
+	float *temp = mTempBlock->data;
+	for(unsigned i=0; i<mBlockLength; ++i) {
+		mFlipIndices[i] = i;
+	}
+
+//	unsigned limit = std::min(2u, mBlockLength);
+
+//	for(unsigned bit=0; bit<limit; ++bit) {
+		unsigned index = /*bit*/0;
+		for(unsigned i=index+1; i<mBlockLength; ++i) {
+			if(temp[i] < temp[index]) {
+				index = i;
+			}
+		}
+		std::swap(temp[/*bit*/0], temp[index]);
+		std::swap(mFlipIndices[/*bit*/0], mFlipIndices[index]);
+//	}
 }
 
 void RateOneDecoder::decode() {
-	if(mOption) {
-		mOutput[0] = -mInput[0];
-	} else {
-		mOutput[0] = mInput[0];
+	const __m256 sgnMask = _mm256_set1_ps(-0.0);
+
+	mTempBlock = xmDataPool->allocate(mBlockLength);
+	float *temp = mTempBlock->data;
+	for(unsigned i=0; i<mBlockLength; i+=8) {
+		__m256 Llr = _mm256_load_ps(mInput+i);
+		_mm256_store_ps(mOutput+i, Llr);
+
+		Llr = _mm256_andnot_ps(sgnMask, Llr);
+		_mm256_store_ps(temp+i, Llr);
 	}
-	mReliability = std::fabs(mInput[0]);
+	findWeakLlrs();
+	mReliability = temp[0];
+	xmDataPool->release(mTempBlock);
+
+	/* 0: Swap nothing
+	 * 1: Swap first bit
+	 * //2: Swap second bit
+	 * //3: Swap both
+	 */
+	if(mOption/*&1*/) {
+		mOutput[mFlipIndices[0]] = -mInput[mFlipIndices[0]];
+	}
+
+//	if(mBlockLength > 1 && (mOption & 2)) {
+//		mOutput[mFlipIndices[1]] = -mInput[mFlipIndices[1]];
+//	}
+
+	//Reset option for next configuration
+	mOption = 0;
 }
 
-bool RateOneDecoder::nextDecision() {
+/*************
+ * RepetitionDecoder
+ * ***********/
+
+RepetitionDecoder::RepetitionDecoder(Node *parent)
+	: Node(parent) {
+	xmManager->pushDecoder(this);
+	mOptionCount = 2;
+}
+
+RepetitionDecoder::~RepetitionDecoder() {
+}
+
+
+void RepetitionDecoder::decode() {
+	__m256 vSum = _mm256_setzero_ps();
+	float sum;
+
+	for(unsigned i=mBlockLength; i<8; ++i) {
+		mInput[i] = 0.0;//Neutral element of Repetition code
+	}
+
+	for(unsigned i=0; i<mBlockLength; i+=8) {
+		__m256 Llr = _mm256_load_ps(mInput+i);
+		vSum = _mm256_add_ps(vSum, Llr);
+	}
+	sum = reduce_add_ps(vSum);
+	mReliability = std::abs(sum);
+
 	if(mOption == 1) {
-		mOption = 0;
-		return false;
+		sum = -sum;
+	}
+
+	if(mBlockLength >= 8) {
+		vSum = _mm256_set1_ps(sum);
+		for(unsigned i=0; i<mBlockLength; i+=8) {
+			_mm256_store_ps(mOutput+i, vSum);
+		}
 	} else {
-		mOption = 1;
-		return true;
+		for(unsigned i=0; i<mBlockLength; i++) {
+			mOutput[i] = sum;
+		}
+	}
+
+	//Reset option for next configuration
+	mOption = 0;
+}
+
+
+/*************
+ * SpcDecoder
+ * ***********/
+
+SpcDecoder::SpcDecoder(Node *parent)
+	: Node(parent) {
+	xmManager->pushDecoder(this);
+	mOptionCount = 2;
+	mFlipIndices = new unsigned[mBlockLength];
+}
+
+SpcDecoder::~SpcDecoder() {
+	delete [] mFlipIndices;
+}
+
+void SpcDecoder::findWeakLlrs() {
+	float *temp = mTempBlock->data;
+	for(unsigned i=0; i<mBlockLength; ++i) {
+		mFlipIndices[i] = i;
+	}
+
+	for(unsigned bit=0; bit<2; ++bit) {
+		unsigned index = bit;
+		for(unsigned i=index+1; i<mBlockLength; ++i) {
+			if(temp[i] < temp[index]) {
+				index = i;
+			}
+		}
+		std::swap(temp[bit], temp[index]);
+		std::swap(mFlipIndices[bit], mFlipIndices[index]);
 	}
 }
 
+void SpcDecoder::decode() {
+	const __m256 sgnMask = _mm256_set1_ps(-0.0);
+	__m256 vParity = _mm256_setzero_ps();
+	union {
+		float fParity;
+		unsigned int uParity;
+	};
+
+	for(unsigned i=mBlockLength; i<8; ++i) {
+		mInput[i] = INFINITY;
+	}
+
+	mTempBlock = xmDataPool->allocate(mBlockLength);
+	float *temp = mTempBlock->data;
+	for(unsigned i=0; i<mBlockLength; i+=8) {
+		__m256 Llr = _mm256_load_ps(mInput+i);
+		_mm256_store_ps(mOutput+i, Llr);
+		vParity = _mm256_xor_ps(vParity, Llr);
+
+		Llr = _mm256_andnot_ps(sgnMask, Llr);
+		_mm256_store_ps(temp+i, Llr);
+	}
+	findWeakLlrs();
+
+	fParity = reduce_xor_ps(vParity);
+
+	if(uParity & 0x80000000) {
+		mReliability = temp[1];
+		mOutput[mFlipIndices[mOption]] = -mInput[mFlipIndices[mOption]];
+	} else {
+		mReliability = temp[0];
+		if(mOption) {
+			mOutput[mFlipIndices[0]] = -mInput[mFlipIndices[0]];
+		}
+	}
+
+	xmDataPool->release(mTempBlock);
+
+	//Reset option for next configuration
+	mOption = 0;
+}
 
 Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 	unsigned blockLength = parent->blockLength();
 	unsigned frozenBitCount = frozenBits.size();
 
-/* As long as we are restricted to single bits, split the code before detecting
- * long Rate-0 or Rate-1 codes.
- */
-	if(blockLength > 1) {
-		if(blockLength <= 8) {
-			return new ShortRateRNode(frozenBits, parent);
-		} else {
-			return new RateRNode(frozenBits, parent);
-		}
-	}
-
 	if(frozenBitCount == blockLength) {
 		return new RateZeroDecoder(parent);
 	}
 
-/* To do:
+	if(frozenBitCount == 0) {
+		return new RateOneDecoder(parent);
+	}
+
 	if(frozenBitCount == blockLength-1) {
 		return new RepetitionDecoder(parent);
 	}
@@ -303,20 +526,12 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 	if(frozenBitCount == 1) {
 		return new SpcDecoder(parent);
 	}
-*/
 
-	if(frozenBitCount == 0) {
-		return new RateOneDecoder(parent);
-	}
-
-/* Used, when long codes are implemented
 	if(blockLength <= 8) {
 		return new ShortRateRNode(frozenBits, parent);
 	} else {
 		return new RateRNode(frozenBits, parent);
 	}
-*/
-	return nullptr;//Should not be reached, but inserted until everything is ready
 }
 
 }// namespace DepthFirstObjects
@@ -386,6 +601,17 @@ bool DepthFirst::decode() {
 			break;
 		}
 	}
+
+	if(!success && mTrialLimit > 1) {//Restore initial guess
+		mManager->decodeBestConfig();
+		if(!mSystematic) {
+			encoder->setCodeword(dynamic_cast<FloatContainer*>(mBitContainer)->data());
+			encoder->encode();
+			encoder->getEncodedData(dynamic_cast<FloatContainer*>(mBitContainer)->data());
+		}
+		mBitContainer->getPackedInformationBits(mOutputContainer);
+	}
+
 	if(encoder != nullptr) {
 		delete encoder;
 	}

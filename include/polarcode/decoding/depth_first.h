@@ -22,21 +22,25 @@ struct DecoderHint {
 	float reliability;
 };
 
-/*class compareHints {
-public:
-	bool operator()(DecoderHint &a, DecoderHint &b) {
-		return a.reliability < b.reliability;
-	}
-};*/
-
 inline bool compareHints(DecoderHint &a, DecoderHint &b) {
 	return a.reliability < b.reliability;
 }
 
+struct Configuration {
+	int depth;
+	std::vector<DecoderHint> nodeList;
+	std::vector<int> nodeOptions;
+	std::string output;
+};
+
 class Manager {
 	std::vector<Node*> mNodeList;
-	std::vector<DecoderHint> mHintList;
 	Node *xmRootNode;
+	std::queue<Configuration> mConfigList;
+
+	Configuration mBestConfig;
+	float mBestMetric;
+	bool firstRun;
 
 public:
 	Manager();
@@ -69,6 +73,11 @@ public:
 	 */
 	void decodeNext();
 
+	/*!
+	 * \brief Fall back to best configuration seen so far.
+	 */
+	void decodeBestConfig();
+
 };
 
 class Node {
@@ -82,7 +91,8 @@ protected:
 	float *mInput, *mOutput;
 
 	float mReliability;
-	unsigned mOption;
+	int mOptionCount;
+	int mOption;
 
 public:
 	Node();
@@ -100,8 +110,8 @@ public:
 	virtual void decode();
 
 	float reliability();
-	virtual bool nextDecision();//Returns true, if new decision available.
-	void resetDecision();
+	int optionCount();
+	void setOption(int);
 };
 
 class RateRNode : public Node {
@@ -147,11 +157,32 @@ public:
 };
 
 class RateOneDecoder : public Node {
+	unsigned *mFlipIndices;
+	block_t *mTempBlock;
+	void findWeakLlrs();
+
 public:
 	RateOneDecoder(Node *parent);
 	~RateOneDecoder();
 	void decode();
-	bool nextDecision();
+};
+
+class RepetitionDecoder : public Node {
+public:
+	RepetitionDecoder(Node *parent);
+	~RepetitionDecoder();
+	void decode();
+};
+
+class SpcDecoder : public Node {
+	unsigned *mFlipIndices;
+	block_t *mTempBlock;
+	void findWeakLlrs();
+
+public:
+	SpcDecoder(Node *parent);
+	~SpcDecoder();
+	void decode();
 };
 
 Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent);
