@@ -290,7 +290,7 @@ void Simulator::snrInflateJobList() {
 				//and LLR(y|x) = L_ch*y', with y' = y / (abs(alpha) * sqrt(E_S * T_S))
 				//
 				//Direct source: See Channel Coding II lecture, held by Dr.-Ing. Dirk Wübben, Universität Bremen
-				newJob->amplification = 4 * newJob->EbN0;//assume abs(alpha)=1
+				newJob->amplification = 4 * pow(10.0, newJob->EbN0/10.0);//assume abs(alpha)=1
 			}
 			mJobList.push_back(newJob);
 		}

@@ -28,14 +28,23 @@ inline bool compareHints(DecoderHint &a, DecoderHint &b) {
 
 struct Configuration {
 	int depth;
+	float parentMetric;
 	std::vector<DecoderHint> nodeList;
 	std::vector<int> nodeOptions;
 	std::string output;
 };
 
+class compareConfigMetrics {
+public:
+	bool operator()(Configuration &a, Configuration &b) {
+		return a.parentMetric < b.parentMetric;
+	}
+};
+
 class Manager {
 	std::vector<Node*> mNodeList;
 	Node *xmRootNode;
+//	std::priority_queue<Configuration, std::vector<Configuration>, compareConfigMetrics> mConfigList;
 	std::queue<Configuration> mConfigList;
 
 	Configuration mBestConfig;

@@ -49,6 +49,7 @@ void Manager::decode() {
 	for(int i=0; i<optionCount; ++i) {
 		Configuration conf;
 		conf.depth = 0;
+		conf.parentMetric = metric;
 		conf.nodeList = hintList;
 		conf.nodeOptions.clear();
 		conf.nodeOptions.push_back(i);//Set option for weakest node
@@ -63,7 +64,8 @@ void Manager::decode() {
 
 void Manager::decodeNext() {
 	std::vector<DecoderHint> hintList;
-	Configuration &currentConfig = mConfigList.front();
+	Configuration currentConfig = mConfigList.front();
+	mConfigList.pop();
 	int depth = currentConfig.depth;
 
 	//Collect a new list of reliabilities
@@ -74,7 +76,7 @@ void Manager::decodeNext() {
 		hintList.push_back({hint.node, hint.node->reliability()});
 	}
 	//Sort all nodes, excluding the current configuration
-	//to prevent double configuring of alredy considered nodes
+	//to prevent double configuring of already considered nodes
 	std::sort(hintList.begin()+depth+1, hintList.end(), compareHints);
 
 	//Create new configurations based on changing the most unreliable node
@@ -85,6 +87,7 @@ void Manager::decodeNext() {
 	for(int i=0; i<optionCount; ++i) {
 		Configuration conf;
 		conf.depth = depth+1;
+		conf.parentMetric = metric;
 		conf.nodeList = hintList;
 		conf.nodeOptions = currentConfig.nodeOptions;
 		conf.nodeOptions.push_back(i);
@@ -93,14 +96,12 @@ void Manager::decodeNext() {
 
 	//Save current config, if it is better than previous ones
 	if(metric > mBestMetric) {
-		mBestConfig = mConfigList.front();
+		mBestConfig = currentConfig;
+		mBestMetric = metric;
 	}
 
-	//Remove current config from queue
-	mConfigList.pop();
-
 	//Configure every node according to the next configuration
-	Configuration &newConfig = mConfigList.front();
+	const Configuration &newConfig = mConfigList.front();
 	depth = newConfig.depth;
 	for(int i=0; i <= depth; ++i) {
 		newConfig.nodeList[i].node->setOption(newConfig.nodeOptions[i]);
