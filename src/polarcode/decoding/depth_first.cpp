@@ -38,6 +38,7 @@ void Manager::decode() {
 	}
 	//Sort all nodes
 	std::sort(hintList.begin(), hintList.end(), compareHints);
+	firstRun = true;
 
 	//Create configurations based on changing the most unreliable node
 
@@ -67,17 +68,23 @@ void Manager::decodeNext() {
 	Configuration currentConfig = mConfigList.front();
 	mConfigList.pop();
 	int depth = currentConfig.depth;
-
-	//Collect a new list of reliabilities
-	hintList.clear();
 	float metric = 0.0f;
-	for(auto hint : currentConfig.nodeList) {
-		metric += hint.node->reliability();
-		hintList.push_back({hint.node, hint.node->reliability()});
+
+	if(!firstRun) {
+		//Collect a new list of reliabilities
+		hintList.clear();
+		for(auto hint : currentConfig.nodeList) {
+			metric += hint.node->reliability();
+			hintList.push_back({hint.node, hint.node->reliability()});
+		}
+		//Sort all nodes, excluding the current configuration
+		//to prevent double configuring of already considered nodes
+		std::sort(hintList.begin()+depth+1, hintList.end(), compareHints);
+	} else {
+		hintList = currentConfig.nodeList;
+		metric = currentConfig.parentMetric;
+		firstRun = false;
 	}
-	//Sort all nodes, excluding the current configuration
-	//to prevent double configuring of already considered nodes
-	std::sort(hintList.begin()+depth+1, hintList.end(), compareHints);
 
 	//Create new configurations based on changing the most unreliable node
 
@@ -325,14 +332,16 @@ RateOneDecoder::RateOneDecoder(Node *parent)
 	xmManager->pushDecoder(this);
 	mOptionCount = /*mBlockLength == 1 ?*/ 2 /*: 4*/;
 	mFlipIndices = new unsigned[mBlockLength];
+	mTempBlock = xmDataPool->allocate(mBlockLength);
+	mTempBlockPtr = mTempBlock->data;
 }
 
 RateOneDecoder::~RateOneDecoder() {
 	delete [] mFlipIndices;
+	xmDataPool->release(mTempBlock);
 }
 
 void RateOneDecoder::findWeakLlrs() {
-	float *temp = mTempBlock->data;
 	for(unsigned i=0; i<mBlockLength; ++i) {
 		mFlipIndices[i] = i;
 	}
@@ -342,11 +351,11 @@ void RateOneDecoder::findWeakLlrs() {
 //	for(unsigned bit=0; bit<limit; ++bit) {
 		unsigned index = /*bit*/0;
 		for(unsigned i=index+1; i<mBlockLength; ++i) {
-			if(temp[i] < temp[index]) {
+			if(mTempBlockPtr[i] < mTempBlockPtr[index]) {
 				index = i;
 			}
 		}
-		std::swap(temp[/*bit*/0], temp[index]);
+		std::swap(mTempBlockPtr[/*bit*/0], mTempBlockPtr[index]);
 		std::swap(mFlipIndices[/*bit*/0], mFlipIndices[index]);
 //	}
 }
@@ -354,18 +363,15 @@ void RateOneDecoder::findWeakLlrs() {
 void RateOneDecoder::decode() {
 	const __m256 sgnMask = _mm256_set1_ps(-0.0);
 
-	mTempBlock = xmDataPool->allocate(mBlockLength);
-	float *temp = mTempBlock->data;
 	for(unsigned i=0; i<mBlockLength; i+=8) {
 		__m256 Llr = _mm256_load_ps(mInput+i);
 		_mm256_store_ps(mOutput+i, Llr);
 
 		Llr = _mm256_andnot_ps(sgnMask, Llr);
-		_mm256_store_ps(temp+i, Llr);
+		_mm256_store_ps(mTempBlockPtr+i, Llr);
 	}
 	findWeakLlrs();
-	mReliability = temp[0];
-	xmDataPool->release(mTempBlock);
+	mReliability = mTempBlockPtr[0];
 
 	/* 0: Swap nothing
 	 * 1: Swap first bit
@@ -442,14 +448,16 @@ SpcDecoder::SpcDecoder(Node *parent)
 	xmManager->pushDecoder(this);
 	mOptionCount = 2;
 	mFlipIndices = new unsigned[mBlockLength];
+	mTempBlock = xmDataPool->allocate(mBlockLength);
+	mTempBlockPtr = mTempBlock->data;
 }
 
 SpcDecoder::~SpcDecoder() {
 	delete [] mFlipIndices;
+	xmDataPool->release(mTempBlock);
 }
 
 void SpcDecoder::findWeakLlrs() {
-	float *temp = mTempBlock->data;
 	for(unsigned i=0; i<mBlockLength; ++i) {
 		mFlipIndices[i] = i;
 	}
@@ -457,11 +465,11 @@ void SpcDecoder::findWeakLlrs() {
 	for(unsigned bit=0; bit<2; ++bit) {
 		unsigned index = bit;
 		for(unsigned i=index+1; i<mBlockLength; ++i) {
-			if(temp[i] < temp[index]) {
+			if(mTempBlockPtr[i] < mTempBlockPtr[index]) {
 				index = i;
 			}
 		}
-		std::swap(temp[bit], temp[index]);
+		std::swap(mTempBlockPtr[bit], mTempBlockPtr[index]);
 		std::swap(mFlipIndices[bit], mFlipIndices[index]);
 	}
 }
@@ -478,31 +486,29 @@ void SpcDecoder::decode() {
 		mInput[i] = INFINITY;
 	}
 
-	mTempBlock = xmDataPool->allocate(mBlockLength);
-	float *temp = mTempBlock->data;
 	for(unsigned i=0; i<mBlockLength; i+=8) {
 		__m256 Llr = _mm256_load_ps(mInput+i);
 		_mm256_store_ps(mOutput+i, Llr);
 		vParity = _mm256_xor_ps(vParity, Llr);
 
 		Llr = _mm256_andnot_ps(sgnMask, Llr);
-		_mm256_store_ps(temp+i, Llr);
+		_mm256_store_ps(mTempBlockPtr+i, Llr);
 	}
 	findWeakLlrs();
+	mReliability = mTempBlockPtr[0];
 
 	fParity = reduce_xor_ps(vParity);
 
 	if(uParity & 0x80000000) {
-		mReliability = temp[1];
+		//Flip one bit
 		mOutput[mFlipIndices[mOption]] = -mInput[mFlipIndices[mOption]];
 	} else {
-		mReliability = temp[0];
 		if(mOption) {
+			//Flip two bits to keep SPC equation fulfilled
 			mOutput[mFlipIndices[0]] = -mInput[mFlipIndices[0]];
+			mOutput[mFlipIndices[1]] = -mInput[mFlipIndices[1]];
 		}
 	}
-
-	xmDataPool->release(mTempBlock);
 
 	//Reset option for next configuration
 	mOption = 0;
@@ -603,7 +609,7 @@ bool DepthFirst::decode() {
 		}
 	}
 
-	if(!success && mTrialLimit > 1) {//Restore initial guess
+/*	if(!success && mTrialLimit > 1) {//Restore initial guess
 		mManager->decodeBestConfig();
 		if(!mSystematic) {
 			encoder->setCodeword(dynamic_cast<FloatContainer*>(mBitContainer)->data());
@@ -611,7 +617,7 @@ bool DepthFirst::decode() {
 			encoder->getEncodedData(dynamic_cast<FloatContainer*>(mBitContainer)->data());
 		}
 		mBitContainer->getPackedInformationBits(mOutputContainer);
-	}
+	}*/
 
 	if(encoder != nullptr) {
 		delete encoder;

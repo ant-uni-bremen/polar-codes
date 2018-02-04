@@ -38,7 +38,7 @@ void Configurator::setupArgumentDefaults() {
 
 	defaultInts.insert({"l-fixed", 4});
 	defaultInts.insert({"l-min",   1});
-	defaultInts.insert({"l-max",  64});
+	defaultInts.insert({"l-max",   8});
 
 	defaultStrings.insert({"errorDetection","crc32"});
 

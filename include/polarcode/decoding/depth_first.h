@@ -168,6 +168,7 @@ public:
 class RateOneDecoder : public Node {
 	unsigned *mFlipIndices;
 	block_t *mTempBlock;
+	float *mTempBlockPtr;
 	void findWeakLlrs();
 
 public:
@@ -186,6 +187,7 @@ public:
 class SpcDecoder : public Node {
 	unsigned *mFlipIndices;
 	block_t *mTempBlock;
+	float *mTempBlockPtr;
 	void findWeakLlrs();
 
 public:
