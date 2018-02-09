@@ -240,6 +240,7 @@ void Simulator::configureFixedSim() {
 
 		job->N = scheme.blockLength;
 		job->K = scheme.infoLength;
+		job->designSNR = scheme.designSnr;
 		job->systematic = scheme.systematic;
 		job->decoderType = DecoderType::Fixed;
 		job->codingScheme = i;

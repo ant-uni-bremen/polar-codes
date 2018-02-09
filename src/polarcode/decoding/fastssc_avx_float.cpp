@@ -200,7 +200,6 @@ void SpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
 }
 
 void ZeroSpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
-	std::cout << "ZeroSpc";
 	static const __m256 sgnMask = _mm256_set1_ps(-0.0);
 	const size_t subBlockLength = blockLength/2;
 	__m256 parVec = _mm256_setzero_ps();

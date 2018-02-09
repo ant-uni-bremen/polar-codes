@@ -14,7 +14,7 @@ struct CodingScheme {
 	unsigned int blockLength, infoLength;
 	std::vector<unsigned> frozenBits;
 	bool systematic;
-	//CRC?
+	float designSnr;
 };
 
 //Filled by fixed decoder factory

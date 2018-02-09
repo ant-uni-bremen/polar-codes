@@ -12,19 +12,46 @@ struct CodingScheme {
 	unsigned int blockLength, infoLength;
 	vector<unsigned> frozenBits;
 	bool systematic;
-	//CRC?
+	float designSnr;
 };
 
 vector<CodingScheme> createRegistry() {
 	vector<CodingScheme> reg;
-	CodingScheme scheme = {1024, 0, {}, true};
+	CodingScheme scheme = {16384, 8192, {}, true, 0.0};
+	float dSnr;
 
 	PolarCode::Construction::Bhattacharrya *constructor =
 			new PolarCode::Construction::Bhattacharrya();
 
 	reg.clear();
 
-	//Rate 1/8
+	constructor->setBlockLength(scheme.blockLength);
+	constructor->setInformationLength(scheme.infoLength);
+
+
+	//-1.59 dB
+	dSnr = -1.59;
+	constructor->setParameterByDesignSNR(dSnr);
+	scheme.frozenBits = constructor->construct();
+	scheme.designSnr = dSnr;
+	reg.push_back(scheme);
+
+	//0.0 dB
+	dSnr = 0.0;
+	constructor->setParameterByDesignSNR(dSnr);
+	scheme.frozenBits = constructor->construct();
+	scheme.designSnr = dSnr;
+	reg.push_back(scheme);
+
+	//1.0 dB
+	dSnr = 1.0;
+	constructor->setParameterByDesignSNR(dSnr);
+	scheme.frozenBits = constructor->construct();
+	scheme.designSnr = dSnr;
+	reg.push_back(scheme);
+
+
+/*	//Rate 1/8
 	scheme.infoLength = scheme.blockLength / 8;
 	constructor->setBlockLength(scheme.blockLength);
 	constructor->setInformationLength(scheme.infoLength);
@@ -44,7 +71,7 @@ vector<CodingScheme> createRegistry() {
 	constructor->setInformationLength(scheme.infoLength);
 	scheme.frozenBits = constructor->construct();
 	reg.push_back(scheme);
-
+*/
 	return reg;
 }
 
@@ -246,7 +273,7 @@ std::vector<CodingScheme> codeRegistry = {
 				file << ",";
 			}
 		}
-		file << "}, " << (registry[i].systematic?"true":"false") << "}";
+		file << "}, " << (registry[i].systematic?"true":"false") << ", " << registry[i].designSnr << "}";
 		if(i+1 < registry.size())
 			file << ",";
 		file << endl;
