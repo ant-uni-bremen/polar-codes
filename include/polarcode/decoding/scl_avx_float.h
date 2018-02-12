@@ -345,6 +345,8 @@ class RateOneDecoder : public Node {
 	std::vector<unsigned> mIndices;
 	std::vector<float> mMetrics;
 	std::vector<std::vector<unsigned>> mBitFlipHints;
+	block_t *mTempBlock;
+	float *mTemp;
 
 public:
 	RateOneDecoder(Node *parent);
@@ -368,6 +370,8 @@ class SpcDecoder : public Node {
 	std::vector<float> mMetrics;
 	std::vector<std::array<unsigned, 2>> mBitFlipHints;
 	std::vector<unsigned> mBitFlipCount;
+	block_t *mTempBlock;
+	float *mTemp;
 
 public:
 	SpcDecoder(Node *parent);

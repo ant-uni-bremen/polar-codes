@@ -227,6 +227,7 @@ void FloatContainer::getPackedInformationBits(void* pData) {
 		int     const* cBit = reinterpret_cast<int*>(mData);
 		__m256i const* cLUT = reinterpret_cast<__m256i*>(mLUT);
 		const unsigned informationByteCount = mInformationBitCount/8;
+		unsigned char* cData = (unsigned char*)pData;
 
 		//Variables
 		__m256i lut, vec;
@@ -240,7 +241,7 @@ void FloatContainer::getPackedInformationBits(void* pData) {
 			vec = _mm256_and_si256(vec, signmask);//hard decode
 			vec = _mm256_srlv_epi32(vec, shift);//move bits to position in output byte
 			currentByte = reduce_or_epi32(vec);//merge split bits
-			((unsigned char*)pData)[byte] = static_cast<unsigned char>(currentByte);//save output
+			cData[byte] = static_cast<unsigned char>(currentByte);//save output
 		}
 	} else {
 		unsigned char *charPtr = static_cast<unsigned char*>(pData);

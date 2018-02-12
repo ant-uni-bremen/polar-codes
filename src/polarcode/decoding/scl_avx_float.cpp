@@ -345,16 +345,17 @@ RateOneDecoder::RateOneDecoder(Node *parent)
 	mIndices.resize(std::max(mBlockLength, mListSize*4));
 	mMetrics.resize(mListSize * 4);
 	mBitFlipHints.resize(mListSize * 4);
+	mTempBlock = xmDataPool->allocate(mBlockLength);
+	mTemp = mTempBlock->data;
 }
 
 RateOneDecoder::~RateOneDecoder() {
+	xmDataPool->release(mTempBlock);
 }
 
 void RateOneDecoder::decode() {
 	const __m256 sgnMask = _mm256_set1_ps(-0.0);
 	unsigned pathCount = xmPathList->PathCount();
-	block_t *tempBlock = xmDataPool->allocate(mBlockLength);
-	float *temp = tempBlock->data;
 
 	for(unsigned path = 0; path < pathCount; ++path) {
 		float metric = xmPathList->Metric(path);
@@ -365,20 +366,19 @@ void RateOneDecoder::decode() {
 		for(unsigned i=0; i<mBlockLength; i+=8) {
 			__m256 Llr = _mm256_load_ps(LlrSource+i);
 			Llr = _mm256_andnot_ps(sgnMask, Llr);
-			_mm256_store_ps(temp+i, Llr);
+			_mm256_store_ps(mTemp+i, Llr);
 		}
-		findWeakLlrs(mIndices, temp, mBlockLength, 2);
+		findWeakLlrs(mIndices, mTemp, mBlockLength, 2);
 		mMetrics[path*4] = metric;
-		mMetrics[path*4+1] = metric - temp[0];
-		mMetrics[path*4+2] = metric - temp[1];
-		mMetrics[path*4+3] = metric - temp[0] - temp[1];
+		mMetrics[path*4+1] = metric - mTemp[0];
+		mMetrics[path*4+2] = metric - mTemp[1];
+		mMetrics[path*4+3] = metric - mTemp[0] - mTemp[1];
 
 		mBitFlipHints[path*4] = {};
 		mBitFlipHints[path*4+1] = {mIndices[0]};
 		mBitFlipHints[path*4+2] = {mIndices[1]};
 		mBitFlipHints[path*4+3] = {mIndices[0], mIndices[1]};
 	}
-	xmDataPool->release(tempBlock);
 
 	unsigned newPathCount = std::min(pathCount*4, (unsigned)mListSize);
 	xmPathList->setNextPathCount(newPathCount);
@@ -505,16 +505,17 @@ SpcDecoder::SpcDecoder(Node *parent)
 	mMetrics.resize(mListSize * 8);
 	mBitFlipHints.resize(mListSize * 8);
 	mBitFlipCount.resize(mListSize * 8);
+	mTempBlock = xmDataPool->allocate(mBlockLength);
+	mTemp = mTempBlock->data;
 }
 
 SpcDecoder::~SpcDecoder() {
+	xmDataPool->release(mTempBlock);
 }
 
 void SpcDecoder::decode() {
 	const __m256 sgnMask = _mm256_set1_ps(-0.0);
 	unsigned pathCount = xmPathList->PathCount();
-	block_t *tempBlock = xmDataPool->allocate(mBlockLength);
-	float *temp = tempBlock->data;
 
 	__m256 vParity;
 	float fParityInv;
@@ -539,16 +540,16 @@ void SpcDecoder::decode() {
 			__m256 Llr = _mm256_load_ps(LlrSource+i);
 			vParity = _mm256_xor_ps(vParity, Llr);
 			Llr = _mm256_andnot_ps(sgnMask, Llr);
-			_mm256_store_ps(temp+i, Llr);
+			_mm256_store_ps(mTemp+i, Llr);
 		}
 
-		findWeakLlrs(mIndices, temp, mBlockLength, 4);
+		findWeakLlrs(mIndices, mTemp, mBlockLength, 4);
 
 		//Create candidates
 		uFloat = reduce_xor_ps(vParity);
 		if(uInt&0x80000000) {
 			fParityInv = 0.0;
-			metric -= temp[0];
+			metric -= mTemp[0];
 			mBitFlipCount[path*8  ] = 1; mBitFlipHints[path*8  ][0] = mIndices[0];
 			mBitFlipCount[path*8+1] = 0;
 			mBitFlipCount[path*8+2] = 0;
@@ -570,13 +571,13 @@ void SpcDecoder::decode() {
 		}
 
 		mMetrics[path*8  ] = metric;
-		mMetrics[path*8+1] = metric - fParityInv * temp[0] - temp[1];
-		mMetrics[path*8+2] = metric - fParityInv * temp[0] - temp[2];
-		mMetrics[path*8+3] = metric - fParityInv * temp[0] - temp[3];
-		mMetrics[path*8+4] = metric -              temp[1] - temp[2];
-		mMetrics[path*8+5] = metric -              temp[1] - temp[3];
-		mMetrics[path*8+6] = metric -              temp[2] - temp[3];
-		mMetrics[path*8+7] = metric - fParityInv * temp[0] - temp[1] - temp[2] - temp[3];
+		mMetrics[path*8+1] = metric - fParityInv * mTemp[0] - mTemp[1];
+		mMetrics[path*8+2] = metric - fParityInv * mTemp[0] - mTemp[2];
+		mMetrics[path*8+3] = metric - fParityInv * mTemp[0] - mTemp[3];
+		mMetrics[path*8+4] = metric -              mTemp[1] - mTemp[2];
+		mMetrics[path*8+5] = metric -              mTemp[1] - mTemp[3];
+		mMetrics[path*8+6] = metric -              mTemp[2] - mTemp[3];
+		mMetrics[path*8+7] = metric - fParityInv * mTemp[0] - mTemp[1] - mTemp[2] - mTemp[3];
 
 		mBitFlipHints[path*8+1][mBitFlipCount[path*8+1]++] = mIndices[1];
 		mBitFlipHints[path*8+2][mBitFlipCount[path*8+2]++] = mIndices[2];
@@ -591,7 +592,6 @@ void SpcDecoder::decode() {
 		mBitFlipHints[path*8+7][mBitFlipCount[path*8+7]++] = mIndices[2];
 		mBitFlipHints[path*8+7][mBitFlipCount[path*8+7]++] = mIndices[3];
 	}
-	xmDataPool->release(tempBlock);
 
 	unsigned newPathCount = std::min(pathCount*8, (unsigned)mListSize);
 	xmPathList->setNextPathCount(newPathCount);

@@ -13,125 +13,7 @@ namespace Decoding {
 
 namespace FastSscAvx {
 
-
-Node::Node()
-	: mLlr(nullptr),
-	  mBit(nullptr),
-	  xmDataPool(nullptr),
-	  mBlockLength(0) {
-}
-
-Node::Node(size_t blockLength, datapool_t *pool)
-	: mLlr(pool->allocate(blockLength)),
-	  mBit(pool->allocate(blockLength)),
-	  xmDataPool(pool),
-	  mBlockLength(blockLength) {
-}
-
-Node::~Node() {
-	clearBlocks();
-}
-
-void Node::decode(float *LlrIn, float *BitsOut) {
-}
-
-void Node::clearBlocks() {
-	clearLlrBlock();
-	clearBitBlock();
-}
-
-void Node::clearLlrBlock() {
-	if(mLlr != nullptr) {
-		xmDataPool->release(mLlr);
-		mLlr = nullptr;
-	}
-}
-
-void Node::clearBitBlock() {
-	if(mBit != nullptr) {
-		xmDataPool->release(mBit);
-		mBit = nullptr;
-	}
-}
-
-size_t Node::blockLength() {
-	return mBlockLength;
-}
-
-Node::datapool_t* Node::pool() {
-	return xmDataPool;
-}
-
-float* Node::input() {
-	return mLlr->data;
-}
-
-float* Node::output() {
-	return mBit->data;
-}
-
-
-// Constructors of nodes
-
-RateRNode::RateRNode(const std::vector<unsigned> &frozenBits, Node *parent, ChildCreationFlags flags)
-	: mParent(parent){
-	xmDataPool = parent->pool();
-	mBlockLength = parent->blockLength() / 2;
-
-	std::vector<unsigned> leftFrozenBits, rightFrozenBits;
-	splitFrozenBits(frozenBits, mBlockLength, leftFrozenBits, rightFrozenBits);
-
-	if(flags & NO_LEFT) {
-		mLeft = nullptr;
-	} else {
-		mLeft = createDecoder(leftFrozenBits, this, &leftDecoder);
-	}
-
-	if(flags & NO_RIGHT) {
-		mRight = nullptr;
-	} else {
-		mRight = createDecoder(rightFrozenBits, this, &rightDecoder);
-	}
-
-	ChildLlr = xmDataPool->allocate(mBlockLength);
-}
-
-ShortRateRNode::ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
-	: RateRNode(frozenBits, parent),
-	  LeftBits(xmDataPool->allocate(8)),
-	  RightBits(xmDataPool->allocate(8)) {
-}
-
-ROneNode::ROneNode(const std::vector<unsigned> &frozenBits, Node *parent)
-	: RateRNode(frozenBits, parent, NO_RIGHT) {
-}
-
-ZeroRNode::ZeroRNode(const std::vector<unsigned> &frozenBits, Node *parent)
-	: RateRNode(frozenBits, parent, NO_LEFT) {
-}
-
-// Destructors of nodes
-
-RateRNode::~RateRNode() {
-	if(mLeft) delete mLeft;
-	if(mRight) delete mRight;
-	xmDataPool->release(ChildLlr);
-}
-
-ShortRateRNode::~ShortRateRNode() {
-	xmDataPool->release(LeftBits);
-	xmDataPool->release(RightBits);
-}
-
-ROneNode::~ROneNode() {
-}
-
-ZeroRNode::~ZeroRNode() {
-}
-
-// Decoders
-
-void memFloatFill(float *dst, float value, const size_t blockLength) {
+inline void memFloatFill(float *dst, float value, const size_t blockLength) {
 	if(blockLength>=8) {
 		const __m256 vec = _mm256_set1_ps(value);
 		for(unsigned i=0; i<blockLength; i+=8) {
@@ -144,41 +26,287 @@ void memFloatFill(float *dst, float value, const size_t blockLength) {
 	}
 }
 
-void RateZeroDecode(float*, float *BitsOut, const size_t blockLength) {
-	memFloatFill(BitsOut, INFINITY, blockLength);
+Node::Node()
+	: mBlockLength(0)
+	, xmDataPool(nullptr)
+	, mLlr(nullptr)
+	, mBit(nullptr)
+	, mInput(nullptr)
+	, mOutput(nullptr)
+{
 }
 
-void RateOneDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
-	memcpy(BitsOut, LlrIn, blockLength*4);
+Node::Node(Node *other)
+	: mBlockLength(other->mBlockLength)
+	, xmDataPool(other->xmDataPool)
+	, mLlr(xmDataPool->allocate(mBlockLength))
+	, mBit(xmDataPool->allocate(mBlockLength))
+	, mInput(other->mInput)
+	, mOutput(other->mOutput)
+{
+}
+
+Node::Node(size_t blockLength, datapool_t *pool)
+	: mBlockLength(blockLength)
+	, xmDataPool(pool)
+	, mLlr(pool->allocate(blockLength))
+	, mBit(pool->allocate(blockLength))
+	, mInput(mLlr->data)
+	, mOutput(mBit->data)
+{
+}
+
+Node::~Node() {
+	if(mLlr != nullptr) xmDataPool->release(mLlr);
+	if(mBit != nullptr) xmDataPool->release(mBit);
+}
+
+void Node::decode() {
+}
+
+void Node::setInput(float *input) {
+	mInput = input;
+}
+
+void Node::setOutput(float *output) {
+	mOutput = output;
+}
+
+unsigned Node::blockLength() {
+	return mBlockLength;
+}
+
+datapool_t* Node::pool() {
+	return xmDataPool;
+}
+
+float* Node::input() {
+	return mInput;
+}
+
+float* Node::output() {
+	return mOutput;
 }
 
 
-void RepetitionDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
+/*************
+ * RateRNode
+ * ***********/
+
+RateRNode::RateRNode(const std::vector<unsigned> &frozenBits, Node *parent, ChildCreationFlags flags)
+	: Node(parent)
+{
+	mBlockLength /= 2;
+
+	std::vector<unsigned> leftFrozenBits, rightFrozenBits;
+	splitFrozenBits(frozenBits, mBlockLength, leftFrozenBits, rightFrozenBits);
+
+	if(flags & NO_LEFT) {
+		mLeft = new Node();
+	} else {
+		mLeft = createDecoder(leftFrozenBits, this);
+	}
+
+	if(flags & NO_RIGHT) {
+		mRight = new Node();
+	} else {
+		mRight = createDecoder(rightFrozenBits, this);
+	}
+
+	mLeftLlr  = xmDataPool->allocate(mBlockLength);
+	mRightLlr = xmDataPool->allocate(mBlockLength);
+
+	mLeft->setInput(mLeftLlr->data);
+	mRight->setInput(mRightLlr->data);
+
+	mLeft->setOutput(mOutput);
+	mRight->setOutput(mOutput + mBlockLength);
+}
+
+RateRNode::~RateRNode() {
+	delete mLeft;
+	delete mRight;
+	xmDataPool->release(mLeftLlr);
+	xmDataPool->release(mRightLlr);
+}
+
+void RateRNode::setOutput(float *output) {
+	mOutput = output;
+	mLeft->setOutput(mOutput);
+	mRight->setOutput(mOutput + mBlockLength);
+}
+
+void RateRNode::decode() {
+	F_function(mInput, mLeftLlr->data, mBlockLength);
+	mLeft->decode();
+	G_function(mInput, mRightLlr->data, mOutput, mBlockLength);
+	mRight->decode();
+	CombineSoft(mOutput, mBlockLength);
+}
+
+/*************
+ * ShortRateRNode
+ * ***********/
+
+ShortRateRNode::ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
+	: RateRNode(frozenBits, parent)
+	, mLeftBits(xmDataPool->allocate(8))
+	, mRightBits(xmDataPool->allocate(8))
+{
+	mLeft->setOutput(mLeftBits->data);
+	mRight->setOutput(mRightBits->data);
+}
+
+ShortRateRNode::~ShortRateRNode() {
+	xmDataPool->release(mLeftBits);
+	xmDataPool->release(mRightBits);
+}
+
+void ShortRateRNode::setOutput(float *output) {
+	mOutput = output;
+}
+
+void ShortRateRNode::decode() {
+	F_function(mInput, mLeftLlr->data, mBlockLength);
+	mLeft->decode();
+	G_function(mInput, mRightLlr->data, mLeftBits->data, mBlockLength);
+	mRight->decode();
+	CombineSoftBitsShort(mLeftBits->data, mRightBits->data, mOutput, mBlockLength);
+}
+
+/*************
+ * ROneNode
+ * ***********/
+
+ROneNode::ROneNode(const std::vector<unsigned> &frozenBits, Node *parent)
+	: RateRNode(frozenBits, parent, NO_RIGHT) {
+}
+
+ROneNode::~ROneNode() {
+}
+
+void ROneNode::decode() {
+	F_function(mInput, mLeftLlr->data, mBlockLength);
+	mLeft->decode();
+	rightDecode();
+}
+
+void ROneNode::rightDecode() {
+	for(unsigned i = 0; i < mBlockLength; i+=8) {
+		__m256 Llr_l = _mm256_load_ps(mInput+i);
+		__m256 Llr_r = _mm256_load_ps(mInput+mBlockLength+i);
+		__m256 Bits = _mm256_load_ps(mOutput+i);
+		__m256 HBits = hardDecode(Bits);
+
+		__m256 Llr_o = _mm256_xor_ps(Llr_l, HBits);//G-function
+		Llr_o = _mm256_add_ps(Llr_o, Llr_r);//G-function
+		/*nop*/ //Rate 1 decoder
+		_mm256_store_ps(mOutput+mBlockLength+i, Llr_o);//Right bit
+		F_function_calc(Bits, Llr_o, mOutput+i);//Combine left bit
+	}
+}
+
+/*************
+ * ZeroRNode
+ * ***********/
+
+ZeroRNode::ZeroRNode(const std::vector<unsigned> &frozenBits, Node *parent)
+	: RateRNode(frozenBits, parent, NO_LEFT) {
+}
+
+ZeroRNode::~ZeroRNode() {
+}
+
+void ZeroRNode::decode() {
+	G_function_0R(mInput, mRightLlr->data, mBlockLength);
+	mRight->decode();
+	Combine_0R(mOutput, mBlockLength);
+}
+
+/*************
+ * RateZeroDecoder
+ * ***********/
+
+RateZeroDecoder::RateZeroDecoder(Node *parent)
+	: Node(parent) {
+}
+
+RateZeroDecoder::~RateZeroDecoder() {
+}
+
+void RateZeroDecoder::decode() {
+	memFloatFill(mOutput, INFINITY, mBlockLength);
+}
+
+/*************
+ * RateOneDecoder
+ * ***********/
+
+RateOneDecoder::RateOneDecoder(Node *parent)
+	: Node(parent) {
+}
+
+RateOneDecoder::~RateOneDecoder() {
+}
+
+void RateOneDecoder::decode() {
+	for(unsigned i=0; i<mBlockLength; i+=8) {
+		__m256 llr = _mm256_load_ps(mInput+i);
+		_mm256_store_ps(mOutput+i, llr);
+	}
+}
+
+/*************
+ * RepetitionDecoder
+ * ***********/
+
+RepetitionDecoder::RepetitionDecoder(Node *parent)
+	: Node(parent) {
+}
+
+RepetitionDecoder::~RepetitionDecoder() {
+}
+
+void RepetitionDecoder::decode() {
 	__m256 LlrSum = _mm256_setzero_ps();
 
-	RepetitionPrepare(LlrIn, blockLength);
+	RepetitionPrepare(mInput, mBlockLength);
 
 	// Accumulate vectors
-	for(unsigned i=0; i<blockLength; i+=8) {
-		LlrSum = _mm256_add_ps(LlrSum, _mm256_load_ps(LlrIn+i));
+	for(unsigned i=0; i<mBlockLength; i+=8) {
+		LlrSum = _mm256_add_ps(LlrSum, _mm256_load_ps(mInput+i));
 	}
 
 	// Get final sum and save decoding result
 	float Bits = reduce_add_ps(LlrSum);
-	memFloatFill(BitsOut, Bits, blockLength);
+	memFloatFill(mOutput, Bits, mBlockLength);
 }
 
-void SpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
-	static const __m256 sgnMask = _mm256_set1_ps(-0.0);
+/*************
+ * SpcDecoder
+ * ***********/
+
+SpcDecoder::SpcDecoder(Node *parent)
+	: Node(parent) {
+	mTempBlock = xmDataPool->allocate(mBlockLength);
+	mTempBlockPtr = mTempBlock->data;
+}
+
+SpcDecoder::~SpcDecoder() {
+	xmDataPool->release(mTempBlock);
+}
+
+void SpcDecoder::decode() {
+	const __m256 sgnMask = _mm256_set1_ps(-0.0);
 	__m256 parVec = _mm256_setzero_ps();
 	unsigned minIdx = 0;
 	float testAbs, minAbs = INFINITY;
 
-	SpcPrepare(LlrIn, blockLength);
+	SpcPrepare(mInput, mBlockLength);
 
-	for(unsigned i=0; i<blockLength; i+=8) {
-		__m256 vecIn = _mm256_load_ps(LlrIn+i);
-		_mm256_store_ps(BitsOut+i, vecIn);
+	for(unsigned i=0; i<mBlockLength; i+=8) {
+		__m256 vecIn = _mm256_load_ps(mInput+i);
+		_mm256_store_ps(mOutput+i, vecIn);
 
 		parVec = _mm256_xor_ps(parVec, vecIn);
 
@@ -196,12 +324,27 @@ void SpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
 		unsigned int iParity;
 	};
 	fParity = reduce_xor_ps(parVec);
-	reinterpret_cast<unsigned int*>(BitsOut)[minIdx] ^= (iParity & 0x80000000);
+	iParity &= 0x80000000;
+	reinterpret_cast<unsigned int*>(mOutput)[minIdx] ^= iParity;
 }
 
-void ZeroSpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
-	static const __m256 sgnMask = _mm256_set1_ps(-0.0);
-	const size_t subBlockLength = blockLength/2;
+/*************
+ * ZeroSpcDecoder
+ * ***********/
+
+ZeroSpcDecoder::ZeroSpcDecoder(Node *parent)
+	: Node(parent) {
+	mTempBlock = xmDataPool->allocate(mBlockLength);
+	mTempBlockPtr = mTempBlock->data;
+}
+
+ZeroSpcDecoder::~ZeroSpcDecoder() {
+	xmDataPool->release(mTempBlock);
+}
+
+void ZeroSpcDecoder::decode() {
+	const __m256 sgnMask = _mm256_set1_ps(-0.0);
+	const size_t subBlockLength = mBlockLength/2;
 	__m256 parVec = _mm256_setzero_ps();
 	unsigned minIdx = 0;
 	float testAbs, minAbs = INFINITY;
@@ -209,13 +352,13 @@ void ZeroSpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
 	//Check parity equation
 	for(unsigned i=0; i<subBlockLength; i+=8) {
 		//G-function with only frozen bits
-		__m256 left = _mm256_load_ps(LlrIn+i);
-		__m256 right = _mm256_load_ps(LlrIn+subBlockLength+i);
+		__m256 left = _mm256_load_ps(mInput+i);
+		__m256 right = _mm256_load_ps(mInput+subBlockLength+i);
 		__m256 llr = _mm256_add_ps(left, right);
 
 		//Save output
-		_mm256_store_ps(BitsOut+i, right);
-		_mm256_store_ps(BitsOut+subBlockLength+i, right);
+		_mm256_store_ps(mOutput+i, right);
+		_mm256_store_ps(mOutput+subBlockLength+i, right);
 
 		//Update parity counter
 		parVec = _mm256_xor_ps(parVec, llr);
@@ -238,134 +381,48 @@ void ZeroSpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
 	};
 	fParity = reduce_xor_ps(parVec);
 	iParity &= 0x80000000;
-	reinterpret_cast<unsigned int*>(BitsOut)[minIdx] ^= iParity;
-	reinterpret_cast<unsigned int*>(BitsOut+subBlockLength)[minIdx] ^= iParity;
+	unsigned *iOutput = reinterpret_cast<unsigned*>(mOutput);
+	iOutput[minIdx] ^= iParity;
+	iOutput[minIdx+subBlockLength] ^= iParity;
 }
 
-void simplifiedRightRateOneDecode(float *LlrIn, float *BitsOut, const size_t blockLength) {
-	for(unsigned i = 0; i < blockLength; i+=8) {
-		__m256 Llr_l = _mm256_load_ps(LlrIn+i);
-		__m256 Llr_r = _mm256_load_ps(LlrIn+blockLength+i);
-		__m256 Bits = _mm256_load_ps(BitsOut+i);
-		__m256 HBits = hardDecode(Bits);
+// End of decoder definitions
 
-		__m256 Llr_o = _mm256_xor_ps(Llr_l, HBits);//G-function
-		Llr_o = _mm256_add_ps(Llr_o, Llr_r);//G-function
-		/*nop*/ //Rate 1 decoder
-		_mm256_store_ps(BitsOut+blockLength+i, Llr_o);//Right bit
-		F_function_calc(Bits, Llr_o, BitsOut+i);//Combine left bit
-	}
-}
-
-
-void RateRNode::decode(float *LlrIn, float *BitsOut) {
-	F_function(LlrIn, ChildLlr->data, mBlockLength);
-
-	if(mLeft) {
-		mLeft->decode(ChildLlr->data, BitsOut);
-	} else {
-		leftDecoder(ChildLlr->data, BitsOut, mBlockLength);
-	}
-
-	G_function(LlrIn, ChildLlr->data, BitsOut, mBlockLength);
-
-	if(mRight) {
-		mRight->decode(ChildLlr->data, BitsOut+mBlockLength);
-	} else {
-		rightDecoder(ChildLlr->data, BitsOut+mBlockLength, mBlockLength);
-	}
-
-	CombineSoft(BitsOut, mBlockLength);
-}
-
-void ShortRateRNode::decode(float *LlrIn, float *BitsOut) {
-	F_function(LlrIn, ChildLlr->data, mBlockLength);
-
-	if(mLeft) {
-		mLeft->decode(ChildLlr->data, LeftBits->data);
-	} else {
-		leftDecoder(ChildLlr->data, LeftBits->data, mBlockLength);
-	}
-
-	G_function(LlrIn, ChildLlr->data, LeftBits->data, mBlockLength);
-
-	if(mRight) {
-		mRight->decode(ChildLlr->data, RightBits->data);
-	} else {
-		rightDecoder(ChildLlr->data, RightBits->data, mBlockLength);
-	}
-
-	CombineSoftBitsShort(LeftBits->data, RightBits->data, BitsOut, mBlockLength);
-}
-
-void ROneNode::decode(float *LlrIn, float *BitsOut) {
-	F_function(LlrIn, ChildLlr->data, mBlockLength);
-
-	if(mLeft) {
-		mLeft->decode(ChildLlr->data, BitsOut);
-	} else {
-		leftDecoder(ChildLlr->data, BitsOut, mBlockLength);
-	}
-
-	simplifiedRightRateOneDecode(LlrIn, BitsOut, mBlockLength);
-}
-
-void ZeroRNode::decode(float *LlrIn, float *BitsOut) {
-	G_function_0R(LlrIn, ChildLlr->data, mBlockLength);
-
-	if(mRight) {
-		mRight->decode(ChildLlr->data, BitsOut+mBlockLength);
-	} else {
-		rightDecoder(ChildLlr->data, BitsOut+mBlockLength, mBlockLength);
-	}
-
-	Combine_0R(BitsOut, mBlockLength);
-}
-
-// End of mass defining
-
-Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(float *, float *, size_t)) {
+Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent) {
 	size_t blockLength = parent->blockLength();
 	size_t frozenBitCount = frozenBits.size();
 
 	// Begin with the two most simple codes:
 	if(frozenBitCount == blockLength) {
-		*specialDecoder = &RateZeroDecode;
-		return nullptr;
+		return new RateZeroDecoder(parent);
 	}
 	if(frozenBitCount == 0) {
-		*specialDecoder = &RateOneDecode;
-		return nullptr;
+		return new RateOneDecoder(parent);
 	}
 
 	// Following are "one bit unlike the others" codes:
 	if(frozenBitCount == (blockLength-1)) {
-		*specialDecoder = &RepetitionDecode;
-		return nullptr;
+		return new RepetitionDecoder(parent);
 	}
 	if(frozenBitCount == 1) {
-		*specialDecoder = &SpcDecode;
-		return nullptr;
+		return new SpcDecoder(parent);
 	}
 
 	// Fallback: No special code available, split into smaller subcodes
 	if(blockLength <= 8) {
-		*specialDecoder = nullptr;
 		return new ShortRateRNode(frozenBits, parent);
 	} else {
 		std::vector<unsigned> leftFrozenBits, rightFrozenBits;
 		splitFrozenBits(frozenBits, blockLength/2, leftFrozenBits, rightFrozenBits);
 
 		//Last case of optimization:
-		//Common child node combinations
+		//Common child node combination(s)
 		if(leftFrozenBits.size() == blockLength/2 && rightFrozenBits.size() == 1) {
-			*specialDecoder = &ZeroSpcDecode;
-			return nullptr;
+			return new ZeroSpcDecoder(parent);
 		}
 
 
 		//Minor optimization:
-		*specialDecoder = nullptr;
 		//Right rate-1
 		if(rightFrozenBits.size() == 0) {
 			return new ROneNode(frozenBits, parent);
@@ -390,7 +447,7 @@ FastSscAvxFloat::~FastSscAvxFloat() {
 }
 
 void FastSscAvxFloat::clear() {
-	if(mRootNode) delete mRootNode;
+	delete mRootNode;
 	delete mNodeBase;
 	delete mDataPool;
 }
@@ -407,8 +464,7 @@ void FastSscAvxFloat::initialize(size_t blockLength, const std::vector<unsigned>
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 	mDataPool = new DataPool<float, 32>();
 	mNodeBase = new FastSscAvx::Node(mBlockLength, mDataPool);
-//	std::cout << "Create decoder of length " << mBlockLength << std::endl;
-	mRootNode = FastSscAvx::createDecoder(mFrozenBits, mNodeBase, &mSpecialDecoder);
+	mRootNode = FastSscAvx::createDecoder(mFrozenBits, mNodeBase);
 	mLlrContainer = new FloatContainer(mNodeBase->input(),  mBlockLength);
 	mBitContainer = new FloatContainer(mNodeBase->output(), mBlockLength);
 	mLlrContainer->setFrozenBits(mFrozenBits);
@@ -417,11 +473,8 @@ void FastSscAvxFloat::initialize(size_t blockLength, const std::vector<unsigned>
 }
 
 bool FastSscAvxFloat::decode() {
-	if(mRootNode) {
-		mRootNode->decode(mNodeBase->input(), mNodeBase->output());
-	} else {
-		mSpecialDecoder(mNodeBase->input(), mNodeBase->output(), mBlockLength);
-	}
+	mRootNode->decode();
+
 	if(!mSystematic) {
 		Encoding::Encoder* encoder = new Encoding::ButterflyAvx2Packed(mBlockLength);
 		encoder->setSystematic(false);

@@ -141,13 +141,13 @@ inline void CombineSoftBitsLong(float *Left, float *Right, float *Out, const uns
 	}
 }
 
-inline void RepetitionPrepare(float* x, const size_t codeLength) {
+inline void RepetitionPrepare(float* x, const unsigned codeLength) {
 	for(unsigned i=codeLength; i<8; ++i) {
 		x[i] = 0.0;
 	}
 }
 
-inline void SpcPrepare(float *x, const size_t codeLength) {
+inline void SpcPrepare(float *x, const unsigned codeLength) {
 	for(unsigned i=codeLength; i<8; ++i) {
 		x[i] = INFINITY;
 	}

@@ -10,24 +10,23 @@ namespace Decoding {
 
 namespace FastSscAvx {
 
+typedef DataPool<float, 32> datapool_t;
+typedef Block<float> block_t;
+
 /*!
  * \brief A node of the polar decoding tree.
  */
 class Node {
-	typedef DataPool<float, 32> datapool_t;
-	Block<float> *mLlr, *mBit;
-
-	void clearBlocks();
-	void clearLlrBlock();
-	void clearBitBlock();
-
 protected:
-	//xm = eXternal member (not owned by this Node)
+	unsigned mBlockLength;   ///< Length of the subcode.
 	datapool_t *xmDataPool;///< Pointer to a DataPool object.
-	size_t mBlockLength;   ///< Length of the subcode.
+	block_t *mLlr, *mBit;
+	float *mInput, *mOutput;
+
 
 public:
 	Node();
+	Node(Node *other);
 	/*!
 	 * \brief Initialize a polar code's root node
 	 * \param blockLength Length of the code.
@@ -36,7 +35,10 @@ public:
 	Node(size_t blockLength, datapool_t *pool);
 	virtual ~Node();
 
-	virtual void decode(float *LlrIn, float *BitsOut);///< Execute a specialized decoding algorithm.
+	virtual void decode();///< Execute a specialized decoding algorithm.
+
+	void setInput(float *);
+	virtual void setOutput(float *);
 
 	/*!
 	 * \brief Get a pointer to the datapool.
@@ -48,7 +50,7 @@ public:
 	 * \brief Get the length of this code node.
 	 * \return The length of this node.
 	 */
-	size_t blockLength();
+	unsigned blockLength();
 
 	/*!
 	 * \brief Get a pointer to LLR values of this node.
@@ -64,15 +66,6 @@ public:
 
 };
 
-
-void   RateZeroDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
-void    RateOneDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
-void RepetitionDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
-void        SpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
-void    ZeroSpcDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
-
-void simplifiedRightRateOneDecode(float *LlrIn, float *BitsOut, const size_t blockLength);
-
 enum ChildCreationFlags {
 	BOTH,
 	NO_LEFT = 0x01,
@@ -84,12 +77,9 @@ enum ChildCreationFlags {
  */
 class RateRNode : public Node {
 protected:
-	Node *mParent;///< The parent node
 	Node *mLeft,  ///< Left child node
 		 *mRight; ///< Right child node
-	Block<float> *ChildLlr;///< Temporarily holds the LLRs child nodes have to decode.
-	void (*leftDecoder)(float*, float*, size_t);///< Pointer to special decoding function of left child.
-	void (*rightDecoder)(float*, float*, size_t);///< Pointer to special decoding function of right child.
+	block_t *mLeftLlr, *mRightLlr;///< Temporarily holds the LLRs child nodes have to decode.
 
 public:
 	/*!
@@ -100,14 +90,15 @@ public:
 	 */
 	RateRNode(const std::vector<unsigned> &frozenBits, Node *parent, ChildCreationFlags flags = BOTH);
 	~RateRNode();
-	void decode(float *LlrIn, float *BitsOut);
+	void setOutput(float *);
+	void decode();
 };
 
 /*!
  * \brief A rate-R node of subvector length needs child bits in separate blocks.
  */
 class ShortRateRNode : public RateRNode {
-	Block<float> *LeftBits, *RightBits;
+	block_t *mLeftBits, *mRightBits;
 
 public:
 	/*!
@@ -117,13 +108,61 @@ public:
 	 */
 	ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ShortRateRNode();
-	void decode(float *LlrIn, float *BitsOut);
+	void setOutput(float *);
+	void decode();
+};
+
+class RateZeroDecoder : public Node {
+public:
+	RateZeroDecoder(Node *parent);
+	~RateZeroDecoder();
+	void decode();
+};
+
+class RateOneDecoder : public Node {
+public:
+	RateOneDecoder(Node *parent);
+	~RateOneDecoder();
+	void decode();
+};
+
+class RepetitionDecoder : public Node {
+public:
+	RepetitionDecoder(Node *parent);
+	~RepetitionDecoder();
+	void decode();
+};
+
+class SpcDecoder : public Node {
+	unsigned *mFlipIndices;
+	block_t *mTempBlock;
+	float *mTempBlockPtr;
+	void findWeakLlr();
+
+public:
+	SpcDecoder(Node *parent);
+	~SpcDecoder();
+	void decode();
+};
+
+class ZeroSpcDecoder : public Node {
+	unsigned *mFlipIndices;
+	block_t *mTempBlock;
+	float *mTempBlockPtr;
+	void findWeakLlr();
+
+public:
+	ZeroSpcDecoder(Node *parent);
+	~ZeroSpcDecoder();
+	void decode();
 };
 
 /*!
  * \brief Optimized decoding, if the right subcode is rate-1.
  */
 class ROneNode : public RateRNode {
+	void rightDecode();
+
 public:
 	/*!
 	 * \brief Initialize the right-rate-1 optimized decoder.
@@ -132,7 +171,7 @@ public:
 	 */
 	ROneNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ROneNode();
-	void decode(float *LlrIn, float *BitsOut);
+	void decode();
 };
 
 /*!
@@ -147,7 +186,7 @@ public:
 	 */
 	ZeroRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ZeroRNode();
-	void decode(float *LlrIn, float *BitsOut);
+	void decode();
 };
 
 /*!
@@ -156,7 +195,7 @@ public:
  * \param parent The parent node from which the code length is fetched.
  * \return Pointer to a polymorphic decoder object.
  */
-Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void (**specialDecoder)(float*, float*, size_t));
+Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent);
 
 }// namespace FastSscAvx
 
@@ -165,9 +204,8 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent, void 
  */
 class FastSscAvxFloat : public Decoder {
 	FastSscAvx::Node *mNodeBase,///< General code information
-					  *mRootNode;///< Actual decoder
-	DataPool<float, 32> *mDataPool;///< Lazy-copy data-block pool
-	void (*mSpecialDecoder)(float*, float*, size_t);
+					 *mRootNode;///< Actual decoder
+	FastSscAvx::datapool_t *mDataPool;///< Lazy-copy data-block pool
 
 	void clear();
 

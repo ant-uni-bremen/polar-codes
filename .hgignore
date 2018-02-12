@@ -1,5 +1,4 @@
 syntax: glob
-CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
@@ -12,6 +11,7 @@ CTestTestfile.cmake
 [Bb]in/
 [Oo]bj/
 *.user
+*.user.*
 *~
 *.pyc
 *.pc
