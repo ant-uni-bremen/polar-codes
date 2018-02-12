@@ -46,13 +46,14 @@ class Manager {
 	Node *xmRootNode;
 //	std::priority_queue<Configuration, std::vector<Configuration>, compareConfigMetrics> mConfigList;
 	std::queue<Configuration> mConfigList;
+	int mTrialLimit;
 
 	Configuration mBestConfig;
 	float mBestMetric;
 	bool firstRun;
 
 public:
-	Manager();
+	Manager(int trialLimit);
 	~Manager();
 
 	/*!
@@ -201,7 +202,7 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent);
 }// namespace DepthFirstObjects
 
 class DepthFirst : public Decoder {
-	size_t mTrialLimit;
+	unsigned mTrialLimit;
 	DepthFirstObjects::Node *mNodeBase, *mRootNode;
 	DepthFirstObjects::datapool_t *mDataPool;
 	DepthFirstObjects::Manager *mManager;

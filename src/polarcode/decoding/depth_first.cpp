@@ -8,7 +8,9 @@ namespace Decoding {
 
 namespace DepthFirstObjects {
 
-Manager::Manager() {
+Manager::Manager(int trialLimit)
+	: mTrialLimit(trialLimit)
+{
 	mNodeList.clear();
 }
 
@@ -64,41 +66,52 @@ void Manager::decode() {
 
 
 void Manager::decodeNext() {
-	std::vector<DecoderHint> hintList;
 	Configuration currentConfig = mConfigList.front();
 	mConfigList.pop();
 	int depth = currentConfig.depth;
 	float metric = 0.0f;
 
-	if(!firstRun) {
-		//Collect a new list of reliabilities
-		hintList.clear();
-		for(auto hint : currentConfig.nodeList) {
-			metric += hint.node->reliability();
-			hintList.push_back({hint.node, hint.node->reliability()});
+	if(mConfigList.size() < (unsigned)mTrialLimit) {
+		std::vector<DecoderHint> hintList;
+
+		if(!firstRun) {
+			//Collect a new list of reliabilities
+			hintList.clear();
+			for(auto hint : currentConfig.nodeList) {
+				metric += hint.node->reliability();
+				hintList.push_back({hint.node, hint.node->reliability()});
+			}
+			//Sort all nodes, excluding the current configuration
+			//to prevent double configuring of already considered nodes
+			std::sort(hintList.begin()+depth+1, hintList.end(), compareHints);
+		} else {
+			hintList = currentConfig.nodeList;
+			metric = currentConfig.parentMetric;
+			firstRun = false;
 		}
-		//Sort all nodes, excluding the current configuration
-		//to prevent double configuring of already considered nodes
-		std::sort(hintList.begin()+depth+1, hintList.end(), compareHints);
+
+		//Create new configurations based on changing the most unreliable node
+		DecoderHint &weakestNode = hintList.at(depth+1);
+		int optionCount = weakestNode.node->optionCount();
+
+		for(int i=0; i<optionCount; ++i) {
+			Configuration conf;
+			conf.depth = depth+1;
+			conf.parentMetric = metric;
+			conf.nodeList = hintList;
+			conf.nodeOptions = currentConfig.nodeOptions;
+			conf.nodeOptions.push_back(i);
+			mConfigList.push(conf);
+		}
 	} else {
-		hintList = currentConfig.nodeList;
-		metric = currentConfig.parentMetric;
-		firstRun = false;
-	}
-
-	//Create new configurations based on changing the most unreliable node
-
-	DecoderHint &weakestNode = hintList.at(depth+1);
-	int optionCount = weakestNode.node->optionCount();
-
-	for(int i=0; i<optionCount; ++i) {
-		Configuration conf;
-		conf.depth = depth+1;
-		conf.parentMetric = metric;
-		conf.nodeList = hintList;
-		conf.nodeOptions = currentConfig.nodeOptions;
-		conf.nodeOptions.push_back(i);
-		mConfigList.push(conf);
+		if(!firstRun) {
+			for(auto hint : currentConfig.nodeList) {
+				metric += hint.node->reliability();
+			}
+		} else {
+			metric = currentConfig.parentMetric;
+			firstRun = false;
+		}
 	}
 
 	//Save current config, if it is better than previous ones
@@ -568,7 +581,7 @@ void DepthFirst::initialize(size_t blockLength, const std::vector<unsigned> &fro
 	mBlockLength = blockLength;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 	mDataPool = new DepthFirstObjects::datapool_t();
-	mManager  = new DepthFirstObjects::Manager();
+	mManager  = new DepthFirstObjects::Manager(mTrialLimit);
 	mNodeBase = new DepthFirstObjects::Node(blockLength, mDataPool, mManager);
 	mRootNode = DepthFirstObjects::createDecoder(frozenBits, mNodeBase);
 	mLlrContainer = new FloatContainer(mNodeBase->input(),  mBlockLength);

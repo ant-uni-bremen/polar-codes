@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include <algorithm>
+#include <iostream>
 
 namespace PolarCode {
 
@@ -216,25 +217,37 @@ void FloatContainer::getPackedBits(void* pData) {
 }
 
 void FloatContainer::getPackedInformationBits(void* pData) {
-	unsigned char *charPtr = static_cast<unsigned char*>(pData);
-	unsigned int currentByte = 0, currentBit = 24;
-	unsigned int *iBit = reinterpret_cast<unsigned int*>(mData);
-	unsigned *lutPtr = mLUT;
-
 	if(mInformationBitCount % 8 == 0) {
-		for(unsigned bit = 0; bit < mInformationBitCount; bit+=8) {
-			// less conditionals in this loop
-			currentByte  = (iBit[mLUT[bit+0]]&0x80000000)>>24;
-			currentByte |= (iBit[mLUT[bit+1]]&0x80000000)>>25;
-			currentByte |= (iBit[mLUT[bit+2]]&0x80000000)>>26;
-			currentByte |= (iBit[mLUT[bit+3]]&0x80000000)>>27;
-			currentByte |= (iBit[mLUT[bit+4]]&0x80000000)>>28;
-			currentByte |= (iBit[mLUT[bit+5]]&0x80000000)>>29;
-			currentByte |= (iBit[mLUT[bit+6]]&0x80000000)>>30;
-			currentByte |= (iBit[mLUT[bit+7]]&0x80000000)>>31;
-			charPtr[bit/8] = static_cast<unsigned char>(currentByte);
+		//Masks
+		const __m256i signmask = _mm256_set1_epi32(-0x80000000);
+		const __m256i shift = _mm256_set_epi32(24,25,26,27,28,29,30,31);
+		const __m256i reverse = _mm256_set_epi32(0,1,2,3,4,5,6,7);
+
+		//Pointers
+		int     const* cBit = reinterpret_cast<int*>(mData);
+		__m256i const* cLUT = reinterpret_cast<__m256i*>(mLUT);
+		const unsigned informationByteCount = mInformationBitCount/8;
+
+		//Variables
+		__m256i lut, vec;
+		unsigned int currentByte;
+
+		//Workload
+		for(unsigned byte = 0; byte < informationByteCount; byte++) {
+			lut = _mm256_loadu_si256(cLUT+byte);//load lookup table
+			lut = _mm256_permutevar8x32_epi32(lut, reverse);//order it correctly
+			vec = _mm256_i32gather_epi32(cBit, lut, 4);//collect info LLRs from positions given by lookup table
+			vec = _mm256_and_si256(vec, signmask);//hard decode
+			vec = _mm256_srlv_epi32(vec, shift);//move bits to position in output byte
+			currentByte = reduce_or_epi32(vec);//merge split bits
+			((unsigned char*)pData)[byte] = static_cast<unsigned char>(currentByte);//save output
 		}
 	} else {
+		unsigned char *charPtr = static_cast<unsigned char*>(pData);
+		unsigned int currentByte = 0, currentBit = 24;
+		unsigned int *iBit = reinterpret_cast<unsigned int*>(mData);
+		unsigned *lutPtr = mLUT;
+
 		for(unsigned bit = 0; bit < mInformationBitCount; ++bit) {
 			currentByte |= (iBit[*(lutPtr++)]&0x80000000)>>(currentBit++);
 			if(currentBit == 32) {

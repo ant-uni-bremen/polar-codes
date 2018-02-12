@@ -39,6 +39,13 @@ static inline char reduce_adds_epi8(__m256i x) {
 	return ((char*)&x8)[0];
 }
 
+static inline int reduce_or_epi32(__m256i x) {
+	const __m128i x128 = _mm_or_si128(_mm256_extracti128_si256(x,0), _mm256_extracti128_si256(x,1));
+	const __m128i x64  = _mm_or_si128(x128, _mm_srli_si128(x128, 8));
+	const __m128i x32  = _mm_or_si128(x64,  _mm_srli_si128(x64, 4));
+	return _mm_cvtsi128_si32(x32);
+}
+
 static inline long long reduce_add_epi64(__m256i x) {
 	__m128i x128 = _mm_add_epi64(_mm256_extracti128_si256(x,0), _mm256_extracti128_si256(x,1));
 	union {

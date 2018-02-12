@@ -18,13 +18,13 @@ void Configurator::setupArgumentDefaults() {
 
 	defaultLongInts.insert({"workload", 4e8L});
 
-	defaultFloats.insert({"snr-min", -1.5});
-	defaultFloats.insert({"snr-max",  5.0});
+	defaultFloats.insert({"snr-min", -1.59174539});
+	defaultFloats.insert({"snr-max",  4.0});
 	defaultInts.insert({"snr-count", 12});
 
 	defaultFloats.insert({"dsnr-fixed", 0.0});
-	defaultFloats.insert({"dsnr-min",  -1.59});
-	defaultFloats.insert({"dsnr-max",  10.0});
+	defaultFloats.insert({"dsnr-min",  -1.59174539});
+	defaultFloats.insert({"dsnr-max",   6.0});
 	defaultInts.insert({"dsnr-count",   6});
 
 	defaultInts.insert({"n-fixed", 1024});
