@@ -317,9 +317,9 @@ void Simulator::saveResults() {
 			<< job->errorDetection << ','
 			<< job->L << ','
 			<< job->EbN0 << ',';
-		if(job->BLER > 0.0)         file << job->BLER << ',';   else file << "nan,";
-		if(job->BER  > 0.0)         file << job->BER  << ',';   else file << "nan,";
-		if(job->RER  > 0.0)         file << job->RER  << ',';   else file << "nan,";
+		if(job->BLER > 0.0)         file << job->BLER << ',';   else file << "1e-99,";
+		if(job->BER  > 0.0)         file << job->BER  << ',';   else file << "1e-99,";
+		if(job->RER  > 0.0)         file << job->RER  << ',';   else file << "1e-99,";
 		file << job->runs << ','
 			 << job->errors << ','
 			 << job->time.sum << ','

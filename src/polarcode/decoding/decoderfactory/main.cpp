@@ -17,8 +17,8 @@ struct CodingScheme {
 
 vector<CodingScheme> createRegistry() {
 	vector<CodingScheme> reg;
-	CodingScheme scheme = {16384, 8192, {}, true, 0.0};
-	float dSnr;
+	float dSnr = -0.25;
+	CodingScheme scheme = {16384, 8192, {}, true, dSnr};
 
 	PolarCode::Construction::Bhattacharrya *constructor =
 			new PolarCode::Construction::Bhattacharrya();
@@ -27,9 +27,10 @@ vector<CodingScheme> createRegistry() {
 
 	constructor->setBlockLength(scheme.blockLength);
 	constructor->setInformationLength(scheme.infoLength);
+	constructor->setParameterByDesignSNR(scheme.designSnr);
 
 
-	//-1.59 dB
+/*	//-1.59 dB
 	dSnr = -1.59;
 	constructor->setParameterByDesignSNR(dSnr);
 	scheme.frozenBits = constructor->construct();
@@ -48,7 +49,7 @@ vector<CodingScheme> createRegistry() {
 	constructor->setParameterByDesignSNR(dSnr);
 	scheme.frozenBits = constructor->construct();
 	scheme.designSnr = dSnr;
-	reg.push_back(scheme);
+	reg.push_back(scheme);*/
 
 
 /*	//Rate 1/8
@@ -72,6 +73,30 @@ vector<CodingScheme> createRegistry() {
 	scheme.frozenBits = constructor->construct();
 	reg.push_back(scheme);
 */
+
+	//N=1024, K=512
+	scheme.blockLength = 1024;
+	scheme.infoLength = scheme.blockLength / 2;
+	constructor->setBlockLength(scheme.blockLength);
+	constructor->setInformationLength(scheme.infoLength);
+	scheme.frozenBits = constructor->construct();
+	reg.push_back(scheme);
+
+	//N=4096, K=2048
+	scheme.blockLength = 4096;
+	scheme.infoLength = scheme.blockLength / 2;
+	constructor->setBlockLength(scheme.blockLength);
+	constructor->setInformationLength(scheme.infoLength);
+	scheme.frozenBits = constructor->construct();
+	reg.push_back(scheme);
+
+	//N=32768, K=8192
+	scheme.blockLength = 32768;
+	scheme.infoLength = scheme.blockLength / 2;
+	constructor->setBlockLength(scheme.blockLength);
+	constructor->setInformationLength(scheme.infoLength);
+	scheme.frozenBits = constructor->construct();
+	reg.push_back(scheme);
 	return reg;
 }
 

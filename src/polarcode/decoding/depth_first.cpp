@@ -28,6 +28,9 @@ void Manager::setRootNode(Node *node) {
 void Manager::decode() {
 	xmRootNode->decode();
 
+	//mConfigList.clear();
+	while(!mConfigList.empty())mConfigList.pop();
+
 	//Create initial configurations, including the base that has just been decoded
 	std::vector<DecoderHint> hintList;
 
@@ -42,23 +45,26 @@ void Manager::decode() {
 	std::sort(hintList.begin(), hintList.end(), compareHints);
 	firstRun = true;
 
-	//Create configurations based on changing the most unreliable node
-
-	int optionCount = hintList[0].node->optionCount();
-
-	//mConfigList.clear();
-	while(!mConfigList.empty())mConfigList.pop();
-
-	for(int i=0; i<optionCount; ++i) {
+	//Create configurations
+	int nodeRank = 0;
+	do {
+		int optionCount = hintList[nodeRank].node->optionCount();
 		Configuration conf;
 		conf.depth = 0;
 		conf.parentMetric = metric;
 		conf.nodeList = hintList;
-		conf.nodeOptions.clear();
-		conf.nodeOptions.push_back(i);//Set option for weakest node
+		if(nodeRank != 0) {
+			std::rotate(conf.nodeList.begin(), conf.nodeList.begin()+nodeRank, conf.nodeList.begin()+nodeRank+1);
+		}
 
-		mConfigList.push(conf);
-	}
+		for(int i=(nodeRank==0?0:1); i<optionCount; ++i) {
+			conf.nodeOptions.clear();
+			conf.nodeOptions.push_back(i);//Set option for weakest node
+
+			mConfigList.push(conf);
+		}
+		nodeRank++;
+	} while((nodeRank < mTrialLimit*2/3 || hintList[nodeRank].reliability < log(9)) && mConfigList.size() < mTrialLimit);
 
 	mBestMetric = metric;
 	mBestConfig = mConfigList.front();
