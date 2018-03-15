@@ -14,7 +14,7 @@ AdaptiveMixed::AdaptiveMixed
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 	mExternalContainers = true;
 
-	mFastDecoder = new FastSscAvx2Char(mBlockLength, mFrozenBits);
+	mFastDecoder = new FastSscFipChar(mBlockLength, mFrozenBits);
 	mListDecoder = new SclAvxFloat(mBlockLength, mListSize, mFrozenBits);
 }
 

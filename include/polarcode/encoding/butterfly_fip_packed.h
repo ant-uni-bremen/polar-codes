@@ -1,14 +1,10 @@
-#ifndef PC_ENC_BUTTERFLY_AVX2_PACKED_H
-#define PC_ENC_BUTTERFLY_AVX2_PACKED_H
+#ifndef PC_ENC_BUTTERFLY_FIP_PACKED_H
+#define PC_ENC_BUTTERFLY_FIP_PACKED_H
 
 #include <polarcode/encoding/encoder.h>
 
 namespace PolarCode {
 namespace Encoding {
-
-//void ButterflyAvx2PackedTransform(__m256i* bitVector, size_t blockLength, int stage);
-//void ButterflyAvx2PackedTransformSubVector(__m256i* bitVector, int stage, int blockCount);
-//void ButterflyAvx2PackedTransformCrossVector(__m256i* bitVectors, int stage, int blockCount);
 
 /*!
  * \brief Complete butterfly transformation with AVX2 operations.
@@ -18,30 +14,27 @@ namespace Encoding {
  * so this encoder can XOR 256 bits per operand at once.
  *
  */
-class ButterflyAvx2Packed : public Encoder {
+class ButterflyFipPacked : public Encoder {
 	void transform();
 
 public:
-	ButterflyAvx2Packed();
-
-//    size_t blockLength(){ return mBlockLength;}
-//    bool isSystematic(){ return mSystematic;}
+	ButterflyFipPacked();
 
 	/*!
 	 * \brief Create the butterfly encoder without frozen bits.
 	 * \param blockLength Number of code bits.
 	 */
-	ButterflyAvx2Packed(size_t blockLength);
+	ButterflyFipPacked(size_t blockLength);
 
 	/*!
 	 * \brief Create the butterfly encoder and initialize its parameters.
 	 * \param blockLength Number of code bits.
 	 * \param frozenBits Set of frozen channel indices.
 	 */
-	ButterflyAvx2Packed(size_t blockLength,
+	ButterflyFipPacked(size_t blockLength,
 					  const std::vector<unsigned> &frozenBits);
 
-	~ButterflyAvx2Packed();
+	~ButterflyFipPacked();
 
 	void encode();///< Perform the butterfly transformation.
 	void initialize(size_t blockLength,
@@ -52,5 +45,5 @@ public:
 }//namespace Encoding
 }//namespace PolarCode
 
-#endif // PC_ENC_BUTTERFLY_AVX2_PACKED_H
+#endif // PC_ENC_BUTTERFLY_FIP_PACKED_H
 

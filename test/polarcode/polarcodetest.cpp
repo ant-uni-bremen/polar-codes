@@ -2,9 +2,9 @@
 
 #include <polarcode/construction/bhattacharrya.h>
 #include <polarcode/errordetection/crc32.h>
-#include <polarcode/encoding/butterfly_avx2_packed.h>
-#include <polarcode/decoding/fastssc_avx2_char.h>
-#include <polarcode/decoding/scl_avx2_char.h>
+#include <polarcode/encoding/butterfly_fip_packed.h>
+#include <polarcode/decoding/fastssc_fip_char.h>
+#include <polarcode/decoding/scl_fip_char.h>
 
 #include <random>
 #include <iostream>
@@ -22,11 +22,11 @@ void PolarCodeTest::tearDown() {
 
 void bpskModulate(unsigned char *input, char *output, size_t blockLength) {
 	unsigned char currentByte = 0;// Initialize to suppress false warning
-	for(unsigned i=0; i<blockLength; ++i) {
-		if(i%8==0) {
+	for(unsigned i = 0; i < blockLength; ++i) {
+		if(i % 8 == 0) {
 			currentByte = *(input++);
 		}
-		if(currentByte&0x80) {
+		if(currentByte & 0x80) {
 			*output = -1;
 		} else {
 			*output = 1;
@@ -38,29 +38,28 @@ void bpskModulate(unsigned char *input, char *output, size_t blockLength) {
 
 
 void PolarCodeTest::testAvx2() {
-	const size_t blockLength = 1<<12;
-	const size_t infoLength = blockLength*3/4;
+	const size_t blockLength = 1 << 12;
+	const size_t infoLength = blockLength * 3 / 4;
 
-	unsigned char *input = new unsigned char[infoLength/8];
-	unsigned char *inputBlock = new unsigned char[blockLength/8];
+	unsigned char *input = new unsigned char[infoLength / 8];
+	unsigned char *inputBlock = new unsigned char[blockLength / 8];
 	char *inputSignal = new char[blockLength];
-	unsigned char *output = new unsigned char[infoLength/8];
+	unsigned char *output = new unsigned char[infoLength / 8];
 
 	PolarCode::Construction::Constructor* constructor
 			= new PolarCode::Construction::Bhattacharrya(blockLength, infoLength);
 	std::vector<unsigned> frozenBits = constructor->construct();
 
-	PolarCode::Encoding::ButterflyAvx2Packed* encoder
-			= new PolarCode::Encoding::ButterflyAvx2Packed(blockLength, frozenBits);
+	PolarCode::Encoding::ButterflyFipPacked* encoder
+			= new PolarCode::Encoding::ButterflyFipPacked(blockLength, frozenBits);
 
-	PolarCode::Decoding::FastSscAvx2Char* decoder
-			= new PolarCode::Decoding::FastSscAvx2Char(blockLength, frozenBits);
+	PolarCode::Decoding::FastSscFipChar* decoder
+			= new PolarCode::Decoding::FastSscFipChar(blockLength, frozenBits);
 
-	//memset(input, 0xF0, infoLength/8);
 	{
 		std::mt19937 generator;
 		uint32_t* inputPtr = reinterpret_cast<uint32_t*>(input);
-		for(unsigned i=0; i<infoLength/32; ++i) {
+		for(unsigned i = 0; i < infoLength / 32; ++i) {
 			inputPtr[i] = generator();
 		}
 	}
@@ -74,7 +73,7 @@ void PolarCodeTest::testAvx2() {
 		cont->insertPackedBits(inputBlock);
 		cont->getPackedInformationBits(output);
 		delete cont;
-		CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength/8));
+		CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength / 8));
 	}
 
 	bpskModulate(inputBlock, inputSignal, blockLength);
@@ -83,7 +82,7 @@ void PolarCodeTest::testAvx2() {
 	CPPUNIT_ASSERT(decoder->decode());
 	decoder->getDecodedInformationBits(output);
 
-	CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength/8));
+	CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength / 8));
 
 
 
@@ -95,39 +94,39 @@ void PolarCodeTest::testAvx2() {
 }
 
 void PolarCodeTest::testAvx2List() {
-	const size_t blockLength = 1<<12;
-	const size_t infoLength = blockLength*3/4;
+	const size_t blockLength = 1 << 12;
+	const size_t infoLength = blockLength * 3 / 4;
 	const size_t pathLimit = 4;
 
-	unsigned char *input = new unsigned char[infoLength/8];
-	unsigned char *inputBlock = new unsigned char[blockLength/8];
+	unsigned char *input = new unsigned char[infoLength / 8];
+	unsigned char *inputBlock = new unsigned char[blockLength / 8];
 	char *inputSignal = new char[blockLength];
-	unsigned char *output = new unsigned char[infoLength/8];
+	unsigned char *output = new unsigned char[infoLength / 8];
 
 	PolarCode::Construction::Constructor* constructor
 			= new PolarCode::Construction::Bhattacharrya(blockLength, infoLength);
 	std::vector<unsigned> frozenBits = constructor->construct();
 
 	PolarCode::Encoding::Encoder* encoder
-			= new PolarCode::Encoding::ButterflyAvx2Packed(blockLength, frozenBits);
+			= new PolarCode::Encoding::ButterflyFipPacked(blockLength, frozenBits);
 
 	PolarCode::ErrorDetection::Detector* errorDetector
 			= new PolarCode::ErrorDetection::CRC32();
 
 	PolarCode::Decoding::Decoder* decoder
-			= new PolarCode::Decoding::SclAvx2Char(blockLength, pathLimit, frozenBits);
+			= new PolarCode::Decoding::SclFipChar(blockLength, pathLimit, frozenBits);
 	decoder->setErrorDetection(errorDetector);
 
 	{
 		//Generate random data
 		std::mt19937 generator;
 		uint32_t* inputPtr = reinterpret_cast<uint32_t*>(input);
-		for(unsigned i=0; i<infoLength/32; ++i) {
+		for(unsigned i = 0; i < infoLength / 32; ++i) {
 			inputPtr[i] = generator();
 		}
 
 		//Apply outer code for error detection
-		errorDetector->generate(input, infoLength/8);
+		errorDetector->generate(input, infoLength / 8);
 	}
 
 
@@ -141,7 +140,7 @@ void PolarCodeTest::testAvx2List() {
 		cont->getPackedInformationBits(output);
 		delete cont;
 		CPPUNIT_ASSERT_ASSERTION_PASS_MESSAGE("Encoder or BitContainer failed",
-		CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength/8)));
+		CPPUNIT_ASSERT(0 == memcmp(input, output, infoLength / 8)));
 	}
 
 	bpskModulate(inputBlock, inputSignal, blockLength);
@@ -149,7 +148,7 @@ void PolarCodeTest::testAvx2List() {
 	decoder->setSignal(inputSignal);
 	/*CPPUNIT_ASSERT(*/decoder->decode()/*)*/;
 	decoder->getDecodedInformationBits(output);
-	bool decoderSuccess = (0==memcmp(input, output, infoLength/8));
+	bool decoderSuccess = (0 == memcmp(input, output, infoLength / 8));
 
 /*	{
 		char *outputLlr = new char[infoLength];

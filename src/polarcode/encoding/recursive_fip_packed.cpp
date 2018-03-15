@@ -1,11 +1,11 @@
-#include <polarcode/encoding/recursive_avx2_packed.h>
-#include <polarcode/encoding/butterfly_avx2.h>
+#include <polarcode/encoding/recursive_fip_packed.h>
+#include <polarcode/encoding/butterfly_fip.h>
 #include <polarcode/polarcode.h>
 
 namespace PolarCode {
 namespace Encoding {
 
-namespace RecursiveAvx2 {
+namespace RecursiveFip {
 
 Node::Node()
 	: mBit(nullptr),
@@ -16,14 +16,14 @@ Node::Node()
 Node::Node(size_t blockLength)
 	: mBlockLength(blockLength),
 	  mVecCount(nBit2vecCount(blockLength)) {
-	mBit = reinterpret_cast<__m256i*>(_mm_malloc(mVecCount*32, 32));
+	mBit = reinterpret_cast<fipv*>(_mm_malloc(mVecCount * BYTESPERVECTOR, BYTESPERVECTOR));
 }
 
 Node::~Node() {
 	clearBlock();
 }
 
-void Node::encode(__m256i *Bits) {
+void Node::encode(fipv *Bits) {
 	throw "This should not be called.";
 }
 
@@ -44,7 +44,7 @@ size_t Node::blockLength() {
 	return mBlockLength;
 }
 
-__m256i* Node::block() {
+fipv* Node::block() {
 	return mBit;
 }
 
@@ -76,12 +76,12 @@ ShortButterflyNode::ShortButterflyNode(std::vector<unsigned> &frozenBits, Node *
 	: mParent(parent) {
 	mBlockLength = parent->blockLength();
 	mVecCount = nBit2vecCount(mBlockLength);
-	mButterflyEncoder = new ButterflyAvx2Packed(mBlockLength, frozenBits);
+	mButterflyEncoder = new ButterflyFipPacked(mBlockLength, frozenBits);
 }
 
 RateRNode::RateRNode(std::vector<unsigned> &frozenBits, Node *parent)
 	: Node(), mParent(parent) {
-	mBlockLength = parent->blockLength()/2;
+	mBlockLength = parent->blockLength() / 2;
 	mVecCount = nBit2vecCount(mBlockLength);
 	mStage = __builtin_ctz(mBlockLength);
 
@@ -117,34 +117,34 @@ RateRNode::~RateRNode() {
 
 // Encoders
 
-void RateOneNode::encode(__m256i *Bits) {
+void RateOneNode::encode(fipv *Bits) {
 }
 
-void RateZeroNode::encode(__m256i *Bits) {
-	const __m256i zero = _mm256_setzero_si256();
-	for(unsigned i=0; i<mVecCount; ++i) {
-		_mm256_store_si256(Bits+i, zero);
+void RateZeroNode::encode(fipv *Bits) {
+	const fipv zero = fi_setzero();
+	for(unsigned i=0; i < mVecCount; ++i) {
+		fi_store(Bits + i, zero);
 	}
 }
 
-void RepetitionNode::encode(__m256i *Bits) {
-	const char bit = reinterpret_cast<char*>(Bits+mVecCount-1)[31]&1;
-	const __m256i vector = _mm256_set1_epi8(0-bit);
-	for(unsigned i=0; i<mVecCount; ++i) {
-		_mm256_store_si256(Bits+i, vector);
+void RepetitionNode::encode(fipv *Bits) {
+	const char bit = reinterpret_cast<char*>(Bits + mVecCount - 1)[BYTESPERVECTOR - 1] & 1;
+	const fipv vector = fi_set1_epi8(0 - bit);
+	for(unsigned i = 0; i < mVecCount; ++i) {
+		fi_store(Bits + i, vector);
 	}
 }
 
-void SpcNode::encode(__m256i *Bits) {
+void SpcNode::encode(fipv *Bits) {
 	//clear the parity bit
 	unsigned char *firstByte = reinterpret_cast<unsigned char*>(Bits);
 	*firstByte &= 0x7F;
 
-	__m256i parVec = _mm256_setzero_si256();
+	fipv parVec = fi_setzero();
 	for(unsigned i=0; i<mVecCount; ++i) {
-		parVec = _mm256_xor_si256(parVec, _mm256_load_si256(Bits+i));
+		parVec = fi_xor(parVec, fi_load(Bits + i));
 	}
-	unsigned char parity = reduce_xor_si256(parVec);
+	unsigned char parity = reduce_xor(parVec);
 	//Above reduce operation stops at eight bit width
 	//We need to reduce further to single bit
 	parity ^= parity<<4;
@@ -154,21 +154,21 @@ void SpcNode::encode(__m256i *Bits) {
 	*firstByte |= parity;//Insert parity information
 }
 
-void ShortButterflyNode::encode(__m256i *Bits) {
+void ShortButterflyNode::encode(fipv *Bits) {
 	mButterflyEncoder->setCodeword(Bits);
 	mButterflyEncoder->clearFrozenBits();
 	mButterflyEncoder->encode();
 	mButterflyEncoder->getEncodedData(Bits);
 }
 
-void RateRNode::encode(__m256i *Bits) {
-	__m256i *rightBits = Bits+mVecCount;
+void RateRNode::encode(fipv *Bits) {
+	fipv *rightBits = Bits + mVecCount;
 
 	mRight->encode(rightBits);
 
-	ButterflyAvx2PackedTransform(Bits, mBlockLength*2, mStage);
+	ButterflyFipPackedTransform(Bits, mBlockLength * 2, mStage);
 	mLeft->encode(Bits);
-	ButterflyAvx2PackedTransform(Bits, mBlockLength*2, mStage);
+	ButterflyFipPackedTransform(Bits, mBlockLength * 2, mStage);
 }
 
 // End of nodes
@@ -186,7 +186,7 @@ Node* createEncoder(std::vector<unsigned> &frozenBits, Node *parent) {
 	}
 
 	// "One bit unlike the others"
-	if(frozenBitCount == (blockLength-1)) {
+	if(frozenBitCount == (blockLength - 1)) {
 		return new RepetitionNode(parent);
 	}
 	if(frozenBitCount == 1) {
@@ -194,8 +194,8 @@ Node* createEncoder(std::vector<unsigned> &frozenBits, Node *parent) {
 	}
 
 	//General codes
-	if(blockLength == 256) {
-		//No specializations for 128-bit codes
+	if(blockLength == BITSPERVECTOR) {
+		//No specializations for half-length codes
 		return new ShortButterflyNode(frozenBits, parent);
 	} else {
 		//Divide code into half-length subcodes
@@ -204,31 +204,31 @@ Node* createEncoder(std::vector<unsigned> &frozenBits, Node *parent) {
 }
 
 size_t nBit2vecCount(size_t blockLength) {
-	return (blockLength+255)/256;
+	return (blockLength + (BITSPERVECTOR - 1)) / BITSPERVECTOR;
 }
 
-}// namespace RecursiveAvx2
+}// namespace RecursiveFip
 
-RecursiveAvx2Packed::RecursiveAvx2Packed(size_t blockLength, const std::vector<unsigned> &frozenBits) {
-	if(blockLength < 256) {
-		throw "AVX-2 recursive encoder does not exist for block length < 256 bits!";
+RecursiveFipPacked::RecursiveFipPacked(size_t blockLength, const std::vector<unsigned> &frozenBits) {
+	if(blockLength < BITSPERVECTOR) {
+		throw "Recursive encoder does not exist for block length smaller than vector size!";
 		return;
 	}
 	mBlockLength = 0;
 	initialize(blockLength, frozenBits);
 }
 
-RecursiveAvx2Packed::~RecursiveAvx2Packed() {
+RecursiveFipPacked::~RecursiveFipPacked() {
 	clear();
 }
 
-void RecursiveAvx2Packed::clear() {
+void RecursiveFipPacked::clear() {
 	delete mBitContainer; mBitContainer = nullptr;
 	delete mRootNode; mRootNode = nullptr;
 	delete mNodeBase; mNodeBase = nullptr;
 }
 
-void RecursiveAvx2Packed::initialize(size_t blockLength, const std::vector<unsigned> &frozenBits) {
+void RecursiveFipPacked::initialize(size_t blockLength, const std::vector<unsigned> &frozenBits) {
 	if(blockLength == mBlockLength && frozenBits == mFrozenBits) {
 		return;
 	} else {
@@ -237,13 +237,13 @@ void RecursiveAvx2Packed::initialize(size_t blockLength, const std::vector<unsig
 		}
 		mBlockLength = blockLength;
 		mFrozenBits = frozenBits;
-		mNodeBase = new RecursiveAvx2::Node(blockLength);
-		mRootNode = RecursiveAvx2::createEncoder(mFrozenBits, mNodeBase);
+		mNodeBase = new RecursiveFip::Node(blockLength);
+		mRootNode = RecursiveFip::createEncoder(mFrozenBits, mNodeBase);
 		mBitContainer = new PackedContainer(reinterpret_cast<char*>(mNodeBase->block()), mBlockLength, mFrozenBits);
 	}
 }
 
-void RecursiveAvx2Packed::encode() {
+void RecursiveFipPacked::encode() {
 	mErrorDetector->generate(xmInputData, (mBlockLength - mFrozenBits.size()) / 8);
 	mBitContainer->insertPackedInformationBits(xmInputData);
 

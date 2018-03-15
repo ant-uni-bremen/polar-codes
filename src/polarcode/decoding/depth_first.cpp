@@ -1,6 +1,6 @@
 #include <polarcode/decoding/depth_first.h>
 #include <polarcode/polarcode.h>
-#include <polarcode/encoding/butterfly_avx2_packed.h>
+#include <polarcode/encoding/butterfly_fip_packed.h>
 #include <list>
 
 namespace PolarCode {
@@ -604,7 +604,7 @@ bool DepthFirst::decode() {
 
 	Encoding::Encoder* encoder = nullptr;
 	if(!mSystematic) {
-		Encoding::Encoder* encoder = new Encoding::ButterflyAvx2Packed(mBlockLength);
+		Encoding::Encoder* encoder = new Encoding::ButterflyFipPacked(mBlockLength);
 		encoder->setSystematic(false);
 	}
 

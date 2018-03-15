@@ -1,8 +1,8 @@
-#ifndef PC_DEC_SCL_AVX2_H
-#define PC_DEC_SCL_AVX2_H
+#ifndef PC_DEC_SCL_FIP_H
+#define PC_DEC_SCL_FIP_H
 
 #include <polarcode/decoding/decoder.h>
-#include <polarcode/decoding/avx2_char.h>
+#include <polarcode/decoding/fip_char.h>
 #include <polarcode/datapool.txx>
 #include <vector>
 #include <map>
@@ -10,10 +10,10 @@
 namespace PolarCode {
 namespace Decoding {
 
-namespace SclAvx2 {
+namespace SclFip {
 
-typedef DataPool<__m256i, 32> datapool_t;
-typedef Block<__m256i> block_t;
+typedef DataPool<fipv, BYTESPERVECTOR> datapool_t;
+typedef Block<fipv> block_t;
 
 /*!
  * \brief This class manages the collection of decoding paths.
@@ -147,27 +147,27 @@ public:
 	 *
 	 * \param path Index of the path.
 	 * \param stage Index of the stage.
-	 * \return A pointer to an AVX2 aligned memory block.
+	 * \return A pointer to a vector aligned memory block.
 	 */
-	__m256i* Llr(unsigned path, unsigned stage);
+	fipv* Llr(unsigned path, unsigned stage);
 
 	/*!
 	 * \brief Get a pointer to a bit-block.
 	 *
 	 * \param path Index of the path.
 	 * \param stage Index of the stage.
-	 * \return A pointer to an AVX2 aligned memory block.
+	 * \return A pointer to a vector aligned memory block.
 	 */
-	__m256i* Bit(unsigned path, unsigned stage);
+	fipv* Bit(unsigned path, unsigned stage);
 
 	/*!
 	 * \brief Get a pointer to a left bit-block.
 	 *
 	 * \param path Index of the path.
 	 * \param stage Index of the stage.
-	 * \return A pointer to an AVX2 aligned memory block.
+	 * \return A pointer to a vector aligned memory block.
 	 */
-	__m256i* LeftBit(unsigned path, unsigned stage);
+	fipv* LeftBit(unsigned path, unsigned stage);
 
 	/*!
 	 * \brief Swap bit blocks and grant write access to LLR blocks.
@@ -182,7 +182,7 @@ public:
 	 * \param stage Index of the stage.
 	 * \return A pointer to an AVX2 aligned memory block.
 	 */
-	__m256i* NextLlr(unsigned path, unsigned stage);
+	fipv* NextLlr(unsigned path, unsigned stage);
 
 	/*!
 	 * \brief Get a pointer to a future bit-block.
@@ -191,7 +191,7 @@ public:
 	 * \param stage Index of the stage.
 	 * \return A pointer to an AVX2 aligned memory block.
 	 */
-	__m256i* NextBit(unsigned path, unsigned stage);
+	fipv* NextBit(unsigned path, unsigned stage);
 
 	/*!
 	 * \brief Get a reference to the path metric variable.
@@ -283,7 +283,7 @@ public:
 	 * \brief Get a pointer to the PathList object.
 	 * \return A pointer to the PathList object.
 	 */
-	SclAvx2::PathList* pathList();
+	PathList* pathList();
 };
 
 /*!
@@ -364,18 +364,18 @@ public:
 
 Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent);
 
-}// namespace SclAvx2
+}// namespace SclFip
 
 
 /*!
  * \brief This class implements the list decoder interface.
  */
-class SclAvx2Char : public Decoder {
+class SclFipChar : public Decoder {
 	size_t mListSize;
-	SclAvx2::Node *mNodeBase,
+	SclFip::Node *mNodeBase,
 				  *mRootNode;
-	SclAvx2::datapool_t *mDataPool;
-	SclAvx2::PathList *mPathList;
+	SclFip::datapool_t *mDataPool;
+	SclFip::PathList *mPathList;
 
 	void clear();
 	void makeInitialPathList();
@@ -388,8 +388,8 @@ public:
 	 * \param listSize Number of paths to examine while decoding.
 	 * \param frozenBits The set of frozen bits.
 	 */
-	SclAvx2Char(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits);
-	~SclAvx2Char();
+	SclFipChar(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits);
+	~SclFipChar();
 
 	bool decode();
 	void initialize(size_t blockLength, const std::vector<unsigned> &frozenBits);
@@ -408,4 +408,4 @@ public:
 }// namespace Decoding
 }// namespace PolarCode
 
-#endif //PC_DEC_SCL_AVX2_H
+#endif //PC_DEC_SCL_FIP_H

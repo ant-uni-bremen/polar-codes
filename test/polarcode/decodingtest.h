@@ -8,9 +8,13 @@ class DecodingTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST_SUITE(DecodingTest);
 	CPPUNIT_TEST(testSpecialDecoders);
 	CPPUNIT_TEST(testGeneralDecodingFunctionsAvx);
+#ifdef __AVX2__
 	CPPUNIT_TEST(testGeneralDecodingFunctionsAvx2);
-	CPPUNIT_TEST(testAvx2Short);
-	CPPUNIT_TEST(testAvx2Performance);
+#else
+	CPPUNIT_TEST(testGeneralDecodingFunctionsSse);
+#endif
+	CPPUNIT_TEST(testFipShort);
+	CPPUNIT_TEST(testPerformance);
 	CPPUNIT_TEST(testListDecoder);
 	CPPUNIT_TEST_SUITE_END();
 
@@ -22,9 +26,13 @@ public:
 
 	void testSpecialDecoders();
 	void testGeneralDecodingFunctionsAvx();
+#ifdef __AVX2__
 	void testGeneralDecodingFunctionsAvx2();
-	void testAvx2Short();
-	void testAvx2Performance();
+#else
+	void testGeneralDecodingFunctionsSse();
+#endif
+	void testFipShort();
+	void testPerformance();
 
 	void testListDecoder();
 };

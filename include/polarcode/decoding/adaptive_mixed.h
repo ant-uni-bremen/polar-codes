@@ -1,7 +1,7 @@
 #ifndef PC_DEC_ADPT_MIX_H
 #define PC_DEC_ADPT_MIX_H
 
-#include <polarcode/decoding/fastssc_avx2_char.h>
+#include <polarcode/decoding/fastssc_fip_char.h>
 #include <polarcode/decoding/scl_avx_float.h>
 
 namespace PolarCode {
@@ -16,7 +16,7 @@ namespace Decoding {
  * decoded a second time, using the list decoder.
  */
 class AdaptiveMixed : public Decoder {
-	FastSscAvx2Char *mFastDecoder;
+	FastSscFipChar *mFastDecoder;
 	SclAvxFloat	*mListDecoder;
 	size_t mListSize;
 

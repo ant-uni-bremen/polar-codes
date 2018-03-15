@@ -5,16 +5,16 @@
 #include <iostream>
 #include <cmath>
 
-#include <polarcode/encoding/butterfly_avx2_packed.h>
+#include <polarcode/encoding/butterfly_fip_packed.h>
 
 #include <polarcode/decoding/fastssc_avx_float.h>
-#include <polarcode/decoding/fastssc_avx2_char.h>
-#include <polarcode/decoding/scl_avx2_char.h>
+#include <polarcode/decoding/fastssc_fip_char.h>
+#include <polarcode/decoding/scl_fip_char.h>
 #include <polarcode/decoding/scl_avx_float.h>
 #include <polarcode/decoding/adaptive_float.h>
 #include <polarcode/decoding/adaptive_char.h>
 #include <polarcode/decoding/adaptive_mixed.h>
-#include <polarcode/decoding/fixed_avx2_char.h>
+#include <polarcode/decoding/fixed_fip_char.h>
 #include <polarcode/decoding/depth_first.h>
 
 #include <polarcode/errordetection/dummy.h>
@@ -422,7 +422,7 @@ void SimulationWorker::selectFrozenBits() {
 }
 
 void SimulationWorker::setCoders() {
-	mEncoder = new PolarCode::Encoding::ButterflyAvx2Packed(mJob->N, mFrozenBits);
+	mEncoder = new PolarCode::Encoding::ButterflyFipPacked(mJob->N, mFrozenBits);
 
 	if(mJob->decoderType == Fixed) {
 		mDecoder = new PolarCode::Decoding::FixedChar(mJob->codingScheme);
@@ -448,7 +448,7 @@ void SimulationWorker::setCoders() {
 			switch(mJob->precision) {
 			case 8:
 			case 832:
-				mDecoder = new PolarCode::Decoding::FastSscAvx2Char(mJob->N, mFrozenBits);
+				mDecoder = new PolarCode::Decoding::FastSscFipChar(mJob->N, mFrozenBits);
 				break;
 			case 32:
 				mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);

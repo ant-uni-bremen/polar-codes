@@ -14,8 +14,8 @@ AdaptiveChar::AdaptiveChar
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 	mExternalContainers = true;
 
-	mFastDecoder = new FastSscAvx2Char(mBlockLength, mFrozenBits);
-	mListDecoder = new SclAvx2Char(mBlockLength, mListSize, mFrozenBits);
+	mFastDecoder = new FastSscFipChar(mBlockLength, mFrozenBits);
+	mListDecoder = new SclFipChar(mBlockLength, mListSize, mFrozenBits);
 }
 
 AdaptiveChar::~AdaptiveChar() {

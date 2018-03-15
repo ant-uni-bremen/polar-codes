@@ -4,9 +4,9 @@
 #include <cstring>
 #include <chrono>
 #include <iostream>
-#include <polarcode/decoding/fastssc_avx2_char.h>
+#include <polarcode/decoding/fastssc_fip_char.h>
 #include <polarcode/decoding/fastssc_avx_float.h>
-#include <polarcode/decoding/scl_avx2_char.h>
+#include <polarcode/decoding/scl_fip_char.h>
 #include <polarcode/decoding/scl_avx_float.h>
 #include <polarcode/decoding/adaptive_float.h>
 
@@ -16,17 +16,17 @@ namespace Decoding {
 Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits, int decoder_impl){
   Decoder* dec;
   if(listSize == 1){
-    switch(decoder_impl){
-      case 1: dec = new FastSscAvxFloat(blockLength, frozenBits); break;
-      default: dec = new FastSscAvx2Char(blockLength, frozenBits); break;
-    }
+	switch(decoder_impl){
+	  case 1: dec = new FastSscAvxFloat(blockLength, frozenBits); break;
+	  default: dec = new FastSscFipChar(blockLength, frozenBits); break;
+	}
   }
   else{
-    switch(decoder_impl){
-      case 1: dec = new SclAvxFloat(blockLength, listSize, frozenBits); break;
+	switch(decoder_impl){
+	  case 1: dec = new SclAvxFloat(blockLength, listSize, frozenBits); break;
 	  case 2: dec = new AdaptiveFloat(blockLength, listSize, frozenBits); break;
-      default: dec = new SclAvx2Char(blockLength, listSize, frozenBits); break;
-    }
+	  default: dec = new SclFipChar(blockLength, listSize, frozenBits); break;
+	}
   }
   dec->setErrorDetection(new ErrorDetection::CRC8());
   return dec;
@@ -97,7 +97,7 @@ void Decoder::setSignal(const char *pLlr) {
 }
 
 void Decoder::getDecodedInformationBits(void *pData) {
-	memcpy(pData, mOutputContainer, (mBlockLength-mFrozenBits.size()+7)/8);
+	memcpy(pData, mOutputContainer, (mBlockLength - mFrozenBits.size() + 7) / 8);
 }
 
 void Decoder::getSoftCodeword(void *pData) {

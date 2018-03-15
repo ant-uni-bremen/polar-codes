@@ -1,8 +1,8 @@
 #ifndef PC_DEC_ADPT_CHAR_H
 #define PC_DEC_ADPT_CHAR_H
 
-#include <polarcode/decoding/fastssc_avx2_char.h>
-#include <polarcode/decoding/scl_avx2_char.h>
+#include <polarcode/decoding/fastssc_fip_char.h>
+#include <polarcode/decoding/scl_fip_char.h>
 
 namespace PolarCode {
 namespace Decoding {
@@ -16,8 +16,8 @@ namespace Decoding {
  * decoded a second time, using the list decoder.
  */
 class AdaptiveChar : public Decoder {
-	FastSscAvx2Char *mFastDecoder;
-	SclAvx2Char	*mListDecoder;
+	FastSscFipChar *mFastDecoder;
+	SclFipChar	*mListDecoder;
 	size_t mListSize;
 
 public:

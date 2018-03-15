@@ -1,7 +1,7 @@
 #include <polarcode/decoding/scl_avx_float.h>
 #include <polarcode/polarcode.h>
 #include <polarcode/arrayfuncs.h>
-#include <polarcode/encoding/butterfly_avx2_packed.h>
+#include <polarcode/encoding/butterfly_fip_packed.h>
 #include <cmath>
 
 namespace PolarCode {
@@ -726,7 +726,7 @@ bool SclAvxFloat::extractBestPath() {
 		}
 	} else {// non-systematic
 		PolarCode::Encoding::Encoder *encoder
-				= new PolarCode::Encoding::ButterflyAvx2Packed(mBlockLength, mFrozenBits);
+				= new PolarCode::Encoding::ButterflyFipPacked(mBlockLength, mFrozenBits);
 		PolarCode::PackedContainer *container
 				= new PolarCode::PackedContainer(mBlockLength, mFrozenBits);
 		for(unsigned path = 0; path < pathCount; ++path) {

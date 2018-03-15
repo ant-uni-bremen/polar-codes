@@ -1,21 +1,21 @@
-#ifndef PC_ENC_RECURSIVE_AVX2_PACKED_H
-#define PC_ENC_RECURSIVE_AVX2_PACKED_H
+#ifndef PC_ENC_RECURSIVE_FIP_PACKED_H
+#define PC_ENC_RECURSIVE_FIP_PACKED_H
 
 #include <polarcode/encoding/encoder.h>
-#include <polarcode/encoding/butterfly_avx2_packed.h>
+#include <polarcode/encoding/butterfly_fip_packed.h>
 #include <polarcode/avxconvenience.h>
 #include <polarcode/datapool.txx>
 
 namespace PolarCode {
 namespace Encoding {
 
-namespace RecursiveAvx2 {
+namespace RecursiveFip {
 
 /*!
  * \brief Base class for a recursive encoding node.
  */
 class Node {
-	__m256i* mBit;
+	fipv* mBit;
 
 	void clearBlock();
 
@@ -34,7 +34,7 @@ public:
 	Node(size_t blockLength);
 	virtual ~Node();
 
-	virtual void encode(__m256i*);///< Execute a specialized encoding algorithm.
+	virtual void encode(fipv*);///< Execute a specialized encoding algorithm.
 
 	/*!
 	 * \brief Get the length of this code node.
@@ -46,7 +46,7 @@ public:
 	 * \brief Get a pointer to bits of this node.
 	 * \return Pointer to bit storage.
 	 */
-	__m256i* block();
+	fipv* block();
 
 };
 
@@ -58,7 +58,7 @@ class RateOneNode : public Node {
 public:
 	RateOneNode(Node* parent);///< Initialize the rate-1 encoder.
 	~RateOneNode();
-	void encode(__m256i *Bits);///< Do nothing.
+	void encode(fipv *Bits);///< Do nothing.
 };
 
 /*!
@@ -69,7 +69,7 @@ class RateZeroNode : public Node {
 public:
 	RateZeroNode(Node* parent);///< Initialize the rate-0 encoder.
 	~RateZeroNode();
-	void encode(__m256i *Bits);///< Set bits to zero.
+	void encode(fipv *Bits);///< Set bits to zero.
 };
 
 /*!
@@ -80,7 +80,7 @@ class RepetitionNode : public Node {
 public:
 	RepetitionNode(Node* parent);///< Initialize the repetition encoder.
 	~RepetitionNode();
-	void encode(__m256i *Bits);///< Repeat the information bit.
+	void encode(fipv *Bits);///< Repeat the information bit.
 };
 
 /*!
@@ -91,7 +91,7 @@ class SpcNode : public Node {
 public:
 	SpcNode(Node* parent);///< Initialize the SPC encoder.
 	~SpcNode();
-	void encode(__m256i *Bits);///< Add even-parity bit.
+	void encode(fipv *Bits);///< Add even-parity bit.
 };
 
 /*!
@@ -103,7 +103,7 @@ class ShortButterflyNode : public Node {
 public:
 	ShortButterflyNode(std::vector<unsigned> &frozenBits, Node* parent);///< Initialize the butterfly encoder.
 	~ShortButterflyNode();
-	void encode(__m256i *Bits);///< Perform butterfly encoding.
+	void encode(fipv *Bits);///< Perform butterfly encoding.
 };
 
 /*!
@@ -116,7 +116,7 @@ class RateRNode : public Node {
 public:
 	RateRNode(std::vector<unsigned> &frozenBits, Node* parent);///< Initialize the general recursive encoder.
 	~RateRNode();
-	void encode(__m256i *Bits);///< Recursively invoke simpler decoders.
+	void encode(fipv *Bits);///< Recursively invoke simpler decoders.
 };
 
 Node* createEncoder(std::vector<unsigned> &frozenBits, Node* parent);
@@ -132,23 +132,23 @@ size_t nBit2vecCount(size_t blockLength);
  * This encoder performs recursive polar encoding on 256-bit operators.
  *
  */
-class RecursiveAvx2Packed : public Encoder {
-	RecursiveAvx2::Node *mNodeBase,
+class RecursiveFipPacked : public Encoder {
+	RecursiveFip::Node *mNodeBase,
 						*mRootNode;
 	void clear();
 
 public:
-	RecursiveAvx2Packed();
+	RecursiveFipPacked();
 
 	/*!
 	 * \brief Create the recursive encoder and initialize its parameters.
 	 * \param blockLength Number of code bits.
 	 * \param frozenBits Set of frozen channel indices.
 	 */
-	RecursiveAvx2Packed(size_t blockLength,
+	RecursiveFipPacked(size_t blockLength,
 					  const std::vector<unsigned> &frozenBits);
 
-	~RecursiveAvx2Packed();
+	~RecursiveFipPacked();
 
 	void encode();
 	void initialize(size_t blockLength,
@@ -159,6 +159,6 @@ public:
 }//namespace Encoding
 }//namespace PolarCode
 
-#endif // PC_ENC_RECURSIVE_AVX2_PACKED_H
+#endif // PC_ENC_RECURSIVE_FIP_PACKED_H
 
 

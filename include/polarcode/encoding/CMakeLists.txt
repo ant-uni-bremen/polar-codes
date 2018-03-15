@@ -4,7 +4,7 @@
 ########################################################################
 install(FILES
     encoder.h
-    butterfly_avx2_packed.h DESTINATION include/polarcode/encoding
+    butterfly_fip_packed.h DESTINATION include/polarcode/encoding
 )
 
 

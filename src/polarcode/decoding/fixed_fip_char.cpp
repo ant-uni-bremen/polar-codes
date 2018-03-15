@@ -1,6 +1,6 @@
-#include <polarcode/decoding/fixed_avx2_char.h>
+#include <polarcode/decoding/fixed_fip_char.h>
 #include <polarcode/errordetection/dummy.h>
-#include <polarcode/encoding/butterfly_avx2_packed.h>
+#include <polarcode/encoding/butterfly_fip_packed.h>
 
 namespace PolarCode {
 namespace Decoding {
@@ -25,7 +25,7 @@ FixedChar::FixedChar(unsigned int scheme) {
 					   codeRegistry[scheme].frozenBits.end());
 	mLlrContainer = new CharContainer(mBlockLength, mFrozenBits);
 	mBitContainer = new CharContainer(mBlockLength, mFrozenBits);
-	mOutputContainer = new unsigned char[(codeRegistry[scheme].infoLength+7)/8];
+	mOutputContainer = new unsigned char[(codeRegistry[scheme].infoLength + 7) / 8];
 }
 
 FixedChar::~FixedChar() {
@@ -37,7 +37,7 @@ bool FixedChar::decode() {
 					 reinterpret_cast<CharContainer*>(mBitContainer)->data());
 
 	if(!mSystematic) {
-		Encoding::Encoder* encoder = new Encoding::ButterflyAvx2Packed(mBlockLength);
+		Encoding::Encoder* encoder = new Encoding::ButterflyFipPacked(mBlockLength);
 		encoder->setSystematic(false);
 		encoder->setCodeword(dynamic_cast<CharContainer*>(mBitContainer)->data());
 		encoder->encode();

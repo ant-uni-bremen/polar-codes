@@ -1,6 +1,7 @@
 #include <polarcode/avxconvenience.h>
 
-unsigned _mm256_minpos_epu8(__m256i x, char *val)
+#ifdef __AVX2__
+unsigned minpos_epu8(__m256i x, char *val)
 {
 	//Get the two 128-bit lanes
 	const __m128i l0 = _mm256_extracti128_si256(x, 0);//low lane
@@ -43,7 +44,7 @@ unsigned _mm256_minpos_epu8(__m256i x, char *val)
 	return ret;
 }
 
-__m256i _mm256_subVectorShift_epu8(__m256i x, int shift) {
+__m256i subVectorShift_epu8(__m256i x, int shift) {
 	static const __m256i mask[4] = {
 		_mm256_set1_epi8(0b0101010-128),
 		_mm256_set1_epi8(0b1001100-128),
@@ -71,7 +72,7 @@ __m256i _mm256_subVectorShift_epu8(__m256i x, int shift) {
 	}
 }
 
-__m256i _mm256_subVectorShiftBytes_epu8(__m256i x, int shift) {
+__m256i subVectorShiftBytes_epu8(__m256i x, int shift) {
 	switch(shift) {
 	case 1:
 		return _mm256_srli_epi16(x, 8);
@@ -88,7 +89,7 @@ __m256i _mm256_subVectorShiftBytes_epu8(__m256i x, int shift) {
 	}
 }
 
-__m256i _mm256_subVectorBackShift_epu8(__m256i x, int shift) {
+__m256i subVectorBackShift_epu8(__m256i x, int shift) {
 	static const __m256i mask[4] = {
 		_mm256_set1_epi8(0b01010101),
 		_mm256_set1_epi8(0b00110011),
@@ -116,7 +117,7 @@ __m256i _mm256_subVectorBackShift_epu8(__m256i x, int shift) {
 	}
 }
 
-__m256i _mm256_subVectorBackShiftBytes_epu8(__m256i x, int shift) {
+__m256i subVectorBackShiftBytes_epu8(__m256i x, int shift) {
 	switch(shift) {
 	case 1:
 		return _mm256_slli_epi16(x, 8);
@@ -132,6 +133,121 @@ __m256i _mm256_subVectorBackShiftBytes_epu8(__m256i x, int shift) {
 		throw "Subvector shift of undefined size.";
 	}
 }
+#else
+
+unsigned minpos_epu8(__m128i x, char *val)
+{
+	const __m128i sl0 = _mm_cvtepu8_epi16(x);
+	const __m128i sl1 = _mm_cvtepu8_epi16(_mm_unpackhi_epi64(x, x));
+
+	union {
+		__m128i mp;
+		unsigned short smp[8];
+		unsigned short cmp[16];
+	} p[2];
+
+	//Find their minpos using the SSE4.1 intrinsic
+	p[0].mp = _mm_minpos_epu16(sl0);
+	p[1].mp = _mm_minpos_epu16(sl1);
+
+	//Get local minima and fill unused entries with dummy value 127
+	const __m128i collection = _mm_setr_epi16(p[0].smp[0], p[1].smp[0], 127, 127, 127, 127, 127, 127);
+
+	//Get index of total minimum
+	const __m128i minIdx = _mm_minpos_epu16(collection);
+	const unsigned short selectedLane = reinterpret_cast<const unsigned short*>(&minIdx)[1];
+	const unsigned ret = p[selectedLane].smp[1] + selectedLane*8;
+
+	if(val!=nullptr) {
+		*val = p[selectedLane].cmp[0];
+	}
+
+	return ret;
+}
+
+__m128i subVectorShift_epu8(__m128i x, int shift) {
+	static const __m128i mask[4] = {
+		_mm_set1_epi8(0b0101010-128),
+		_mm_set1_epi8(0b1001100-128),
+		_mm_setzero_si128(),
+		_mm_set1_epi8(0b1110000-128)};
+	__m128i y;
+	switch(shift) {
+	case 1:
+	case 2:
+	case 4:
+		y = _mm_slli_epi16(x, shift);
+		return _mm_and_si128(y, mask[shift-1]);
+	case 8:
+		return _mm_srli_epi16(x, 8);
+	case 16:
+		return _mm_srli_epi32(x, 16);
+	case 32:
+		return _mm_srli_epi64(x, 32);
+	case 64:
+		return _mm_srli_si128(x, 8);
+	default:
+		throw "Subvector shift of undefined size.";
+	}
+}
+
+__m128i subVectorShiftBytes_epu8(__m128i x, int shift) {
+	switch(shift) {
+	case 1:
+		return _mm_srli_epi16(x, 8);
+	case 2:
+		return _mm_srli_epi32(x, 16);
+	case 4:
+		return _mm_srli_epi64(x, 32);
+	case 8:
+		return _mm_srli_si128(x, 8);
+	default:
+		throw "Subvector shift of undefined size.";
+	}
+}
+
+__m128i subVectorBackShift_epu8(__m128i x, int shift) {
+	static const __m128i mask[4] = {
+		_mm_set1_epi8(0b01010101),
+		_mm_set1_epi8(0b00110011),
+		_mm_setzero_si128(),
+		_mm_set1_epi8(0b00001111)};
+	__m128i y;
+	switch(shift) {
+	case 1:
+	case 2:
+	case 4:
+		y = _mm_srli_epi16(x, shift);
+		return _mm_and_si128(y, mask[shift-1]);
+	case 8:
+		return _mm_slli_epi16(x, 8);
+	case 16:
+		return _mm_slli_epi32(x, 16);
+	case 32:
+		return _mm_slli_epi64(x, 32);
+	case 64:
+		return _mm_slli_si128(x, 8);
+	default:
+		throw "Subvector shift of undefined size.";
+	}
+}
+
+__m128i subVectorBackShiftBytes_epu8(__m128i x, int shift) {
+	switch(shift) {
+	case 1:
+		return _mm_slli_epi16(x, 8);
+	case 2:
+		return _mm_slli_epi32(x, 16);
+	case 4:
+		return _mm_slli_epi64(x, 32);
+	case 8:
+		return _mm_slli_si128(x, 8);
+	default:
+		throw "Subvector shift of undefined size.";
+	}
+}
+
+#endif
 
 __m256 _mm256_subVectorShift_ps(__m256 x, int shift) {
 	__m256 y;

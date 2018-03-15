@@ -1,5 +1,5 @@
-#include <polarcode/encoding/butterfly_avx2_packed.h>
-#include <polarcode/encoding/butterfly_avx2.h>
+#include <polarcode/encoding/butterfly_fip_packed.h>
+#include <polarcode/encoding/butterfly_fip.h>
 #include <cmath>
 #include <iostream>
 
@@ -8,22 +8,22 @@ namespace PolarCode {
 namespace Encoding {
 
 
-ButterflyAvx2Packed::ButterflyAvx2Packed() {
+ButterflyFipPacked::ButterflyFipPacked() {
 }
 
-ButterflyAvx2Packed::ButterflyAvx2Packed(size_t blockLength) {
+ButterflyFipPacked::ButterflyFipPacked(size_t blockLength) {
 	initialize(blockLength, {});
 }
 
-ButterflyAvx2Packed::ButterflyAvx2Packed(size_t blockLength,
+ButterflyFipPacked::ButterflyFipPacked(size_t blockLength,
 		const std::vector<unsigned> &frozenBits) {
 	initialize(blockLength, frozenBits);
 }
 
-ButterflyAvx2Packed::~ButterflyAvx2Packed() {
+ButterflyFipPacked::~ButterflyFipPacked() {
 }
 
-void ButterflyAvx2Packed::initialize(size_t blockLength,
+void ButterflyFipPacked::initialize(size_t blockLength,
 		const std::vector<unsigned> &frozenBits) {
 	mBlockLength = blockLength;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
@@ -32,7 +32,7 @@ void ButterflyAvx2Packed::initialize(size_t blockLength,
 	mBitContainer = new PackedContainer(mBlockLength, mFrozenBits);
 }
 
-void ButterflyAvx2Packed::encode() {
+void ButterflyFipPacked::encode() {
 	if(!mCodewordReady) {
 		mErrorDetector->generate(xmInputData, (mBlockLength - mFrozenBits.size()) / 8);
 		mBitContainer->insertPackedInformationBits(xmInputData);
@@ -47,15 +47,15 @@ void ButterflyAvx2Packed::encode() {
 	mCodewordReady = false;
 }
 
-void ButterflyAvx2Packed::transform() {
-	__m256i *vBit = reinterpret_cast<__m256i*>(
+void ButterflyFipPacked::transform() {
+	fipv *vBit = reinterpret_cast<fipv*>(
 						dynamic_cast<PackedContainer*>(
 							mBitContainer
 						)->data());
 	int n = __builtin_ctz(mBlockLength);//log2() on powers of 2
 
-	for(int stage = 0; stage<n; ++stage) {
-		ButterflyAvx2PackedTransform(vBit, mBlockLength, stage);
+	for(int stage = 0; stage < n; ++stage) {
+		ButterflyFipPackedTransform(vBit, mBlockLength, stage);
 	}
 }
 

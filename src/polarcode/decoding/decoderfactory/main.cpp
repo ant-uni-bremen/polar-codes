@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include <polarcode/construction/bhattacharrya.h>
+#include <polarcode/avxconvenience.h>
 
 using namespace std;
 
@@ -112,7 +113,7 @@ void splitFrozenBits(vector<unsigned> &source,
 		if(value < subBlockLength) {
 			left[leftCounter++] = value;
 		} else {
-			right[rightCounter++] = value-subBlockLength;
+			right[rightCounter++] = value - subBlockLength;
 		}
 	}
 	left.resize(leftCounter);
@@ -128,11 +129,11 @@ enum decoderSide {
 string writeDecoder(unsigned length, vector<unsigned> frozenBits, unsigned bitAddress, decoderSide side) {
 	string ret;
 	string sLength = to_string(length);
-	string sHalfLength = to_string(length/2);
+	string sHalfLength = to_string(length / 2);
 
 	unsigned frozenLength = frozenBits.size();
 	unsigned stage = log2(length);
-	unsigned rightBitAddress = bitAddress+((length/2+31)/32);
+	unsigned rightBitAddress = bitAddress+((length / 2 + (BYTESPERVECTOR - 1)) / BYTESPERVECTOR);
 	string sstage = to_string(stage);
 
 	string inputLlr, lowerLlr;
@@ -153,14 +154,14 @@ string writeDecoder(unsigned length, vector<unsigned> frozenBits, unsigned bitAd
 		outputBits = "vBitPtr";
 		break;
 	case DECLEFT:
-		if(length < 32) {
+		if(length < BYTESPERVECTOR) {
 			outputBits = "&mBitL[" + sstage + "]";
 		} else {
 			outputBits = "vBitPtr+" + to_string(bitAddress);
 		}
 		break;
 	case DECRIGHT:
-		if(length < 32) {
+		if(length < BYTESPERVECTOR) {
 			outputBits = "&mBitR[" + sstage + "]";
 		} else {
 			outputBits = "vBitPtr+" + to_string(bitAddress);
@@ -170,9 +171,9 @@ string writeDecoder(unsigned length, vector<unsigned> frozenBits, unsigned bitAd
 		exit(1);
 	}
 
-	if(length <= 32) {
-		leftBits = "&mBitL[" + to_string(stage-1) + "]";
-		rightBits = "&mBitR[" + to_string(stage-1) + "]";
+	if(length <= BYTESPERVECTOR) {
+		leftBits = "&mBitL[" + to_string(stage - 1) + "]";
+		rightBits = "&mBitR[" + to_string(stage - 1) + "]";
 	} else {
 		leftBits = "vBitPtr+" + to_string(bitAddress);
 		rightBits = "vBitPtr+" + to_string(rightBitAddress);
@@ -207,27 +208,27 @@ string writeDecoder(unsigned length, vector<unsigned> frozenBits, unsigned bitAd
 
 	//Search for child code combinations
 	vector<unsigned> leftFrozen, rightFrozen;
-	splitFrozenBits(frozenBits, length/2, leftFrozen, rightFrozen);
+	splitFrozenBits(frozenBits, length / 2, leftFrozen, rightFrozen);
 
 	//Left: Rate 0, Right: SPC
-	if(leftFrozen.size() == length/2 && rightFrozen.size() == 1) {
+	if(leftFrozen.size() == length / 2 && rightFrozen.size() == 1) {
 		ret = "	ZeroSpcDecode<" + sLength + ">(" + inputLlr + ", " + outputBits + ");\n";
 		return ret;
 	}
 
 	//Left Rate 0, Right: Rate 1
-	if(length <= 32) {
-		if(leftFrozen.size() == length/2 && rightFrozen.size() == 0) {
+	if(length <= BYTESPERVECTOR) {
+		if(leftFrozen.size() == length / 2 && rightFrozen.size() == 0) {
 			ret = "	ZeroOneDecodeShort<" + sLength + ">(" + inputLlr + ", " + outputBits + ");\n";
 			return ret;
 		}
 	}
 
 	//Left: Rate 0, Right: any
-	if(leftFrozen.size() == length/2) {
+	if(leftFrozen.size() == length / 2) {
 		ret += "	G_function_0R<" + sHalfLength + ">(" + inputLlr + ", " + lowerLlr + ");\n";
-		ret += writeDecoder(length/2, rightFrozen, rightBitAddress, DECRIGHT);
-		if(length <= 32) {
+		ret += writeDecoder(length / 2, rightFrozen, rightBitAddress, DECRIGHT);
+		if(length <= BYTESPERVECTOR) {
 			ret += "	Combine_0RShort<" + sHalfLength + ">(" + outputBits + ", " + rightBits + ");\n";
 		} else {
 			ret += "	Combine_0R<" + sHalfLength + ">(" + outputBits + ");\n";
@@ -238,8 +239,8 @@ string writeDecoder(unsigned length, vector<unsigned> frozenBits, unsigned bitAd
 	//Left: any, Right: Rate 1
 	if(rightFrozen.size() == 0) {
 		ret = "	F_function<" + sHalfLength + ">(" + inputLlr + ", " + lowerLlr + ");\n";
-		ret += writeDecoder(length/2, leftFrozen, bitAddress, DECLEFT);
-		if(length <= 32) {
+		ret += writeDecoder(length / 2, leftFrozen, bitAddress, DECLEFT);
+		if(length <= BYTESPERVECTOR) {
 			ret += "	simplifiedRightRateOneDecodeShort<" + sHalfLength + ">(" + inputLlr + ", " + leftBits + ", " + outputBits + ");\n";
 		} else {
 			ret += "	simplifiedRightRateOneDecode<" + sHalfLength + ">(" + inputLlr + ", " + outputBits + ");\n";
@@ -251,9 +252,9 @@ string writeDecoder(unsigned length, vector<unsigned> frozenBits, unsigned bitAd
 
 	//Left: any, Right: any
 	ret = "	F_function<" + sHalfLength + ">(" + inputLlr + ", " + lowerLlr + ");\n";
-	ret += writeDecoder(length/2, leftFrozen, bitAddress, DECLEFT);
+	ret += writeDecoder(length / 2, leftFrozen, bitAddress, DECLEFT);
 	ret += "	G_function<" + sHalfLength + ">(" + inputLlr + ", " + lowerLlr + ", " + leftBits + ");\n";
-	ret += writeDecoder(length/2, rightFrozen, rightBitAddress, DECRIGHT);
+	ret += writeDecoder(length / 2, rightFrozen, rightBitAddress, DECRIGHT);
 	if(length <= 32) {
 		ret += "	CombineSoftBits<" + sHalfLength + ">(" + leftBits + ", " + rightBits + ", " + outputBits + ");\n";
 	} else {
@@ -276,8 +277,8 @@ int main(int argc, char** argv) {
 
 	//Write header
 
-	file << R"TREWQ(#include <polarcode/decoding/avx2_templates.txx>
-#include <polarcode/decoding/fixed_avx2_char.h>
+	file << R"TREWQ(#include <polarcode/decoding/fip_templates.txx>
+#include <polarcode/decoding/fixed_fip_char.h>
 #include <array>
 #include <immintrin.h>
 
@@ -294,11 +295,11 @@ std::vector<CodingScheme> codeRegistry = {
 			 << registry[i].infoLength << ", {";
 		for(unsigned j = 0; j < registry[i].frozenBits.size(); ++j) {
 			file << registry[i].frozenBits[j];
-			if(j+1 < registry[i].frozenBits.size()) {
+			if(j + 1 < registry[i].frozenBits.size()) {
 				file << ",";
 			}
 		}
-		file << "}, " << (registry[i].systematic?"true":"false") << ", " << registry[i].designSnr << "}";
+		file << "}, " << (registry[i].systematic ? "true" : "false") << ", " << registry[i].designSnr << "}";
 		if(i+1 < registry.size())
 			file << ",";
 		file << endl;
@@ -313,8 +314,13 @@ std::vector<CodingScheme> codeRegistry = {
 
 	for(unsigned i = 0; i < registry.size(); ++i) {
 		file << "class Fix_" << i << " : public FixedDecoder {" << endl
+#ifdef __AVX2__
 			 << "	std::array<__m256i, 5> mBitL, mBitR;" << endl
 			 << "	std::array<__m256i*, " << (log2(registry[i].blockLength)-1) << "> mLlr;" << endl
+#else
+			 << "	std::array<__m128i, 4> mBitL, mBitR;" << endl
+			 << "	std::array<__m128i*, " << (log2(registry[i].blockLength) - 1) << "> mLlr;" << endl
+#endif
 			 << endl
 			 << "public:" << endl
 			 << "	Fix_" << i << "();" << endl
@@ -330,15 +336,19 @@ std::vector<CodingScheme> codeRegistry = {
 	for(unsigned i = 0; i < registry.size(); ++i) {
 		//Constructor
 		file << "Fix_" << i << "::Fix_" << i << "() {" << endl
-			 << "	for(unsigned i=0; i<" << (log2(registry[i].blockLength)) << "; ++i) {" << endl
-			 << "		mLlr[i] = (__m256i*)_mm_malloc(std::max(1<<i, 32), 32);" << endl
+			 << "	for(unsigned i = 0; i < " << (log2(registry[i].blockLength)) << "; ++i) {" << endl
+#ifdef __AVX2__
+			 << "		mLlr[i] = (__m256i*)_mm_malloc(std::max(1 << i, 32), 32);" << endl
+#else
+			 << "		mLlr[i] = (__m128i*)_mm_malloc(std::max(1 << i, 16), 16);" << endl
+#endif
 			 << "	}" << endl
 			 << "}" << endl
 			 << endl;
 
 		//Destructor
 		file << "Fix_" << i << "::~Fix_" << i << "() {" << endl
-			 << "	for(unsigned i=0; i<" << (log2(registry[i].blockLength)) << "; ++i) {" << endl
+			 << "	for(unsigned i = 0; i < " << (log2(registry[i].blockLength)) << "; ++i) {" << endl
 			 << "		_mm_free(mLlr[i]);" << endl
 			 << "	}" << endl
 			 << "}" << endl
@@ -347,8 +357,13 @@ std::vector<CodingScheme> codeRegistry = {
 		//Decoder
 		string func = writeDecoder(registry[i].blockLength, registry[i].frozenBits, 0, DECTOP);
 		file << "void Fix_" << i << "::decode(void* LlrIn, void* BitsOut) {" << endl
+#ifdef __AVX2__
 			 << "	__m256i *vLlrPtr = (__m256i*)LlrIn;" << endl
 			 << "	__m256i *vBitPtr = (__m256i*)BitsOut;" << endl
+#else
+			 << "	__m128i *vLlrPtr = (__m128i*)LlrIn;" << endl
+			 << "	__m128i *vBitPtr = (__m128i*)BitsOut;" << endl
+#endif
 			 << endl
 			 << func << endl
 			 << "}" << endl << endl;

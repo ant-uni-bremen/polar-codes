@@ -1,5 +1,5 @@
 #include <polarcode/decoding/fastssc_avx_float.h>
-#include <polarcode/encoding/butterfly_avx2_packed.h>
+#include <polarcode/encoding/butterfly_fip_packed.h>
 #include <polarcode/polarcode.h>
 
 #include <string>
@@ -16,11 +16,11 @@ namespace FastSscAvx {
 inline void memFloatFill(float *dst, float value, const size_t blockLength) {
 	if(blockLength>=8) {
 		const __m256 vec = _mm256_set1_ps(value);
-		for(unsigned i=0; i<blockLength; i+=8) {
+		for(unsigned i = 0; i < blockLength; i += 8) {
 			_mm256_store_ps(dst+i, vec);
 		}
 	} else {
-		for(unsigned i=0; i<blockLength; i++) {
+		for(unsigned i = 0; i < blockLength; i++) {
 			dst[i] = value;
 		}
 	}
@@ -476,7 +476,7 @@ bool FastSscAvxFloat::decode() {
 	mRootNode->decode();
 
 	if(!mSystematic) {
-		Encoding::Encoder* encoder = new Encoding::ButterflyAvx2Packed(mBlockLength);
+		Encoding::Encoder* encoder = new Encoding::ButterflyFipPacked(mBlockLength);
 		encoder->setSystematic(false);
 		encoder->setCodeword(dynamic_cast<FloatContainer*>(mBitContainer)->data());
 		encoder->encode();

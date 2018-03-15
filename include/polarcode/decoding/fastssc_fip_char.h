@@ -1,21 +1,21 @@
-#ifndef PC_DEC_FASTSSC_AVX2_H
-#define PC_DEC_FASTSSC_AVX2_H
+#ifndef PC_DEC_FASTSSC_FIP_H
+#define PC_DEC_FASTSSC_FIP_H
 
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/datapool.txx>
-#include <polarcode/decoding/avx2_char.h>
+#include <polarcode/decoding/fip_char.h>
 
 namespace PolarCode {
 namespace Decoding {
 
-namespace FastSscAvx2 {
+namespace FastSscFip {
 
 /*!
  * \brief A node of the polar decoding tree.
  */
 class Node {
-	typedef DataPool<__m256i, 32> datapool_t;
-	Block<__m256i> *mLlr, *mBit;
+	typedef DataPool<fipv, BYTESPERVECTOR> datapool_t;
+	Block<fipv> *mLlr, *mBit;
 
 protected:
 	//xm = eXternal member (not owned by this Node)
@@ -35,7 +35,7 @@ public:
 	Node(size_t blockLength, datapool_t *pool);
 	virtual ~Node();
 
-	virtual void decode(__m256i *LlrIn, __m256i *BitsOut);///< Execute a specialized decoding algorithm.
+	virtual void decode(fipv *LlrIn, fipv *BitsOut);///< Execute a specialized decoding algorithm.
 
 	/*!
 	 * \brief Get a pointer to the datapool.
@@ -53,24 +53,24 @@ public:
 	 * \brief Get a pointer to LLR values of this node.
 	 * \return Pointer to LLRs.
 	 */
-	__m256i* input();
+	fipv* input();
 
 	/*!
 	 * \brief Get a pointer to bits of this node.
 	 * \return Pointer to bit storage.
 	 */
-	__m256i* output();
+	fipv* output();
 
 };
 
 class ShortNode : public Node {
 protected:
-	Block<__m256i> *mLeftBits, *mRightBits;
+	Block<fipv> *mLeftBits, *mRightBits;
 
 public:
 	ShortNode(Node *parent);
 	virtual ~ShortNode();
-	virtual void decode(__m256i *LlrIn, __m256i *BitsOut) = 0;
+	virtual void decode(fipv *LlrIn, fipv *BitsOut) = 0;
 };
 
 
@@ -81,7 +81,7 @@ class RateRNode : public Node {
 protected:
 	Node *mLeft,  ///< Left child node
 		 *mRight; ///< Right child node
-	Block<__m256i> *ChildLlr;///< Temporarily holds the LLRs child nodes have to decode.
+	Block<fipv> *ChildLlr;///< Temporarily holds the LLRs child nodes have to decode.
 
 public:
 	/*!
@@ -91,17 +91,17 @@ public:
 	 */
 	RateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~RateRNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 /*!
  * \brief A rate-R node of subvector length needs child bits in separate blocks.
  */
 class ShortRateRNode : public RateRNode {
-	void simplifiedRightRateOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut);
+	void simplifiedRightRateOneDecodeShort(fipv *LlrIn, fipv *BitsOut);
 
 protected:
-	Block<__m256i> *LeftBits, *RightBits;
+	Block<fipv> *LeftBits, *RightBits;
 
 public:
 	/*!
@@ -111,14 +111,14 @@ public:
 	 */
 	ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ShortRateRNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 /*!
  * \brief Optimized decoding, if the right subcode is rate-1.
  */
 class ROneNode : public RateRNode {
-	void simplifiedRightRateOneDecode(__m256i *LlrIn, __m256i *BitsOut);
+	void simplifiedRightRateOneDecode(fipv *LlrIn, fipv *BitsOut);
 
 public:
 	/*!
@@ -128,14 +128,14 @@ public:
 	 */
 	ROneNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ROneNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 /*!
  * \brief Optimized decoding, if the right subcode is rate-1.
  */
 class ShortROneNode : public ShortRateRNode {
-	void simplifiedRightRateOneDecodeShort(__m256i *LlrIn, __m256i *BitsOut);
+	void simplifiedRightRateOneDecodeShort(fipv *LlrIn, fipv *BitsOut);
 public:
 	/*!
 	 * \brief Initialize the right-rate-1 optimized decoder.
@@ -144,7 +144,7 @@ public:
 	 */
 	ShortROneNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ShortROneNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 /*!
@@ -159,7 +159,7 @@ public:
 	 */
 	ZeroRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ZeroRNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 /*!
@@ -174,49 +174,49 @@ public:
 	 */
 	ShortZeroRNode(const std::vector<unsigned> &frozenBits, Node *parent);
 	~ShortZeroRNode();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 class RateZeroDecoder : public Node {
 public:
 	RateZeroDecoder(Node *parent);
 	~RateZeroDecoder();
-	void decode(__m256i*, __m256i *BitsOut);
+	void decode(fipv*, fipv *BitsOut);
 };
 
 class RateOneDecoder : public Node {
 public:
 	RateOneDecoder(Node *parent);
 	~RateOneDecoder();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 class RepetitionDecoder : public Node {
 public:
 	RepetitionDecoder(Node *parent);
 	~RepetitionDecoder();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 class ShortRepetitionDecoder : public ShortNode {
 public:
 	ShortRepetitionDecoder(Node *parent);
 	~ShortRepetitionDecoder();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 class SpcDecoder : public Node {
 public:
 	SpcDecoder(Node *parent);
 	~SpcDecoder();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 class ShortSpcDecoder : public ShortNode {
 public:
 	ShortSpcDecoder(Node *parent);
 	~ShortSpcDecoder();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 class ZeroSpcDecoder : public Node {
@@ -226,7 +226,7 @@ class ZeroSpcDecoder : public Node {
 public:
 	ZeroSpcDecoder(Node *parent);
 	~ZeroSpcDecoder();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 class ShortZeroSpcDecoder : public ShortNode {
@@ -235,7 +235,7 @@ class ShortZeroSpcDecoder : public ShortNode {
 public:
 	ShortZeroSpcDecoder(Node *parent);
 	~ShortZeroSpcDecoder();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 class ShortZeroOneDecoder : public ShortNode {
@@ -244,7 +244,7 @@ class ShortZeroOneDecoder : public ShortNode {
 public:
 	ShortZeroOneDecoder(Node *parent);
 	~ShortZeroOneDecoder();
-	void decode(__m256i *LlrIn, __m256i *BitsOut);
+	void decode(fipv *LlrIn, fipv *BitsOut);
 };
 
 /*!
@@ -255,15 +255,15 @@ public:
  */
 Node* createDecoder(const std::vector<unsigned> &frozenBits, Node* parent);
 
-}// namespace FastSscAvx2
+}// namespace FastSscFip
 
 /*!
  * \brief The recursive systematic Fast-SSC decoder.
  */
-class FastSscAvx2Char : public Decoder {
-	FastSscAvx2::Node *mNodeBase,///< General code information
+class FastSscFipChar : public Decoder {
+	FastSscFip::Node *mNodeBase,///< General code information
 					  *mRootNode;///< Actual decoder
-	DataPool<__m256i, 32> *mDataPool;///< Lazy-copy data-block pool
+	DataPool<fipv, BYTESPERVECTOR> *mDataPool;///< Lazy-copy data-block pool
 
 	void clear();
 
@@ -273,8 +273,8 @@ public:
 	 * \param blockLength Length of the Polar Code.
 	 * \param frozenBits Set of frozen bits in the code word.
 	 */
-	FastSscAvx2Char(size_t blockLength, const std::vector<unsigned> &frozenBits);
-	~FastSscAvx2Char();
+	FastSscFipChar(size_t blockLength, const std::vector<unsigned> &frozenBits);
+	~FastSscFipChar();
 
 	bool decode();
 	void initialize(size_t blockLength, const std::vector<unsigned> &frozenBits);
@@ -283,4 +283,4 @@ public:
 }//namespace Decoding
 }//namespace PolarCode
 
-#endif //PC_DEC_FASTSSC_AVX2_H
+#endif //PC_DEC_FASTSSC_FIP_H

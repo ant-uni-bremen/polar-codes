@@ -10,13 +10,13 @@ add_library(ErrorDetector OBJECT
 
 add_library(PolarEncoder OBJECT
         encoding/encoder
-        encoding/butterfly_avx2
-        encoding/butterfly_avx2_packed
-        encoding/recursive_avx2_packed
+        encoding/butterfly_fip
+        encoding/butterfly_fip_packed
+        encoding/recursive_fip_packed
         ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/encoder.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx2.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_avx2_packed.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/recursive_avx2_packed.h)
+        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_fip.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/butterfly_fip_packed.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/recursive_fip_packed.h)
 
 add_library(PolarConstructor OBJECT
             construction/constructor
@@ -43,20 +43,21 @@ ADD_CUSTOM_COMMAND(TARGET pcfactory POST_BUILD
 
 add_library(PolarDecoder OBJECT
         decoding/decoder
-        decoding/fastssc_avx2_char
-        decoding/scl_avx2_char
+        decoding/fastssc_fip_char
+        decoding/scl_fip_char
         decoding/fastssc_avx_float
         decoding/scl_avx_float
-        decoding/fixed_avx2_char
+        decoding/fixed_fip_char
         decoding/adaptive_float
         decoding/adaptive_char
         decoding/adaptive_mixed
         decoding/depth_first
         ${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/decoder.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/avx2_char.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fastssc_avx2_char.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/scl_avx2_char.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fip_char.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fip_templates.txx
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fastssc_fip_char.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/scl_fip_char.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/avx_float.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fastssc_avx_float.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/scl_avx_float.h
