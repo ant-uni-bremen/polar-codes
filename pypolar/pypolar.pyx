@@ -26,7 +26,7 @@ cdef class PolarEncoder:
     def __cinit__(self, block_size, np.ndarray frozen_bit_positions):
         frozen_bit_positions = np.sort(frozen_bit_positions)
         frozen_bit_positions = frozen_bit_positions.astype(np.uint32)
-        self.kernel = new polar_interface.ButterflyAvx2Packed(block_size, frozen_bit_positions)
+        self.kernel = new polar_interface.ButterflyFipPacked(block_size, frozen_bit_positions)
 
     def __del__(self):
         del self.kernel

@@ -264,12 +264,8 @@ inline void CombineSoftBits(__m256i *Left, __m256i *Right, __m256i *Out) {
 
 template<unsigned blockLength>
 inline void Combine_0R(__m256i *Bits) {
-    /*char* BitPtr = reinterpret_cast<char*>(Bits);
-    memcpy(BitPtr, BitPtr+blockLength, blockLength);*/
-    const unsigned vecLength = blockLength/8;
-    for(unsigned i=0; i<vecLength; i++) {
-        _mm256_store_si256(Bits+i, _mm256_load_si256(Bits+vecLength+i));
-    }
+    char* BitPtr = reinterpret_cast<char*>(Bits);
+    memcpy(BitPtr, BitPtr+blockLength, blockLength);
 }
 
 template<unsigned blockLength>
@@ -279,40 +275,6 @@ inline void Combine_0RShort(__m256i *Bits, __m256i *RightBits) {
     memcpy(BitPtr+blockLength, RightBits, blockLength);
 }
 
-template<>
-inline void Combine_0RShort<1>(__m256i *Bits, __m256i *RightBits) {
-    char* BitPtr = reinterpret_cast<char*>(Bits);
-    char* RightBitPtr = reinterpret_cast<char*>(RightBits);
-    BitPtr[0] = BitPtr[1] = RightBitPtr[0];
-}
-
-template<>
-inline void Combine_0RShort<2>(__m256i *Bits, __m256i *RightBits) {
-    short* BitPtr = reinterpret_cast<short*>(Bits);
-    short* RightBitPtr = reinterpret_cast<short*>(RightBits);
-    BitPtr[0] = BitPtr[1] = RightBitPtr[0];
-}
-
-template<>
-inline void Combine_0RShort<4>(__m256i *Bits, __m256i *RightBits) {
-    int* BitPtr = reinterpret_cast<int*>(Bits);
-    int* RightBitPtr = reinterpret_cast<int*>(RightBits);
-    BitPtr[0] = BitPtr[1] = RightBitPtr[0];
-}
-
-template<>
-inline void Combine_0RShort<8>(__m256i *Bits, __m256i *RightBits) {
-    long long* BitPtr = reinterpret_cast<long long*>(Bits);
-    long long* RightBitPtr = reinterpret_cast<long long*>(RightBits);
-    BitPtr[0] = BitPtr[1] = RightBitPtr[0];
-}
-
-template<>
-inline void Combine_0RShort<16>(__m256i *Bits, __m256i *RightBits) {
-    __m256i vec = _mm256_loadu_si256(RightBits);
-    _mm256_store_si256(Bits, vec);
-    _mm256_store_si256(Bits+1, vec);
-}
 
 
 /*****************

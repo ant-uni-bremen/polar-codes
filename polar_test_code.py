@@ -3,8 +3,9 @@ from __future__ import print_function, division
 import numpy as np
 import scipy.special as sps
 import matplotlib.pyplot as plt
-
-import sys, time
+import unittest
+import sys
+import time
 # sys.path.append('./build/lib')
 # sys.path.append('./build/lib.linux-x86_64-2.7')
 import pypolar
@@ -30,8 +31,8 @@ def polar_encode_systematic(u, N, frozenBitMap):
 def polar_encode_systematic_algorithm_A(y, x, N, frozenBitMap):
     n = int(np.log2(N))
 
-    X = np.zeros((N, n+1), dtype=int)
-    X[:,  0] = y
+    X = np.zeros((N, n + 1), dtype=int)
+    X[:, 0] = y
     X[:, -1] = x
 
     for i in np.arange(N - 1, -1, -1):
@@ -78,28 +79,6 @@ def encode_matrix(u, N, frozenBitMap):
     x[np.where(frozenBitMap == -1)] = u
     x = x.dot(G) % 2
     return x
-
-
-def verify_encode_systematic():
-    frozenBitMap = np.array([0, -1, 0, -1, 0, -1, -1, -1]).astype(dtype=int)
-    for i in range(100):
-        u = np.random.randint(0, 2, 5)
-        Y, X = polar_encode_systematic(u, 8, frozenBitMap)
-        xm = encode_systematic_matrix(u, 8, frozenBitMap)
-        assert np.all(X == xm)
-
-    N = 2 ** 6
-    K = N // 2
-    eta = design_snr_to_bec_eta(-1.59, 1.0)
-    polar_capacities = calculate_bec_channel_capacities(eta, N)
-    frozenBitMap = get_frozenBitMap(polar_capacities, N - K)
-    # print(frozenBitMap)
-
-    for i in range(100):
-        u = np.random.randint(0, 2, K)
-        Y, X = polar_encode_systematic(u, N, frozenBitMap)
-        xm = encode_systematic_matrix(u, N, frozenBitMap)
-        assert np.all(X == xm)
 
 
 def spc_most_efficient(u, N, frozenBitMap):
@@ -156,11 +135,40 @@ def matrix_row_weight(G):
     print(w)
 
 
-def verify_cpp_encoder_impls():
-    for i in range(4, 11):
-        N = 2 ** i
+class PolarEncoderTests(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_001_encode_systematic(self):
+        frozenBitMap = np.array([0, -1, 0, -1, 0, -1, -1, -1], dtype=int)
+        for i in range(100):
+            u = np.random.randint(0, 2, 5)
+            Y, X = polar_encode_systematic(u, 8, frozenBitMap)
+            xm = encode_systematic_matrix(u, 8, frozenBitMap)
+            self.assertTrue(np.all(X == xm))
+
+        N = 2 ** 6
         K = N // 2
-        verify_cpp_encoder_impl(N, K)
+        eta = design_snr_to_bec_eta(-1.59, 1.0)
+        polar_capacities = calculate_bec_channel_capacities(eta, N)
+        frozenBitMap = get_frozenBitMap(polar_capacities, N - K)
+        # print(frozenBitMap)
+
+        for i in range(100):
+            u = np.random.randint(0, 2, K)
+            Y, X = polar_encode_systematic(u, N, frozenBitMap)
+            xm = encode_systematic_matrix(u, N, frozenBitMap)
+            self.assertTrue(np.all(X == xm))
+
+
+    def test_002_cpp_encoder_impls(self):
+        for i in range(5, 11):
+            N = 2 ** i
+            K = N // 2
+            verify_cpp_encoder_impl(N, K)
 
 
 def verify_cpp_encoder_impl(N=2 ** 4, K=5):
@@ -180,6 +188,7 @@ def verify_cpp_encoder_impl(N=2 ** 4, K=5):
         u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
         d = np.packbits(u)
         # print(N, K, len(u), len(d), u, d)
+        print(d)
 
         sm = time.time()
         xm = encode_systematic_matrix(u, N, frozenBitMap)
@@ -191,6 +200,8 @@ def verify_cpp_encoder_impl(N=2 ** 4, K=5):
         mp += em - pm
         xmp = np.packbits(xm)
         cmp += p.encoder_duration()
+        print(xm)
+        print(np.unpackbits(cw_pack))
 
         assert np.all(xmp == cw_pack)
         assert np.all(xm == np.unpackbits(cw_pack))
@@ -424,7 +435,7 @@ def get_polar_encoder_matrix_systematic(N, f):
 
 
 def main():
-    calculate_code_properties(32, 16, 0.0)
+    # calculate_code_properties(32, 16, 0.0)
     verify_frozen_bit_positions()
     verify_encode_systematic()
     verify_cpp_encoder_impls()
@@ -432,4 +443,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    unittest.main(failfast=True)
+    # main()

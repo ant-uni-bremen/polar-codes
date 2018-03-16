@@ -17,9 +17,9 @@ cdef extern from "polarcode/encoding/encoder.h" namespace "PolarCode::Encoding":
         size_t duration_ns()
 
 
-cdef extern from "polarcode/encoding/butterfly_avx2_packed.h" namespace "PolarCode::Encoding":
-    cdef cppclass ButterflyAvx2Packed(Encoder):
-        ButterflyAvx2Packed(size_t, vector[unsigned int]) except +
+cdef extern from "polarcode/encoding/butterfly_fip_packed.h" namespace "PolarCode::Encoding":
+    cdef cppclass ButterflyFipPacked(Encoder):
+        ButterflyFipPacked(size_t, vector[unsigned int]) except +
 
 
 cdef extern from "polarcode/decoding/decoder.h" namespace "PolarCode::Decoding":
