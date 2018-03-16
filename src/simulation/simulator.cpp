@@ -105,14 +105,15 @@ DataPoint* Simulator::getDefaultDataPoint() {
 	DataPoint* dp = new DataPoint();
 
 	// Set code parameters
-	dp->designSNR =        mConfiguration->getFloat("design-snr");
-	dp->N =                mConfiguration->getInt("blocklength");
-	dp->K = dp->N *        mConfiguration->getFloat("rate");
-	dp->L =                mConfiguration->getInt("pathlimit");
-	dp->errorDetection =   errorDetectionStringToId(mConfiguration->getString("error-detection"));
-	dp->systematic     =  !mConfiguration->getSwitch("non-systematic");
-	dp->decoderType    =   DecoderType::Flexible;
-	dp->codingScheme   =   -1;
+	dp->designSNR =          mConfiguration->getFloat("design-snr");
+	dp->N =                  mConfiguration->getInt("blocklength");
+	dp->K = dp->N *          mConfiguration->getFloat("rate");
+	dp->L =                  mConfiguration->getInt("pathlimit");
+	dp->errorDetection =     errorDetectionStringToId(mConfiguration->getString("error-detection"));
+    dp->errorDetectionType = errorDetectionStringToType(mConfiguration->getString("error-detection"));
+	dp->systematic =         !mConfiguration->getSwitch("non-systematic");
+    dp->decoderType    =   DecoderType::Flexible;	
+    dp->codingScheme = -1;
 
 	// Set simulation parameters
 	dp->EbN0 =             mConfiguration->getFloat("snr-max");
@@ -282,8 +283,8 @@ void Simulator::snrInflateJobList() {
 
 	for(DataPoint* job : compactList) {
 		for(unsigned i=0; i<snrCount; ++i) {
-			DataPoint* newJob = new DataPoint;
-			memcpy(newJob, job, sizeof(DataPoint));
+			// use copy constructor! Otherwise bad side effects are imminent!
+			DataPoint* newJob = new DataPoint(*job);
 			newJob->EbN0 = snrMin + i*scale;
 			if(newJob->precision == 32) {
 				//For float-only decoding: Correct LLR-coefficient is
@@ -333,9 +334,9 @@ void Simulator::saveResults() {
 			 << int(job->time.max * 1e9) << ','
 			 << int(job->time.mean * 1e9) << ','
 			 << int(job->time.dev * 1e9);
-      for(auto& tp : timeValues){
-        file << ',' << int(tp * 1e9);
-      }
+//      for(auto& tp : timeValues){
+//        file << ',' << int(tp * 1e9);
+//      }
     file << std::endl;
 	}
 	file.close();
@@ -462,11 +463,21 @@ void SimulationWorker::setCoders() {
 }
 
 void SimulationWorker::setErrorDetector() {
-	switch(mJob->errorDetection) {
-		case 8: mErrorDetector = new PolarCode::ErrorDetection::CRC8(); break;
-		case 32: mErrorDetector = new PolarCode::ErrorDetection::CRC32(); break;
-		default: mErrorDetector = new PolarCode::ErrorDetection::Dummy();
+	if(mJob->errorDetectionType == "crc") {
+		switch(mJob->errorDetection) {
+			case 8:
+				mErrorDetector = new PolarCode::ErrorDetection::CRC8();
+				break;
+			case 32:
+				mErrorDetector = new PolarCode::ErrorDetection::CRC32();
+				break;
+			default:
+				mErrorDetector = new PolarCode::ErrorDetection::Dummy();
+		}
+	} else {
+		mErrorDetector = new PolarCode::ErrorDetection::Dummy();
 	}
+
 	mEncoder->setErrorDetection(mErrorDetector);
 	mDecoder->setErrorDetection(mErrorDetector);
 }
@@ -603,6 +614,7 @@ void SimulationWorker::jobStartingOutput() {
 	output += ", K=" + std::to_string(mJob->K);
 	output += ", L=" + std::to_string(mJob->L);
 	output += ", dSNR=" + std::to_string(mJob->designSNR);
+  output += ", ErrorDetector=" + mJob->errorDetectionType + std::to_string(mJob->errorDetection);
 	output += ", SNR=" + std::to_string(mJob->EbN0);
 	output += "\n";
 

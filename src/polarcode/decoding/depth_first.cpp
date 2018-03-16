@@ -42,6 +42,7 @@ void Manager::decode() {
 		metric += decoder->reliability();
 		hintList.push_back({decoder, decoder->reliability()});
 	}
+
 	auto myCompareHints = [](const DecoderHint a, const DecoderHint b) -> bool { return a.reliability < b.reliability; };
 
 	//Sort all nodes
@@ -67,7 +68,7 @@ void Manager::decode() {
 			mConfigList.push(conf);
 		}
 		nodeRank++;
-	} while((nodeRank < mTrialLimit*2/3 || hintList[nodeRank].reliability < log(9)) && mConfigList.size() < mTrialLimit);
+	} while((nodeRank < mTrialLimit*2/3 || hintList[nodeRank].reliability < log(9)) && mConfigList.size() < (unsigned)mTrialLimit);
 
 	mBestMetric = metric;
 	mBestConfig = mConfigList.front();

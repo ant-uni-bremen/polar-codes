@@ -7,30 +7,15 @@
 
 
 #include <polarcode/construction/bhattacharrya.h>
-
-#include <polarcode/encoding/butterfly_avx2_packed.h>
-
-#include <polarcode/decoding/fastssc_avx_float.h>
-#include <polarcode/decoding/fastssc_avx2_char.h>
-#include <polarcode/decoding/scl_avx2_char.h>
-#include <polarcode/decoding/scl_avx_float.h>
-#include <polarcode/decoding/adaptive_float.h>
-#include <polarcode/decoding/adaptive_char.h>
-#include <polarcode/decoding/adaptive_mixed.h>
-
-#include <polarcode/errordetection/dummy.h>
-#include <polarcode/errordetection/crc8.h>
-#include <polarcode/errordetection/crc32.h>
+#include <polarcode/encoding/encoder.h>
+#include <polarcode/decoding/decoder.h>
 #include <polarcode/errordetection/errordetector.h>
 
-
 #include <signalprocessing/random.h>
-
 #include <signalprocessing/modulation/bpsk.h>
 
 #include <signalprocessing/transmission/scale.h>
 #include <signalprocessing/transmission/awgn.h>
-#include <signalprocessing/transmission/rayleigh.h>
 
 #include "setup.h"
 #include "statistics.h"
@@ -54,6 +39,15 @@ enum DecoderType {
 	DepthFirst
 };
 
+inline std::string errorDetectionStringToType(std::string errDetStr) {
+	std::string prefixCRC = "crc";
+	if(errDetStr.substr(0, prefixCRC.size()) == prefixCRC) {
+		return prefixCRC;
+	} else{ // implicit none!
+		return std::string("none");
+	}
+}
+
 /*!
  * \brief A collection of simulation input/output, called 'job'.
  *
@@ -68,6 +62,7 @@ struct DataPoint
 	int K;///< Information length
 	int L;///< List length for list-decoding
 	int errorDetection;///< 0=none,8/32=crc (effectively the number of check bits)
+	std::string errorDetectionType;
 	bool systematic;///< True, if systematic coding will be used
 	DecoderType decoderType;
 	int codingScheme;///< -1 for flexible decoder, 0 or higher for fixed decoder according to _codeRegistry_

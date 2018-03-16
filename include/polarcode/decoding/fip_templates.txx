@@ -359,8 +359,10 @@ inline void CombineSoftBits(fipv *Left, fipv *Right, fipv *Out) {
 
 template<unsigned blockLength>
 inline void Combine_0R(fipv *Bits) {
-	char* BitPtr = reinterpret_cast<char*>(Bits);
-	memcpy(BitPtr, BitPtr + blockLength, blockLength);
+	const unsigned vecLength = blockLength / 8;
+	for(unsigned i = 0; i < vecLength; ++i) {
+		fi_store(Bits + i, fi_load(Bits + vecLength + i));
+	}
 }
 
 template<unsigned blockLength>
@@ -370,7 +372,42 @@ inline void Combine_0RShort(fipv *Bits, fipv *RightBits) {
 	memcpy(BitPtr + blockLength, RightBits, blockLength);
 }
 
+template<>
+inline void Combine_0RShort<1>(fipv *Bits, fipv *RightBits) {
+	char* BitPtr = reinterpret_cast<char*>(Bits);
+	char* RightBitPtr = reinterpret_cast<char*>(RightBits);
+	BitPtr[0] = BitPtr[1] = RightBitPtr[0];
+}
 
+template<>
+inline void Combine_0RShort<2>(fipv *Bits, fipv *RightBits) {
+	short* BitPtr = reinterpret_cast<short*>(Bits);
+	short* RightBitPtr = reinterpret_cast<short*>(RightBits);
+	BitPtr[0] = BitPtr[1] = RightBitPtr[0];
+}
+
+template<>
+inline void Combine_0RShort<4>(fipv *Bits, fipv *RightBits) {
+	int* BitPtr = reinterpret_cast<int*>(Bits);
+	int* RightBitPtr = reinterpret_cast<int*>(RightBits);
+	BitPtr[0] = BitPtr[1] = RightBitPtr[0];
+}
+
+template<>
+inline void Combine_0RShort<8>(fipv *Bits, fipv *RightBits) {
+	long long* BitPtr = reinterpret_cast<long long*>(Bits);
+	long long* RightBitPtr = reinterpret_cast<long long*>(RightBits);
+	BitPtr[0] = BitPtr[1] = RightBitPtr[0];
+}
+
+#ifdef __AVX2__
+template<>
+inline void Combine_0RShort<16>(__m256i *Bits, __m256i *RightBits) {
+	__m256i vec = _mm256_loadu_si256(RightBits);
+	_mm256_store_si256(Bits, vec);
+	_mm256_store_si256(Bits+1, vec);
+}
+#endif
 
 /*****************
  * Decoders

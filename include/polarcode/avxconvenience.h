@@ -74,7 +74,6 @@ typedef __m256i fipv;// fixed point vector type
 	float:   32 bit per value
 */
 #define FLOATSPERVECTOR 8
-#define BYTESPERVECTOR 32
 
 #ifdef __AVX2__
 static inline char reduce_adds_epi8(__m256i x) {
