@@ -57,15 +57,6 @@ inline std::string errorDetectionStringToType(std::string errDetStr) {
 	}
 }
 
-inline std::string errorDetectionStringToType(std::string errDetStr) {
-	std::string prefixCRC = "crc";
-	if(errDetStr.substr(0, prefixCRC.size()) == prefixCRC) {
-		return prefixCRC;
-	} else{ // implicit none!
-		return std::string("none");
-	}
-}
-
 /*!
  * \brief A collection of simulation input/output, called 'job'.
  *
