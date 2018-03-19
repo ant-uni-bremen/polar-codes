@@ -64,7 +64,8 @@ add_library(PolarDecoder OBJECT
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_float.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_char.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_mixed.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/depth_first.h)
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/depth_first.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/templatized_float.h)
 
 add_library(PolarCode
         $<TARGET_OBJECTS:PolarConstructor>

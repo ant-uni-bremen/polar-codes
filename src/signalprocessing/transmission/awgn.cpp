@@ -80,7 +80,6 @@ void Awgn::transmit_vectorized() {
 		siga = _mm256_fmadd_ps(noiseMagnitude, a, siga);
 		sigb = _mm256_fmadd_ps(noiseMagnitude, b, sigb);
 #else
-#warning FMA not used
 		siga = _mm256_add_ps(_mm256_mul_ps(noiseMagnitude, a), siga);
 		sigb = _mm256_add_ps(_mm256_mul_ps(noiseMagnitude, b), sigb);
 #endif

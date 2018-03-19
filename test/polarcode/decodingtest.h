@@ -16,6 +16,9 @@ class DecodingTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST(testFipShort);
 	CPPUNIT_TEST(testPerformance);
 	CPPUNIT_TEST(testListDecoder);
+
+	CPPUNIT_TEST(testTemplatized);
+
 	CPPUNIT_TEST_SUITE_END();
 
 	PolarCode::Decoding::Decoder *mDecoder;
@@ -35,6 +38,8 @@ public:
 	void testPerformance();
 
 	void testListDecoder();
+
+	void testTemplatized();
 };
 
 #endif //PC_TEST_DECODING_H

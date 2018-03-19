@@ -118,12 +118,11 @@ private:
 #ifdef __AVX__
 
 #ifndef __AVX2__
-#warning AVX2 not used
 _PS256_CONST_TYPE(lcg_a, uint32_t, 1664525);
 _PS256_CONST_TYPE(lcg_b, uint32_t, 1013904223);
 _PS256_CONST_TYPE(lcg_mask, uint32_t, 0x3F800000);
-AVX2_INTOP_USING_SSE2(mullo_epi32); // Actually uses SSE4.1 _mm_mullo_epi32()
-AVX2_INTOP_USING_SSE2(or_si128);
+AVX2_INTOP_USING_SSE2(mullo_epi32) // Actually uses SSE4.1 _mm_mullo_epi32()
+AVX2_INTOP_USING_SSE2(or_si128)
 
 template <>
 class LCG<__m256> {

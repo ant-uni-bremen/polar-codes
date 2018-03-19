@@ -6,6 +6,7 @@
 #include <polarcode/decoding/scl_fip_char.h>
 #include <polarcode/decoding/scl_avx_float.h>
 #include <polarcode/decoding/fip_templates.txx>
+#include <polarcode/decoding/templatized_float.h>
 #include <polarcode/construction/bhattacharrya.h>
 #include <chrono>
 #include <random>
@@ -428,4 +429,28 @@ void DecodingTest::testListDecoder() {
 
 	delete decoder;
 
+}
+
+
+constexpr std::array<int, 8> frozenEight = {1, 1, 1, 0, 1, 0, 0, 0};
+
+void DecodingTest::testTemplatized() {
+	PolarCode::Decoding::Decoder *decoder =
+	        new PolarCode::Decoding::TemplatizedFloat<8, frozenEight>();
+	float signal[]={-5, -6, -4, 1, -4, -5, -7, 2};
+
+
+	decoder->setSignal(signal);
+	decoder->decode();
+	float output[8];
+	decoder->getSoftCodeword(output);
+
+	std::cout << std::endl << "Templatized decoder output: " << std::endl << "[";
+	for(int i = 0; i < 8; ++i) {
+		std::cout << output[i];
+		if(i != 7) std::cout << ", ";
+	}
+	std::cout << "]" << std::endl;
+
+	delete decoder;
 }

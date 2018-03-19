@@ -92,7 +92,6 @@ void Rayleigh::transmit_vectorized() {
 		sigA = _mm256_fmadd_ps(noiseMagnitude, noiseA, sigA);
 		sigB = _mm256_fmadd_ps(noiseMagnitude, noiseB, sigB);
 #else
-#warning FMA not used
 		sigA = _mm256_add_ps(_mm256_mul_ps(noiseMagnitude, noiseA), sigA);
 		sigB = _mm256_add_ps(_mm256_mul_ps(noiseMagnitude, noiseB), sigB);
 #endif
