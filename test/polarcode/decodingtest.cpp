@@ -456,6 +456,16 @@ void DecodingTest::testTemplatized() {
 	delete decoder;
 }
 
+void DecodingTest::showScanTestOutput(unsigned iterationLimit, float output[8]) {
+	std::cout << "Systematic SCAN decoder output for I=" << iterationLimit << ": " << std::endl << "[";
+	for(int i = 0; i < 8; ++i) {
+		std::cout << output[i];
+		if(i != 7) std::cout << ", ";
+	}
+	std::cout << "]" << std::endl;
+
+}
+
 void DecodingTest::testScan() {
 	PolarCode::Decoding::Decoder *decoder =
 			new PolarCode::Decoding::Scan(8, 1, {0,1,2,4});
@@ -464,18 +474,21 @@ void DecodingTest::testScan() {
 
 	std::cout << std::endl;
 
-	for(unsigned i = 1; i <= 8; i<<=1) {
+	for(unsigned i = 1; i <= 2; i<<=1) {
 		dynamic_cast<PolarCode::Decoding::Scan*>(decoder)->setIterationLimit(i);
 		decoder->setSignal(signal);
+
+		decoder->setSystematic(true);
 		decoder->decode();
 		decoder->getSoftCodeword(output);
+		showScanTestOutput(i, output);
 
-		std::cout << "Systematic SCAN decoder output for I=" << i << ": " << std::endl << "[";
-		for(int i = 0; i < 8; ++i) {
-			std::cout << output[i];
-			if(i != 7) std::cout << ", ";
-		}
-		std::cout << "]" << std::endl;
+		decoder->setSystematic(false);
+		decoder->decode();
+		decoder->getSoftCodeword(output);
+		std::cout << "Non-";
+		showScanTestOutput(i, output);
+		std::cout << std::endl;
 	}
 
 	delete decoder;

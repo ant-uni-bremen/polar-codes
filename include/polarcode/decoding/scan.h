@@ -17,6 +17,7 @@ namespace Decoding {
  */
 class Scan : public Decoder {
 	std::vector<float> mLlr, mEven, mOdd;
+	std::vector<float> mSystematicOutput;
 	std::vector<bool> mBooleanFrozen;
 	unsigned int mLevelCount, mN, mIterationLimit;
 
@@ -33,6 +34,8 @@ public:
 	bool decode();
 	void initialize(size_t blockLength, unsigned iterationLimit, const std::vector<unsigned> &frozenBits);
 	void setIterationLimit(unsigned iterationLimit);
+
+	void getExtrinsicChannelInformation(float *);
 };
 
 

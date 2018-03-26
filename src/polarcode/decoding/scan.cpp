@@ -43,6 +43,7 @@ void Scan::initialize(size_t blockLength, unsigned iterationLimit, const std::ve
 	mBitContainer = new FloatContainer(mBlockLength, mFrozenBits);
 	mOutputContainer = new unsigned char[(mBlockLength + 7) / 8];
 
+	mSystematicOutput.resize(mBlockLength);
 	mLlr.resize(2 * mBlockLength - 1);
 	mEven.resize(2 * mBlockLength - 1);
 	mOdd.resize(mLevelCount * mBlockLength / 2);
@@ -239,7 +240,9 @@ bool Scan::decode() {
 			std::cout << "Group " << group << std::endl;
 #endif
 			updatellrmap(mN, group);
+			mSystematicOutput[group] = mLlr[evenIndex(mN, mN, 0)];
 			if(group & 1) {
+				mSystematicOutput[group] += mOdd[oddIndex(mN, mN, group, 0)];
 				updatebitmap(mN, group);
 			} else {
 				if(mBooleanFrozen[group]) {
@@ -253,20 +256,27 @@ bool Scan::decode() {
 					std::cout << "E(" << mN << ",0) = 0" << std::endl;
 #endif
 				}
+				mSystematicOutput[group] += mEven[evenIndex(mN, mN, 0)];
 			}
 		}
 	}
 
 	float *outputLlr = dynamic_cast<FloatContainer*>(mBitContainer)->data();
 
-	//apply extrinsic LLRs
-	for(unsigned i = 0; i < mBlockLength; i++) {
-		unsigned idx = evenIndex(mN, 0, i);
-		mLlr[idx] += mEven[idx];
-	}
+	if(mSystematic) {
+		//apply extrinsic LLRs
+		for(unsigned i = 0; i < mBlockLength; i++) {
+			unsigned idx = evenIndex(mN, 0, i);
+			mLlr[idx] += mEven[idx];
+		}
 
-	for(unsigned i = 0; i < mBlockLength; i++) {
-		outputLlr[i] = mLlr[evenIndex(mN, 0, bit_reverse(i, mN))];
+		for(unsigned i = 0; i < mBlockLength; i++) {
+			outputLlr[i] = mLlr[evenIndex(mN, 0, bit_reverse(i, mN))];
+		}
+	} else {
+		for(unsigned i = 0; i < mBlockLength; i++) {
+			outputLlr[i] = mSystematicOutput[bit_reverse(i, mN)];
+		}
 	}
 
 	mBitContainer->getPackedInformationBits(mOutputContainer);
@@ -274,7 +284,11 @@ bool Scan::decode() {
 	return result;
 }
 
-
+void Scan::getExtrinsicChannelInformation(float *eLlr) {
+	for(unsigned i = 0; i < mBlockLength; i++) {
+		eLlr[i] = mEven[evenIndex(mN, 0, bit_reverse(i, mN))];
+	}
+}
 
 }// namespace Decoding
 }// namespace PolarCode

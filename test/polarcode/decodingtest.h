@@ -16,9 +16,7 @@ class DecodingTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST(testFipShort);
 	CPPUNIT_TEST(testPerformance);
 	CPPUNIT_TEST(testListDecoder);
-
 	CPPUNIT_TEST(testTemplatized);
-
 	CPPUNIT_TEST(testScan);
 
 	CPPUNIT_TEST_SUITE_END();
@@ -38,12 +36,12 @@ public:
 #endif
 	void testFipShort();
 	void testPerformance();
-
 	void testListDecoder();
-
 	void testTemplatized();
-
 	void testScan();
+
+private:
+	void showScanTestOutput(unsigned, float*);
 };
 
 #endif //PC_TEST_DECODING_H
