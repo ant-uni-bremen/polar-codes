@@ -52,6 +52,7 @@ add_library(PolarDecoder OBJECT
         decoding/adaptive_char
         decoding/adaptive_mixed
         decoding/depth_first
+		decoding/scan
         ${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/decoder.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fip_char.h
@@ -65,7 +66,8 @@ add_library(PolarDecoder OBJECT
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_char.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_mixed.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/depth_first.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/templatized_float.h)
+		${CMAKE_SOURCE_DIR}/include/polarcode/decoding/templatized_float.h
+		${CMAKE_SOURCE_DIR}/include/polarcode/decoding/scan.h)
 
 add_library(PolarCode
         $<TARGET_OBJECTS:PolarConstructor>

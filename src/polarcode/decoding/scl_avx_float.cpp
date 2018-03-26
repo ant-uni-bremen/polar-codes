@@ -1,7 +1,6 @@
 #include <polarcode/decoding/scl_avx_float.h>
 #include <polarcode/polarcode.h>
 #include <polarcode/arrayfuncs.h>
-#include <polarcode/encoding/butterfly_fip_packed.h>
 #include <cmath>
 
 namespace PolarCode {
@@ -21,12 +20,10 @@ PathList::PathList(size_t listSize, size_t stageCount, datapool_t *dataPool)
 	mBitTree.resize(listSize);
 	mLeftBitTree.resize(listSize);
 	mMetric.assign(listSize, 0);
-//	mCorrectedNodeIds.resize(listSize);
 	mNextLlrTree.resize(listSize);
 	mNextBitTree.resize(listSize);
 	mNextLeftBitTree.resize(listSize);
 	mNextMetric.assign(listSize, 0);
-//	mNextCorrectedNodeIds.resize(listSize);
 	for(unsigned i=0; i<mPathLimit; ++i) {
 		mLlrTree[i].resize(stageCount);
 		mBitTree[i].resize(stageCount);
@@ -85,7 +82,6 @@ void PathList::switchToNext() {
 	std::swap(mBitTree, mNextBitTree);
 	std::swap(mLeftBitTree, mNextLeftBitTree);
 	std::swap(mMetric, mNextMetric);
-//	std::swap(mCorrectedNodeIds, mNextCorrectedNodeIds);
 	mPathCount = mNextPathCount;
 }
 
@@ -199,18 +195,6 @@ SclAvx::PathList* Node::pathList() {
 	return xmPathList;
 }
 
-/*unsigned Node::id() {
-	return mId;
-}
-
-void Node::setId(unsigned newId) {
-	mId = newId;
-}
-
-unsigned Node::lastId() {
-	return mLastId;
-}*/
-
 /*************
  * (Short)RateRNode
  * ***********/
@@ -261,12 +245,6 @@ void RateRNode::decode() {
 
 	xmPathList->clearStage(mStage);
 }
-/*
-void RateRNode::setId(unsigned newId) {
-	mId = newId;
-	mLeft->setId(newId+1);
-	mRight->setId(mLeft->lastId() + 1);
-}*/
 
 ShortRateRNode::ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent)
 	: RateRNode(frozenBits, parent) {
@@ -668,7 +646,8 @@ SclAvxFloat::~SclAvxFloat() {
 }
 
 void SclAvxFloat::clear() {
-	if(mRootNode) delete mRootNode;
+	delete mEncoder;
+	delete mRootNode;
 	delete mNodeBase;
 	delete mPathList;
 	delete mDataPool;
@@ -683,6 +662,8 @@ void SclAvxFloat::initialize(size_t blockLength, const std::vector<unsigned> &fr
 	}
 	mBlockLength = blockLength;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+	mEncoder = new PolarCode::Encoding::ButterflyFipPacked(mBlockLength, mFrozenBits);
+	mEncoder->setSystematic(false);
 	mDataPool = new SclAvx::datapool_t();
 	mPathList = new SclAvx::PathList(mListSize, __builtin_ctz(mBlockLength)+1, mDataPool);
 	mNodeBase = new SclAvx::Node(mBlockLength, mListSize, mDataPool, mPathList);
@@ -725,15 +706,10 @@ bool SclAvxFloat::extractBestPath() {
 			mBitContainer->getPackedInformationBits(mOutputContainer);
 		}
 	} else {// non-systematic
-		PolarCode::Encoding::Encoder *encoder
-				= new PolarCode::Encoding::ButterflyFipPacked(mBlockLength, mFrozenBits);
-		PolarCode::PackedContainer *container
-				= new PolarCode::PackedContainer(mBlockLength, mFrozenBits);
 		for(unsigned path = 0; path < pathCount; ++path) {
-			container->insertLlr(mPathList->Bit(path, dataStage));
-			encoder->setCodeword(container->data());
-			encoder->encode();
-			encoder->getInformation(mOutputContainer);
+			mEncoder->setFloatCodeword(mPathList->Bit(path, dataStage));
+			mEncoder->encode();
+			mEncoder->getInformation(mOutputContainer);
 			if(mErrorDetector->check(mOutputContainer, byteLength)) {
 				decoderSuccess = true;
 				break;
@@ -741,13 +717,10 @@ bool SclAvxFloat::extractBestPath() {
 		}
 		// Fall back to ML path, if none of the candidates was free of errors
 		if(!decoderSuccess) {
-			container->insertLlr(mPathList->Bit(0, dataStage));
-			encoder->setCodeword(container->data());
-			encoder->encode();
-			encoder->getInformation(mOutputContainer);
+			mEncoder->setFloatCodeword(mPathList->Bit(0, dataStage));
+			mEncoder->encode();
+			mEncoder->getInformation(mOutputContainer);
 		}
-		delete container;
-		delete encoder;
 	}
 	mPathList->clear();// Clean up
 	return decoderSuccess;

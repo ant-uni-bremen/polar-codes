@@ -1,6 +1,7 @@
 #ifndef PC_DEC_SCL_FIP_H
 #define PC_DEC_SCL_FIP_H
 
+#include <polarcode/encoding/encoder.h>
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/decoding/fip_char.h>
 #include <polarcode/datapool.txx>
@@ -376,6 +377,7 @@ class SclFipChar : public Decoder {
 				  *mRootNode;
 	SclFip::datapool_t *mDataPool;
 	SclFip::PathList *mPathList;
+	Encoding::Encoder *mEncoder;
 
 	void clear();
 	void makeInitialPathList();

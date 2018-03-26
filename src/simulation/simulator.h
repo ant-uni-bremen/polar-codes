@@ -36,7 +36,8 @@ inline int errorDetectionStringToId(std::string str) {
 enum DecoderType {
 	Flexible,
 	Fixed,
-	DepthFirst
+	DepthFirst,
+	Scan
 };
 
 inline std::string errorDetectionStringToType(std::string errDetStr) {
@@ -113,6 +114,7 @@ class Simulator {
 	void configureAmplificationSim();
 	void configureFixedSim();
 	void configureDepthFirstSim();
+	void configureScanSim();
 	void snrInflateJobList();
 
 	void saveResults();

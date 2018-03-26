@@ -447,6 +447,7 @@ FastSscAvxFloat::~FastSscAvxFloat() {
 }
 
 void FastSscAvxFloat::clear() {
+	delete mEncoder;
 	delete mRootNode;
 	delete mNodeBase;
 	delete mDataPool;
@@ -462,6 +463,8 @@ void FastSscAvxFloat::initialize(size_t blockLength, const std::vector<unsigned>
 	mBlockLength = blockLength;
 	//mFrozenBits = frozenBits;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+	mEncoder = new Encoding::ButterflyFipPacked(mBlockLength, mFrozenBits);
+	mEncoder->setSystematic(false);
 	mDataPool = new DataPool<float, 32>();
 	mNodeBase = new FastSscAvx::Node(mBlockLength, mDataPool);
 	mRootNode = FastSscAvx::createDecoder(mFrozenBits, mNodeBase);
@@ -476,14 +479,13 @@ bool FastSscAvxFloat::decode() {
 	mRootNode->decode();
 
 	if(!mSystematic) {
-		Encoding::Encoder* encoder = new Encoding::ButterflyFipPacked(mBlockLength);
-		encoder->setSystematic(false);
-		encoder->setCodeword(dynamic_cast<FloatContainer*>(mBitContainer)->data());
-		encoder->encode();
-		encoder->getEncodedData(dynamic_cast<FloatContainer*>(mBitContainer)->data());
-		delete encoder;
+		mEncoder->setFloatCodeword(dynamic_cast<FloatContainer*>(mBitContainer)->data());
+		mEncoder->encode();
+		mEncoder->getInformation(mOutputContainer);
+	} else {
+		mBitContainer->getPackedInformationBits(mOutputContainer);
 	}
-	mBitContainer->getPackedInformationBits(mOutputContainer);
+
 	bool result = mErrorDetector->check(mOutputContainer, (mBlockLength-mFrozenBits.size()+7)/8);
 	return result;
 }

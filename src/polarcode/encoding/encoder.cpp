@@ -52,6 +52,16 @@ void Encoder::setCodeword(void *pData) {
 	mCodewordReady = true;
 }
 
+void Encoder::setCharCodeword(void *cData) {
+	mBitContainer->insertCharBits(cData);
+	mCodewordReady = true;
+}
+
+void Encoder::setFloatCodeword(void *fData) {
+	mBitContainer->insertLlr((float*)fData);
+	mCodewordReady = true;
+}
+
 void Encoder::getEncodedData(void *pData) {
 	mBitContainer->getPackedBits(pData);
 }

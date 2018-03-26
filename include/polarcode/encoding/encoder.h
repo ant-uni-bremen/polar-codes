@@ -104,6 +104,18 @@ public:
 	void setCodeword(void *pData);
 
 	/*!
+	 * \brief Insert char bits.
+	 * \param cData Pointer to memory location of char bits.
+	 */
+	void setCharCodeword(void *cData);
+
+	/*!
+	 * \brief Insert float bits.
+	 * \param fData Pointer to memory location of float bits.
+	 */
+	void setFloatCodeword(void *fData);
+
+	/*!
 	 * \brief Writes packed code bits into memory.
 	 * \param pData Memory location for encoded data. Must be pre-allocated.
 	 */

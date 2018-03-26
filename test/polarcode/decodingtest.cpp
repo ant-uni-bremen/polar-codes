@@ -7,6 +7,7 @@
 #include <polarcode/decoding/scl_avx_float.h>
 #include <polarcode/decoding/fip_templates.txx>
 #include <polarcode/decoding/templatized_float.h>
+#include <polarcode/decoding/scan.h>
 #include <polarcode/construction/bhattacharrya.h>
 #include <chrono>
 #include <random>
@@ -451,6 +452,31 @@ void DecodingTest::testTemplatized() {
 		if(i != 7) std::cout << ", ";
 	}
 	std::cout << "]" << std::endl;
+
+	delete decoder;
+}
+
+void DecodingTest::testScan() {
+	PolarCode::Decoding::Decoder *decoder =
+			new PolarCode::Decoding::Scan(8, 1, {0,1,2,4});
+	float signal[]={-5, -6, -4, 1, -4, -5, -7, 2};
+	float output[8];
+
+	std::cout << std::endl;
+
+	for(unsigned i = 1; i <= 8; i<<=1) {
+		dynamic_cast<PolarCode::Decoding::Scan*>(decoder)->setIterationLimit(i);
+		decoder->setSignal(signal);
+		decoder->decode();
+		decoder->getSoftCodeword(output);
+
+		std::cout << "Systematic SCAN decoder output for I=" << i << ": " << std::endl << "[";
+		for(int i = 0; i < 8; ++i) {
+			std::cout << output[i];
+			if(i != 7) std::cout << ", ";
+		}
+		std::cout << "]" << std::endl;
+	}
 
 	delete decoder;
 }

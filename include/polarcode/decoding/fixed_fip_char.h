@@ -1,6 +1,7 @@
 #ifndef PC_DEC_FIXED_CHAR_H
 #define PC_DEC_FIXED_CHAR_H
 
+#include <polarcode/encoding/encoder.h>
 #include <polarcode/decoding/decoder.h>
 
 namespace PolarCode {
@@ -44,6 +45,7 @@ FixedDecoder *createFixedDecoder(unsigned int scheme);
 
 class FixedChar : public Decoder {
     FixedDecoding::FixedDecoder *mDecoder;
+	Encoding::Encoder *mEncoder;
 
 public:
     FixedChar(unsigned int scheme);

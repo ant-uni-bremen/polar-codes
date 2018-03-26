@@ -1,6 +1,6 @@
+#include <polarcode/polarcode.h>
 #include <polarcode/decoding/fastssc_fip_char.h>
 #include <polarcode/encoding/butterfly_fip_packed.h>
-#include <polarcode/polarcode.h>
 
 #include <string>
 #include <iostream>
@@ -546,7 +546,8 @@ FastSscFipChar::~FastSscFipChar() {
 }
 
 void FastSscFipChar::clear() {
-	if(mRootNode) delete mRootNode;
+	delete mEncoder;
+	delete mRootNode;
 	delete mNodeBase;
 	delete mDataPool;
 }
@@ -559,30 +560,31 @@ void FastSscFipChar::initialize(size_t blockLength, const std::vector<unsigned> 
 		clear();
 	}
 	mBlockLength = blockLength;
-	//mFrozenBits = frozenBits;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+
+	mEncoder = new Encoding::ButterflyFipPacked(mBlockLength, mFrozenBits);
+	mEncoder->setSystematic(false);
+
 	mDataPool = new DataPool<fipv, BYTESPERVECTOR>();
 	mNodeBase = new FastSscFip::Node(blockLength, mDataPool);
-	//std::cout << "Create decoder of length " << mBlockLength << std::endl;
 	mRootNode = FastSscFip::createDecoder(frozenBits, mNodeBase);
 	mLlrContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->input()),  mBlockLength);
 	mBitContainer = new CharContainer(reinterpret_cast<char*>(mNodeBase->output()), mBlockLength);
 	mLlrContainer->setFrozenBits(mFrozenBits);
 	mBitContainer->setFrozenBits(mFrozenBits);
-	mOutputContainer = new unsigned char[(mBlockLength-frozenBits.size() + 7) / 8];
+	mOutputContainer = new unsigned char[(mBlockLength - frozenBits.size() + 7) / 8];
 }
 
 bool FastSscFipChar::decode() {
 	mRootNode->decode(mNodeBase->input(), mNodeBase->output());
 	if(!mSystematic) {
-		Encoding::Encoder* encoder = new Encoding::ButterflyFipPacked(mBlockLength);
-		encoder->setSystematic(false);
-		encoder->setCodeword(dynamic_cast<CharContainer*>(mBitContainer)->data());
-		encoder->encode();
-		encoder->getEncodedData(dynamic_cast<CharContainer*>(mBitContainer)->data());
-		delete encoder;
+		mEncoder->setCharCodeword(dynamic_cast<CharContainer*>(mBitContainer)->data());
+		mEncoder->encode();
+		mEncoder->getInformation(mOutputContainer);
+	} else {
+		mBitContainer->getPackedInformationBits(mOutputContainer);
 	}
-	mBitContainer->getPackedInformationBits(mOutputContainer);
+
 	bool result = mErrorDetector->check(mOutputContainer, (mBlockLength-mFrozenBits.size() + 7) / 8);
 	return result;
 }

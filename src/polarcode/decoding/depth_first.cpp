@@ -577,6 +577,7 @@ DepthFirst::~DepthFirst() {
 }
 
 void DepthFirst::clear() {
+	delete mEncoder;
 	delete mRootNode;
 	delete mNodeBase;
 	delete mDataPool;
@@ -591,6 +592,8 @@ void DepthFirst::initialize(size_t blockLength, const std::vector<unsigned> &fro
 	}
 	mBlockLength = blockLength;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+	mEncoder = new Encoding::ButterflyFipPacked(mBlockLength, mFrozenBits);
+	mEncoder->setSystematic(false);
 	mDataPool = new DepthFirstObjects::datapool_t();
 	mManager  = new DepthFirstObjects::Manager(mTrialLimit);
 	mNodeBase = new DepthFirstObjects::Node(blockLength, mDataPool, mManager);
@@ -607,22 +610,18 @@ void DepthFirst::initialize(size_t blockLength, const std::vector<unsigned> &fro
 bool DepthFirst::decode() {
 	bool success = false;
 
-	Encoding::Encoder* encoder = nullptr;
-	if(!mSystematic) {
-		Encoding::Encoder* encoder = new Encoding::ButterflyFipPacked(mBlockLength);
-		encoder->setSystematic(false);
-	}
-
 	unsigned run = 1;
 	mManager->decode();
 
 	for(;;) {
 		if(!mSystematic) {
-			encoder->setCodeword(dynamic_cast<FloatContainer*>(mBitContainer)->data());
-			encoder->encode();
-			encoder->getEncodedData(dynamic_cast<FloatContainer*>(mBitContainer)->data());
+			mEncoder->setFloatCodeword(dynamic_cast<FloatContainer*>(mBitContainer)->data());
+			mEncoder->encode();
+			mEncoder->getInformation(mOutputContainer);
+		} else {
+			mBitContainer->getPackedInformationBits(mOutputContainer);
 		}
-		mBitContainer->getPackedInformationBits(mOutputContainer);
+
 		success = mErrorDetector->check(mOutputContainer, (mBlockLength-mFrozenBits.size()+7)/8);
 
 		if(!success && run < mTrialLimit) {
@@ -643,9 +642,6 @@ bool DepthFirst::decode() {
 		mBitContainer->getPackedInformationBits(mOutputContainer);
 	}*/
 
-	if(encoder != nullptr) {
-		delete encoder;
-	}
 	return success;
 }
 

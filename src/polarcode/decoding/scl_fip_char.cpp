@@ -725,10 +725,8 @@ SclFipChar::~SclFipChar() {
 }
 
 void SclFipChar::clear() {
-	if(mRootNode) {
-		delete mRootNode;
-		mRootNode = nullptr;
-	}
+	delete mEncoder;
+	delete mRootNode;
 	delete mNodeBase;
 	delete mPathList;
 	delete mDataPool;
@@ -744,6 +742,8 @@ void SclFipChar::initialize(size_t blockLength, const std::vector<unsigned> &fro
 	mBlockLength = blockLength;
 	mFrozenBits.clear();
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+	mEncoder = new PolarCode::Encoding::ButterflyFipPacked(mBlockLength, mFrozenBits);
+	mEncoder->setSystematic(false);
 	mDataPool = new SclFip::datapool_t();
 	mPathList = new SclFip::PathList(mListSize, __builtin_ctz(mBlockLength) + 1, mDataPool);
 	mNodeBase = new SclFip::Node(mBlockLength, mListSize, mDataPool, mPathList);
@@ -786,15 +786,10 @@ bool SclFipChar::extractBestPath() {
 			mBitContainer->getPackedInformationBits(mOutputContainer);
 		}
 	} else {
-		PolarCode::Encoding::Encoder *encoder
-				= new PolarCode::Encoding::ButterflyFipPacked(mBlockLength, mFrozenBits);
-		PolarCode::PackedContainer *container
-				= new PolarCode::PackedContainer(mBlockLength, mFrozenBits);
 		for(unsigned path = 0; path < pathCount; ++path) {
-			container->insertCharBits(mPathList->Bit(path, dataStage));
-			encoder->setCodeword(container->data());
-			encoder->encode();
-			encoder->getInformation(mOutputContainer);
+			mEncoder->setCharCodeword(mPathList->Bit(path, dataStage));
+			mEncoder->encode();
+			mEncoder->getInformation(mOutputContainer);
 			if(mErrorDetector->check(mOutputContainer, byteLength)) {
 				decoderSuccess = true;
 				break;
@@ -802,13 +797,10 @@ bool SclFipChar::extractBestPath() {
 		}
 		// Fall back to ML path, if none of the candidates was free of errors
 		if(!decoderSuccess) {
-			container->insertCharBits(mPathList->Bit(0, dataStage));
-			encoder->setCodeword(container->data());
-			encoder->encode();
-			encoder->getInformation(mOutputContainer);
+			mEncoder->setCharCodeword(mPathList->Bit(0, dataStage));
+			mEncoder->encode();
+			mEncoder->getInformation(mOutputContainer);
 		}
-		delete container;
-		delete encoder;
 	}
 	mPathList->clear();// Clean up
 	return decoderSuccess;

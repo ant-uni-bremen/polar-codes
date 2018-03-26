@@ -16,6 +16,7 @@
 #include <polarcode/decoding/adaptive_mixed.h>
 #include <polarcode/decoding/fixed_fip_char.h>
 #include <polarcode/decoding/depth_first.h>
+#include <polarcode/decoding/scan.h>
 
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
@@ -45,6 +46,8 @@ Simulator::Simulator(Setup::Configurator *config)
 		configureFixedSim();
 	} else if(simType == "depthfirst") {
 		configureDepthFirstSim();
+	} else if(simType == "scan") {
+		configureScanSim();
 	} else {
 		// Unknown simulation type, should be caught by cmd-parser
 		exit(EXIT_FAILURE);
@@ -270,6 +273,22 @@ void Simulator::configureDepthFirstSim() {
 	delete jobTemplate;
 }
 
+void Simulator::configureScanSim() {
+	DataPoint* jobTemplate = getDefaultDataPoint();
+	unsigned lMin = mConfiguration->getInt("l-min");
+	unsigned lMax = mConfiguration->getInt("l-max");
+
+	for(unsigned l = lMin; l <= lMax; l *= 2) {
+		DataPoint* job = new DataPoint(*jobTemplate);
+
+		job->L = l;
+		job->decoderType = DecoderType::Scan;
+
+		mJobList.push_back(job);
+	}
+
+	delete jobTemplate;
+}
 
 void Simulator::snrInflateJobList() {
 	std::vector<DataPoint*> compactList;
@@ -429,6 +448,8 @@ void SimulationWorker::setCoders() {
 		mDecoder = new PolarCode::Decoding::FixedChar(mJob->codingScheme);
 	} else if(mJob->decoderType == DepthFirst) {
 		mDecoder = new PolarCode::Decoding::DepthFirst(mJob->N, mJob->L, mFrozenBits);
+	} else if(mJob->decoderType == Scan) {
+		mDecoder = new PolarCode::Decoding::Scan(mJob->N, mJob->L, mFrozenBits);
 	} else {
 		if(mJob->L > 1) {
 			switch(mJob->precision) {
@@ -460,6 +481,9 @@ void SimulationWorker::setCoders() {
 			}
 		}
 	}
+
+	mEncoder->setSystematic(mJob->systematic);
+	mDecoder->setSystematic(mJob->systematic);
 }
 
 void SimulationWorker::setErrorDetector() {

@@ -1,6 +1,7 @@
 #ifndef PC_DEC_DEPTHFIRST_H
 #define PC_DEC_DEPTHFIRST_H
 
+#include <polarcode/encoding/encoder.h>
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/decoding/avx_float.h>
 #include <polarcode/datapool.txx>
@@ -206,6 +207,7 @@ class DepthFirst : public Decoder {
 	DepthFirstObjects::Node *mNodeBase, *mRootNode;
 	DepthFirstObjects::datapool_t *mDataPool;
 	DepthFirstObjects::Manager *mManager;
+	Encoding::Encoder *mEncoder;
 
 	void clear();
 

@@ -1,6 +1,7 @@
 #ifndef PC_DEC_FASTSSC_AVX_FLOAT_H
 #define PC_DEC_FASTSSC_AVX_FLOAT_H
 
+#include <polarcode/encoding/encoder.h>
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/datapool.txx>
 #include <polarcode/decoding/avx_float.h>
@@ -206,6 +207,7 @@ class FastSscAvxFloat : public Decoder {
 	FastSscAvx::Node *mNodeBase,///< General code information
 					 *mRootNode;///< Actual decoder
 	FastSscAvx::datapool_t *mDataPool;///< Lazy-copy data-block pool
+	Encoding::Encoder *mEncoder;
 
 	void clear();
 

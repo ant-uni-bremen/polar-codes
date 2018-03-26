@@ -3,6 +3,7 @@
 
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/decoding/avx_float.h>
+#include <polarcode/encoding/butterfly_fip_packed.h>
 #include <polarcode/datapool.txx>
 #include <vector>
 #include <map>
@@ -393,6 +394,7 @@ class SclAvxFloat : public Decoder {
 				  *mRootNode;
 	SclAvx::datapool_t *mDataPool;
 	SclAvx::PathList *mPathList;
+	Encoding::Encoder *mEncoder;
 
 	void clear();
 	void makeInitialPathList();

@@ -1,8 +1,9 @@
 #ifndef PC_DEC_FASTSSC_FIP_H
 #define PC_DEC_FASTSSC_FIP_H
 
-#include <polarcode/decoding/decoder.h>
 #include <polarcode/datapool.txx>
+#include <polarcode/encoding/encoder.h>
+#include <polarcode/decoding/decoder.h>
 #include <polarcode/decoding/fip_char.h>
 
 namespace PolarCode {
@@ -264,6 +265,7 @@ class FastSscFipChar : public Decoder {
 	FastSscFip::Node *mNodeBase,///< General code information
 					  *mRootNode;///< Actual decoder
 	DataPool<fipv, BYTESPERVECTOR> *mDataPool;///< Lazy-copy data-block pool
+	Encoding::Encoder* mEncoder;///< Encoder for non-systematic output
 
 	void clear();
 
