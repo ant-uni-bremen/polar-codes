@@ -436,8 +436,19 @@ void DecodingTest::testListDecoder() {
 constexpr std::array<int, 8> frozenEight = {1, 1, 1, 0, 1, 0, 0, 0};
 
 void DecodingTest::testTemplatized() {
+	/*
+	 * This is an attempt to make things compile for old GCC compilers.
+	 * The templated code is known to work with GCC 6 and above.
+	 * For older compilers, this test is redundant.
+	 */
+	#if defined(__GNUC__) && __GNUC__ > 6
 	PolarCode::Decoding::Decoder *decoder =
 	        new PolarCode::Decoding::TemplatizedFloat<8, frozenEight>();
+	#else
+	std::vector<unsigned> frozenBits({0,1,2,4});
+	PolarCode::Decoding::Decoder *decoder =
+			new PolarCode::Decoding::FastSscAvxFloat(8, frozenBits);
+	#endif
 	float signal[]={-5, -6, -4, 1, -4, -5, -7, 2};
 
 
