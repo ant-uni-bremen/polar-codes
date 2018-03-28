@@ -601,13 +601,24 @@ void PackedContainer::setSize(size_t newSize) {
 }
 
 void PackedContainer::buildInformationMask() {
+	unsigned bitOffset = mFakeSize - mElementCount;
 	unsigned frozenCounter = 0, frozenBitCount = mFrozenBits.size();
-	for(unsigned i = 0; i < mFakeSize / 64; ++i) {
+	unsigned begin = 0;
+
+	if(bitOffset >= 64) {
+		begin = bitOffset / 64;
+		bitOffset %= 64;
+		for(unsigned i = 0; i < begin; ++i) {
+			mInformationMask[i] = 0;
+		}
+	}
+
+	for(unsigned i = begin; i < mFakeSize / 64; ++i) {
 		unsigned long mask = ~0ULL;//set all bits
 		//clear frozen bits
 		while(frozenCounter < frozenBitCount && mFrozenBits[frozenCounter] < (i + 1) * 64) {//while the next frozen bit is in this qword
 			unsigned long bit = mFrozenBits[frozenCounter++] % 64;
-			bit = (bit & ~7ULL) + (7 - (bit % 8));//pay attention to endianness
+			bit = (bit & ~7ULL) + (7 - (bit % 8)) + bitOffset;//pay attention to endianness
 			mask ^= (1ULL << bit);//clear the mask bit
 		}
 		mInformationMask[i] = mask;

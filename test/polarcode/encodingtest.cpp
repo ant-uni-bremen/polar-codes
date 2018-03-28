@@ -18,7 +18,7 @@ void EncodingTest::tearDown() {
 
 }
 
-void EncodingTest::avxPackedTest() {
+void EncodingTest::fipPackedTest() {
 	const size_t maxBits = 1024;
 	const size_t maxBytes = maxBits / 8;
 
@@ -56,6 +56,29 @@ void EncodingTest::avxPackedTest() {
 	}
 }
 
+void EncodingTest::fipPackedTestShort() {
+	{
+		auto constructor = new PolarCode::Construction::Bhattacharrya(16, 8);
+		frozenBits = constructor->construct();
+		delete constructor;
+
+	}
+	unsigned char input = 0xFF;
+	unsigned char output[2];
+	unsigned char expectedOutput[2] = {0xFF, 0xFF};
+
+	encoder = new PolarCode::Encoding::ButterflyFipPacked(16, frozenBits);
+	encoder->setSystematic(true);
+
+	encoder->setInformation(&input);
+	encoder->encode();
+	encoder->getEncodedData(output);
+
+	delete encoder;
+
+	CPPUNIT_ASSERT(output[0] == expectedOutput[0] && output[1] == expectedOutput[1]);
+}
+
 void getRandomData(void *ptr, size_t length) {
 	//unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	unsigned seed = 1001;
@@ -67,7 +90,7 @@ void getRandomData(void *ptr, size_t length) {
 	}
 }
 
-void EncodingTest::avxRecursiveTest() {
+void EncodingTest::fipRecursiveTest() {
 	using namespace PolarCode::Construction;
 	using namespace PolarCode::Encoding;
 	using namespace std::chrono;

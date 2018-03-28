@@ -6,8 +6,9 @@
 
 class EncodingTest : public CppUnit::TestFixture {
 	CPPUNIT_TEST_SUITE(EncodingTest);
-	CPPUNIT_TEST(avxPackedTest);
-	CPPUNIT_TEST(avxRecursiveTest);
+	CPPUNIT_TEST(fipPackedTest);
+	CPPUNIT_TEST(fipPackedTestShort);
+	CPPUNIT_TEST(fipRecursiveTest);
 	CPPUNIT_TEST(performanceComparison);
 	CPPUNIT_TEST_SUITE_END();
 
@@ -18,8 +19,9 @@ public:
 	void setUp();
 	void tearDown();
 
-	void avxPackedTest();
-	void avxRecursiveTest();
+	void fipPackedTest();
+	void fipPackedTestShort();
+	void fipRecursiveTest();
 	void performanceComparison();
 };
 

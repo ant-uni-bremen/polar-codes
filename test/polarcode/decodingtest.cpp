@@ -441,7 +441,7 @@ void DecodingTest::testTemplatized() {
 	 * The templated code is known to work with GCC 6 and above.
 	 * For older compilers, this test is redundant.
 	 */
-	#if defined(__GNUC__) && __GNUC__ > 6
+	#if defined(__GNUC__) && __GNUC__ >= 6
 	PolarCode::Decoding::Decoder *decoder =
 	        new PolarCode::Decoding::TemplatizedFloat<8, frozenEight>();
 	#else
