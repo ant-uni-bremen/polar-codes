@@ -36,8 +36,6 @@ cdef extern from "polarcode/decoding/decoder.h" namespace "PolarCode::Decoding":
         void setSignal(const char*)
         void getDecodedInformationBits(void*)
         vector[unsigned int] frozenBits()
-        void enableSoftOutput(bool)
-        bool hasSoftOutput()
         void getSoftCodeword(void *pData)
         void getSoftInformation(void *pData)
 

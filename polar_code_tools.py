@@ -84,6 +84,17 @@ def get_polar_generator_matrix(n):
     return F
 
 
+def get_polar_encoder_matrix_systematic(N, f):
+    n = int(np.log2(N))
+    G = get_polar_generator_matrix(n)
+    ip = np.delete(np.arange(N), f)
+    Gi = G[ip, :]
+    I = np.identity(N, dtype=np.uint8)
+    I[f, :] = 0
+    gm = Gi.dot(I) #% 2
+    return (gm.dot(G) % 2).astype(np.uint8)
+
+
 def main():
     G = get_polar_generator_matrix(3)
     print(G)

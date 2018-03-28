@@ -115,12 +115,6 @@ cdef class PolarDecoder:
     def decoder_duration(self):
         return self.kernel.duration_ns()
 
-    def enableSoftOutput(self, flag):
-        self.kernel.enableSoftOutput(flag)
-
-    def hasSoftOutput(self):
-        return self.kernel.hasSoftOutput()
-
     def getSoftCodeword(self):
         cdef np.ndarray[np.float32_t, ndim=1] llrs = np.zeros((self.kernel.blockLength(), ), dtype=np.float32)
         self.kernel.getSoftCodeword(llrs.data)

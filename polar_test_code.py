@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 from __future__ import print_function, division
 import numpy as np
-import scipy.special as sps
-import matplotlib.pyplot as plt
+# import scipy.special as sps
+# import matplotlib.pyplot as plt
 import unittest
 import sys
+# import os
 import time
 # sys.path.append('./build/lib')
-# sys.path.append('./build/lib.linux-x86_64-2.7')
+sys.path.append('./build/lib.linux-x86_64-2.7')
 import pypolar
-from polar_code_tools import design_snr_to_bec_eta, calculate_bec_channel_capacities, get_frozenBitMap, get_frozenBitPositions, get_polar_generator_matrix
+from polar_code_tools import design_snr_to_bec_eta, calculate_bec_channel_capacities, get_frozenBitMap, get_frozenBitPositions, get_polar_generator_matrix, get_polar_encoder_matrix_systematic
 
 
 '''
@@ -66,6 +67,7 @@ def encode_systematic_matrix(u, N, frozenBitMap):
     x = np.copy(frozenBitMap)
     x[np.where(frozenBitMap == -1)] = u
     # print(u, x, np.where(frozenBitMap == -1))
+    # print(frozenBitMap[np.where(frozenBitMap > -1)])
     x = x.dot(G) % 2
     x[np.where(frozenBitMap > -1)] = frozenBitMap[np.where(frozenBitMap > -1)]
     x = x.dot(G) % 2
@@ -79,60 +81,6 @@ def encode_matrix(u, N, frozenBitMap):
     x[np.where(frozenBitMap == -1)] = u
     x = x.dot(G) % 2
     return x
-
-
-def spc_most_efficient(u, N, frozenBitMap):
-    '''
-    This function is defective!
-    '''
-    x = np.copy(frozenBitMap)
-    x[np.where(frozenBitMap == -1)] = u
-    d = np.copy(x)
-    n = int(np.log2(N))
-    for r in np.arange(N - 1, -1, -1):
-        br = tuple(np.binary_repr(r, n))
-        print(r, br)
-
-        if frozenBitMap[r] > -1:
-            print('frozen_bit')
-            # d[r] = frozenBitMap[r]
-            if br[0] == '0':
-                d[r] = (frozenBitMap[r] + d[r + 2 ** (n - 1)]) % 2
-            else:
-                d[r] = frozenBitMap[r]
-            for j in np.arange(n - 2, -1, -1):
-                kappa = 2 ** (n - j - 1)
-                # print(i, j, bits[j], kappa)
-                if br[j] == '0':
-                    d[r] = (d[r] + d[r + kappa]) % 2
-                else:
-                    d[r] = d[r]
-
-        else:
-            print('info_bit')
-            if br[-1] == '0':
-                d[r] = (x[r] + d[r]) % 2
-            else:
-                d[r] = x[r]
-            for j in np.arange(1, n):
-                kappa = 2 ** (n - j - 1)
-                # print(i, j, bits[j], kappa)
-                if br[j] == '0':
-                    d[r] = (d[r] + d[r + kappa]) % 2
-                else:
-                    d[r] = d[r]
-    print(d)
-    print(np.where(frozenBitMap > -1), d[np.where(frozenBitMap > -1)])
-    print(x)
-    x[np.where(frozenBitMap > -1)] = d[np.where(frozenBitMap > -1)]
-    return x
-
-
-def matrix_row_weight(G):
-    w = np.sum(G, axis=1)
-    print(w)
-    w = np.sum(G, axis=0)
-    print(w)
 
 
 class PolarEncoderTests(unittest.TestCase):
@@ -163,54 +111,163 @@ class PolarEncoderTests(unittest.TestCase):
             xm = encode_systematic_matrix(u, N, frozenBitMap)
             self.assertTrue(np.all(X == xm))
 
+    def test_002_frozen_bit_positions(self):
+        for snr in np.arange(-1.5, 3.5, .25):
+            for inv_coderate in np.array([8, 6, 5, 4, 3, 2, 1.5, 1.2]):
+                for n in range(6, 11):
+                    N = 2 ** n
+                    K = int(N / inv_coderate)
+                    # print(N, K, inv_coderate)
+                    cf = pypolar.frozen_bits(N, K, snr)
+                    eta = design_snr_to_bec_eta(snr, 1. * K / N)
+                    polar_capacities = calculate_bec_channel_capacities(eta, N)
+                    pf = get_frozenBitPositions(polar_capacities, N - K)
+                    pf = np.sort(pf)
+                    encoder = pypolar.PolarEncoder(N, cf)
+                    decoder = pypolar.PolarDecoder(N, 1, cf)
 
-    def test_002_cpp_encoder_impls(self):
-        for i in range(5, 11):
+                    pp = encoder.frozenBits()
+                    pd = decoder.frozenBits()
+
+                    if not np.all(pf == cf):
+                        print(cf)
+                        print(pf)
+                        print(cf == pf)
+                    self.assertTrue(np.all(pf == cf))
+                    self.assertTrue(np.all(pp == cf))
+                    self.assertTrue(np.all(pd == cf))
+
+    def test_003_systematic_matrix(self):
+        snr = 2.
+        for n in range(4, 8):
+            N = 2 ** n
+            K = N // 2
+            self.matrix_validation(N, K, snr)
+            self.matrix_validation(N, K // 2, snr)
+
+    def matrix_validation(self, N, K, snr):
+        eta = design_snr_to_bec_eta(snr, 1.0)
+        polar_capacities = calculate_bec_channel_capacities(eta, N)
+        f = np.sort(get_frozenBitPositions(polar_capacities, N - K))
+        ip = np.setdiff1d(np.arange(N, dtype=f.dtype), f)
+        frozenBitMap = get_frozenBitMap(polar_capacities, N - K)
+
+        n = int(np.log2(N))
+        G = get_polar_generator_matrix(n)
+        Gs = get_polar_encoder_matrix_systematic(N, f)
+        for i in range(10):
+            u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
+            x = np.zeros(N, dtype=np.uint8)
+            x[ip] = u
+            xref = np.copy(frozenBitMap)
+            xref[np.where(frozenBitMap == -1)] = u
+            self.assertTrue(np.all(x == xref))
+            x = x.dot(G) % 2
+            x[f] = 0
+            x = x.dot(G) % 2
+            xs = u.dot(Gs) % 2
+
+            self.assertTrue(np.all(x == xs))
+        self.matrix_gen_check_validation(Gs, f)
+
+    def matrix_gen_check_validation(self, Gs, f):
+        K, N = np.shape(Gs)
+        P = Gs[:, f]
+        G = np.hstack((np.identity(K, dtype=Gs.dtype), P))
+        H = np.hstack((P.T, np.identity(N - K, dtype=Gs.dtype)))
+        self.assertEquals(np.linalg.matrix_rank(H), N - K)
+        self.assertTrue(np.all(G.dot(H.T) % 2 == 0))
+
+    def test_004_encoder_config(self):
+        snr = 2.
+        for n in range(4, 10):
+            N = 2 ** n
+            K = N // 2
+            self.validate_config(N, K, snr)
+            self.validate_config(N, K // 2, snr)
+
+    def validate_config(self, N, K, snr):
+        eta = design_snr_to_bec_eta(snr, 1.0)
+        polar_capacities = calculate_bec_channel_capacities(eta, N)
+        f = get_frozenBitPositions(polar_capacities, N - K)
+        f = np.sort(f)
+        frozenBitMap = get_frozenBitMap(polar_capacities, N - K)
+        info_pos = np.setdiff1d(np.arange(N, dtype=f.dtype), f)
+        self.assertEquals(info_pos.size, K)
+        self.assertEquals(f.size, N - K)
+        self.assertEquals(np.sum(frozenBitMap), -K)
+
+        p = pypolar.PolarEncoder(N, f)
+        self.assertEquals(p.blockLength(), N)
+
+        self.assertTrue(np.all(f == p.frozenBits()))
+        self.assertTrue(np.all(f == np.arange(N)[np.where(frozenBitMap == 0)]))
+
+        self.assertTrue(p.isSystematic())
+        p.setSystematic(False)
+        self.assertFalse(p.isSystematic())
+        p.setSystematic(True)
+        self.assertTrue(p.isSystematic())
+
+    def test_005_cpp_encoder_impls(self):
+        snr = 2.
+        for i in range(4, 11):
             N = 2 ** i
             K = N // 2
-            verify_cpp_encoder_impl(N, K)
+            verify_cpp_encoder_impl(N, K, snr)
 
 
-def verify_cpp_encoder_impl(N=2 ** 4, K=5):
-    eta = design_snr_to_bec_eta(2, 1.0)
+
+
+def verify_cpp_encoder_impl(N=2 ** 4, K=5, snr=2.):
+    eta = design_snr_to_bec_eta(snr, 1.0)
     polar_capacities = calculate_bec_channel_capacities(eta, N)
     f = get_frozenBitPositions(polar_capacities, N - K)
+    f = np.sort(f)
     frozenBitMap = get_frozenBitMap(polar_capacities, N - K)
+    info_pos = np.setdiff1d(np.arange(N, dtype=f.dtype), f)
 
     p = pypolar.PolarEncoder(N, f)
     print("Encoder CPP test ({}, {})".format(N, K))
+    print(f)
 
-    ctr = 0
-    md = 0
-    mp = 0
-    cmp = 0
     for i in np.arange(10):
         u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
         d = np.packbits(u)
-        # print(N, K, len(u), len(d), u, d)
+        dref = np.copy(d)
         print(d)
+        print(u)
+        p.setInformation(d)
+        p.encode()
+        codeword = p.getEncodedData()
+        print('codeword', codeword)
 
-        sm = time.time()
-        xm = encode_systematic_matrix(u, N, frozenBitMap)
-        um = time.time()
-        pm = time.time()
         cw_pack = p.encode_vector(d)
-        em = time.time()
-        md += um - sm
-        mp += em - pm
+        assert np.all(cw_pack == codeword)
+
+        print(np.unpackbits(cw_pack)[info_pos])
+        assert np.all(np.unpackbits(cw_pack)[info_pos] == u)
+        # print(d)
+
+        # u = np.unpackbits(d)
+
+        xm = encode_systematic_matrix(u, N, frozenBitMap)
+
+        print(xm[info_pos])
+
+        assert np.all(u == xm[info_pos])
+
+        assert np.all(d == dref)
+
         xmp = np.packbits(xm)
-        cmp += p.encoder_duration()
+
+        print(cw_pack)
+        print(xmp)
         print(xm)
         print(np.unpackbits(cw_pack))
 
         assert np.all(xmp == cw_pack)
         assert np.all(xm == np.unpackbits(cw_pack))
-        ctr += 1
-
-    m = np.array([md, mp]) / ctr
-    m *= 1e6
-    cmp /= 1.e3 * ctr
-    print('N={}, matrix: {:.2f}us, CPP packed: {:.2f}us/{:.2f}us'.format(N, m[0], m[1], cmp))
 
 
 def verify_cpp_decoder_impl(N=2 ** 6, K=2 ** 5, n_iterations=100, crc=None):
@@ -287,32 +344,11 @@ def verify_cpp_decoder_impls():
         verify_cpp_decoder_impl(N, K, n_iterations)
 
 
-def verify_frozen_bit_positions():
-    print('verify frozen bit positions')
-    for snr in np.arange(-1.5, 3.5, .25):
-        for inv_coderate in np.array([8, 6, 5, 4, 3, 2, 1.5, 1.2]):
-            for n in range(6, 11):
-                N = 2 ** n
-                K = int(N / inv_coderate)
-                # print(N, K, inv_coderate)
-                cf = pypolar.frozen_bits(N, K, snr)
-                eta = design_snr_to_bec_eta(snr, 1. * K / N)
-                polar_capacities = calculate_bec_channel_capacities(eta, N)
-                pf = get_frozenBitPositions(polar_capacities, N - K)
-                pf = np.sort(pf)
-                encoder = pypolar.PolarEncoder(N, cf)
-                decoder = pypolar.PolarDecoder(N, 1, cf)
-
-                pp = encoder.frozenBits()
-                pd = decoder.frozenBits()
-
-                if not np.all(pf == cf):
-                    print(cf)
-                    print(pf)
-                    print(cf == pf)
-                assert np.all(pf == cf)
-                assert np.all(pp == cf)
-                assert np.all(pd == cf)
+def matrix_row_weight(G):
+    w = np.sum(G, axis=1)
+    print(w)
+    w = np.sum(G, axis=0)
+    print(w)
 
 
 def calculate_code_properties(N, K, design_snr_db):
@@ -379,66 +415,8 @@ def calculate_code_properties(N, K, design_snr_db):
     assert dmin_ext_search == dmin_P
 
 
-def validate_generator_and_check_matrix(Gs, f):
-    K, N = np.shape(Gs)
-    P = Gs[:, f]
-    print(P)
-    G = np.hstack((np.identity(K, dtype=Gs.dtype), P))
-    H = np.hstack((P.T, np.identity(N - K, dtype=Gs.dtype)))
-    print('H Rank', np.linalg.matrix_rank(H))
-    assert np.linalg.matrix_rank(H) == N - K
-    assert np.all(G.dot(H.T) % 2 == 0)
-    return 1 + np.min(np.sum(P, axis=1))
-
-
-def validate_systematic_matrix(N, f, frozenBitMap):
-    K = N - len(f)
-    n = int(np.log2(N))
-    G = get_polar_generator_matrix(n)
-    ip = np.delete(np.arange(N), f)
-    Gi = G[ip, :]
-    I = np.identity(N, dtype=np.uint8)
-    I[f, :] = 0
-    gm = Gi.dot(I) #% 2
-    Gst = gm.dot(G) % 2
-    Gs = get_polar_encoder_matrix_systematic(N, f)
-    assert np.all(Gst == Gs)
-
-    for i in range(10):
-        u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
-        x = np.copy(frozenBitMap)
-        x[np.where(frozenBitMap == -1)] = u
-        x = x.dot(G) % 2
-
-        xu = (u.dot(Gi) % 2)
-        assert np.all(x == xu)
-
-        x[np.where(frozenBitMap > -1)] = frozenBitMap[np.where(frozenBitMap > -1)]
-        assert np.all(x == (u.dot(gm) % 2))
-
-        xs = u.dot(Gs) % 2
-        x = x.dot(G) % 2
-
-        assert np.all(x == xs)
-    validate_generator_and_check_matrix(Gs, f)
-
-
-def get_polar_encoder_matrix_systematic(N, f):
-    n = int(np.log2(N))
-    G = get_polar_generator_matrix(n)
-    ip = np.delete(np.arange(N), f)
-    Gi = G[ip, :]
-    I = np.identity(N, dtype=np.uint8)
-    I[f, :] = 0
-    gm = Gi.dot(I) #% 2
-    return gm.dot(G) % 2
-
-
 def main():
     # calculate_code_properties(32, 16, 0.0)
-    verify_frozen_bit_positions()
-    verify_encode_systematic()
-    verify_cpp_encoder_impls()
     verify_cpp_decoder_impls()
 
 
