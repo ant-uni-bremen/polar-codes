@@ -8,7 +8,7 @@ import sys
 # import os
 import time
 # sys.path.append('./build/lib')
-sys.path.append('./build/lib.linux-x86_64-2.7')
+# sys.path.append('./build/lib.linux-x86_64-2.7')
 import pypolar
 from polar_code_tools import design_snr_to_bec_eta, calculate_bec_channel_capacities, get_frozenBitMap, get_frozenBitPositions, get_polar_generator_matrix, get_polar_encoder_matrix_systematic
 
@@ -211,7 +211,7 @@ class PolarEncoderTests(unittest.TestCase):
 
     def test_005_cpp_encoder_impls(self):
         snr = 2.
-        for i in range(4, 11):
+        for i in range(4, 8):
             N = 2 ** i
             K = N // 2
             verify_cpp_encoder_impl(N, K, snr)
@@ -231,40 +231,39 @@ def verify_cpp_encoder_impl(N=2 ** 4, K=5, snr=2.):
     print("Encoder CPP test ({}, {})".format(N, K))
     print(f)
 
-    for i in np.arange(10):
+    for i in np.arange(100):
         u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
         d = np.packbits(u)
         dref = np.copy(d)
-        print(d)
-        print(u)
+        # print(d)
+        # print(u)
         p.setInformation(d)
         p.encode()
         codeword = p.getEncodedData()
-        print('codeword', codeword)
+        # print('codeword', codeword)
 
         cw_pack = p.encode_vector(d)
         assert np.all(cw_pack == codeword)
 
-        print(np.unpackbits(cw_pack)[info_pos])
+        # print(np.unpackbits(cw_pack)[info_pos])
         assert np.all(np.unpackbits(cw_pack)[info_pos] == u)
-        # print(d)
-
-        # u = np.unpackbits(d)
 
         xm = encode_systematic_matrix(u, N, frozenBitMap)
 
-        print(xm[info_pos])
+        # print(xm[info_pos])
 
         assert np.all(u == xm[info_pos])
-
         assert np.all(d == dref)
 
         xmp = np.packbits(xm)
 
-        print(cw_pack)
-        print(xmp)
-        print(xm)
-        print(np.unpackbits(cw_pack))
+        if not np.all(xmp == cw_pack):
+            print(d)
+            print(u)
+            print(cw_pack)
+            print(xmp)
+            print(xm)
+            print(np.unpackbits(cw_pack))
 
         assert np.all(xmp == cw_pack)
         assert np.all(xm == np.unpackbits(cw_pack))
