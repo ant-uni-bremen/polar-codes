@@ -47,7 +47,6 @@ BitContainer::BitContainer(size_t size)
 
 BitContainer::BitContainer(size_t size, const std::vector<unsigned> &frozenBits)
 	: mElementCount(size),
-//	  mFrozenBits(frozenBits),
 	  mInformationBitCount(size-frozenBits.size()),
 	  mLUT(nullptr) {
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
@@ -90,7 +89,6 @@ size_t BitContainer::size() {
 
 void BitContainer::setFrozenBits(const std::vector<unsigned> &frozenBits) {
 	clear();
-	//mFrozenBits = frozenBits;
 	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
 	mInformationBitCount = mElementCount - mFrozenBits.size();
 	calculateLUT();
@@ -134,8 +132,10 @@ void FloatContainer::setSize(size_t newSize) {
 	mElementCount = newSize;
 
 	// Free previously allocated memory, if neccessary
-	if(mData != nullptr) {
+	if(mData != nullptr && !mDataIsExternal) {
 		_mm_free(mData);
+	} else {
+		mDataIsExternal = false;
 	}
 
 	// Allocate new memory
@@ -371,8 +371,10 @@ void CharContainer::setSize(size_t newSize) {
 	mElementCount = newSize;
 
 	// Free previously allocated memory, if neccessary
-	if(mData != nullptr) {
+	if(mData != nullptr && !mDataIsExternal) {
 		_mm_free(mData);
+	} else {
+		mDataIsExternal = false;
 	}
 
 	size_t allocBytes = std::max(static_cast<size_t>(BYTESPERVECTOR), mElementCount);
@@ -563,9 +565,9 @@ PackedContainer::PackedContainer(size_t size, std::vector<unsigned> &frozenBits)
 PackedContainer::PackedContainer(char *external, size_t size, std::vector<unsigned> &frozenBits)
 	: BitContainer(size, frozenBits)
 	, mData(external)
+	, mInformationMask(nullptr)
 	, mFakeSize(std::max((size_t)BITSPERVECTOR, size))
 	, mDataIsExternal(true) {
-	mInformationMask = new unsigned long[mFakeSize / 8];
 	buildInformationMask();
 }
 
@@ -585,10 +587,16 @@ void PackedContainer::setSize(size_t newSize) {
 	mElementCount = newSize;
 	mFakeSize = std::max((size_t)BITSPERVECTOR, mElementCount);
 
-	// Free previously allocated memory, if neccessary
-	if(mData != nullptr) {
+	// Free previously allocated memory
+	if(mData != nullptr && !mDataIsExternal) {
 		_mm_free(mData);
+	} else {
+		mDataIsExternal = false;
+	}
+
+	if(mInformationMask != nullptr) {
 		delete [] mInformationMask;
+		mInformationMask = nullptr;
 	}
 
 	// Allocate new memory
@@ -596,7 +604,6 @@ void PackedContainer::setSize(size_t newSize) {
 	if(mData == nullptr) {
 		throw "Allocating memory for packed bit container failed.";
 	}
-	mInformationMask = new unsigned long[mFakeSize / 64];
 	buildInformationMask();
 }
 
@@ -604,6 +611,10 @@ void PackedContainer::buildInformationMask() {
 	unsigned bitOffset = mFakeSize - mElementCount;
 	unsigned frozenCounter = 0, frozenBitCount = mFrozenBits.size();
 	unsigned begin = 0;
+
+	if(mInformationMask == nullptr) {
+		mInformationMask = new unsigned long[mFakeSize / 64];
+	}
 
 	if(bitOffset >= 64) {
 		begin = bitOffset / 64;

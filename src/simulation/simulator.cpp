@@ -391,10 +391,11 @@ void SimulationWorker::run() {
 		allocateMemory();
 
 		unsigned long blocksToSimulate = mJob->BlocksToSimulate;
+		unsigned long warmUpBlocks = std::min(blocksToSimulate / 8, 1000UL);
 
 		//Warmup
 		warmup = true;
-		for(unsigned block = 0; block < 10000; ++block) {
+		for(unsigned block = 0; block < warmUpBlocks; ++block) {
 			generateData();
 			encode();
 			modulate();
@@ -487,6 +488,10 @@ void SimulationWorker::setCoders() {
 }
 
 void SimulationWorker::setErrorDetector() {
+	if(mJob->errorDetection >= mJob->K) {
+		mJob->errorDetection = 0;
+		mJob->errorDetectionType = "none";
+	}
 	if(mJob->errorDetectionType == "crc") {
 		switch(mJob->errorDetection) {
 			case 8:
