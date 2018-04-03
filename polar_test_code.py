@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 from __future__ import print_function, division
 import numpy as np
-# import scipy.special as sps
-# import matplotlib.pyplot as plt
 import unittest
-import sys
 # import os
-import time
-# sys.path.append('./build/lib')
-# sys.path.append('./build/lib.linux-x86_64-2.7')
-import pypolar
+# import time
 from polar_code_tools import design_snr_to_bec_eta, calculate_bec_channel_capacities, get_frozenBitMap, get_frozenBitPositions, get_polar_generator_matrix, get_polar_encoder_matrix_systematic
 
+import sys
+sys.path.insert(0, './build/lib.linux-x86_64-2.7')
+
+import pypolar
 
 '''
 EncoderA of the paper:
@@ -210,13 +208,14 @@ class PolarEncoderTests(unittest.TestCase):
         self.assertTrue(p.isSystematic())
 
     def test_005_cpp_encoder_impls(self):
-        snr = 2.
-        for i in range(4, 8):
+        snr = 0.
+        test_size = np.array([4, 5, 6, 9, 10, 11])
+        for i in test_size:
             N = 2 ** i
             K = N // 2
-            verify_cpp_encoder_impl(N, K, snr)
-
-
+            verify_cpp_encoder_impl(N, int(N * .75), snr)
+            verify_cpp_encoder_impl(N, N // 2, snr)
+            verify_cpp_encoder_impl(N, N // 4, snr)
 
 
 def verify_cpp_encoder_impl(N=2 ** 4, K=5, snr=2.):
@@ -229,9 +228,10 @@ def verify_cpp_encoder_impl(N=2 ** 4, K=5, snr=2.):
 
     p = pypolar.PolarEncoder(N, f)
     print("Encoder CPP test ({}, {})".format(N, K))
-    print(f)
+    # print(f)
 
-    for i in np.arange(100):
+    for i in np.arange(10):
+        print(i)
         u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
         d = np.packbits(u)
         dref = np.copy(d)
@@ -317,7 +317,8 @@ def verify_cpp_decoder_impl(N=2 ** 6, K=2 ** 5, n_iterations=100, crc=None):
             assert np.all(dhat == d)
         ctr += 1
     if num_errors > 0:
-        print('Decoder test failed in {} out of {}'.format(num_errors, n_iterations))
+        print('Decoder test failed in {} out of {}'.format(
+            num_errors, n_iterations))
     assert num_errors == 0
 
 
