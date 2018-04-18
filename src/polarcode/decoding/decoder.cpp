@@ -9,6 +9,7 @@
 #include <polarcode/decoding/scl_fip_char.h>
 #include <polarcode/decoding/scl_avx_float.h>
 #include <polarcode/decoding/adaptive_float.h>
+#include <polarcode/decoding/scan.h>
 
 namespace PolarCode {
 namespace Decoding {
@@ -25,6 +26,7 @@ Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsi
 	switch(decoder_impl){
 	  case 1: dec = new SclAvxFloat(blockLength, listSize, frozenBits); break;
 	  case 2: dec = new AdaptiveFloat(blockLength, listSize, frozenBits); break;
+      case 3: dec = new Scan(blockLength, listSize, frozenBits); break;
 	  default: dec = new SclFipChar(blockLength, listSize, frozenBits); break;
 	}
   }

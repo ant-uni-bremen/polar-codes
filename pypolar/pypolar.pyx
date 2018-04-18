@@ -69,6 +69,7 @@ cdef class PolarEncoder:
         return codeword
 
 
+
 cdef class PolarDecoder:
     cdef polar_interface.Decoder* kernel
     cdef int decoder_impl_flag
@@ -78,7 +79,14 @@ cdef class PolarDecoder:
         frozen_bit_positions = np.sort(frozen_bit_positions)
         frozen_bit_positions = frozen_bit_positions.astype(np.uint32)
 
-        self.decoder_impl_flag = 1 if decoder_impl == "float" else 0
+        if decoder_impl == "float":
+            self.decoder_impl_flag = 1
+        elif decoder_impl == "scan":
+            self.decoder_impl_flag = 3
+        else:
+            self.decoder_impl_flag = 0
+
+        # self.decoder_impl_flag = 1 if decoder_impl == "float" else 0
         #print(self.decoder_impl_flag)
         self.kernel = polar_interface.makeDecoder(block_size, list_size, frozen_bit_positions, self.decoder_impl_flag)
 
