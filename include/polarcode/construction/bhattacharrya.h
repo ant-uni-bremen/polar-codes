@@ -21,7 +21,7 @@ namespace Construction {
  */
 class Bhattacharrya : public Constructor {
 	float mInitialParameter;
-	std::vector<float> mChannelParameters;
+	std::vector<double> mChannelParameters;
 	trackingSorter mSorter;
 
 	void calculateChannelParameters();

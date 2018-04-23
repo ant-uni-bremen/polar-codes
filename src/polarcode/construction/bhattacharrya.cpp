@@ -61,7 +61,7 @@ void Bhattacharrya::calculateChannelParameters() {
 	mChannelParameters.resize(mBlockLength);
 	mChannelParameters[0] = mInitialParameter;
 
-	float T; int B;
+	double T; int B;
 	for(signed stage=log2(mBlockLength)-1; stage >= 0; --stage) {
 		B = 1<<stage;// = pow(2, stage);
 		for(unsigned j = 0; j < mBlockLength; j+=(B<<1)) {

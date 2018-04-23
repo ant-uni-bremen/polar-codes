@@ -8,7 +8,7 @@ trackingSorter::trackingSorter() {
 	unset();
 }
 
-trackingSorter::trackingSorter(std::vector<float> &arr) {
+trackingSorter::trackingSorter(std::vector<double> &arr) {
 	set(arr);
 }
 
@@ -16,7 +16,7 @@ trackingSorter::~trackingSorter() {
 	unset();
 }
 
-void trackingSorter::set(std::vector<float> &arr) {
+void trackingSorter::set(std::vector<double> &arr) {
 	unset();
 	size = arr.size();
 	data = arr.data();
@@ -26,7 +26,7 @@ void trackingSorter::set(std::vector<float> &arr) {
 	}
 }
 
-void trackingSorter::set(std::vector<float> &arr, int size) {
+void trackingSorter::set(std::vector<double> &arr, int size) {
 	unset();
 	this->size = size;
 	data = arr.data();
@@ -64,7 +64,7 @@ void trackingSorter::sort() {
 }
 
 void trackingSorter::stableSort() {
-	float x;
+	double x;
 	int j,y;
 	for(int i=1; i<size; ++i) {
 		x = data[i];
@@ -81,7 +81,7 @@ void trackingSorter::stableSort() {
 }
 
 void trackingSorter::stableSortDescending() {
-	float x;
+	double x;
 	int j,y;
 	for(int i=1; i<size; ++i) {
 		x = data[i];
@@ -111,7 +111,7 @@ void trackingSorter::partialSort(int n) {
 	}
 }
 
-void trackingSorter::simplePartialSort(float *data, int size, int n) {
+void trackingSorter::simplePartialSort(double *data, int size, int n) {
 	permuted.resize(size);
 	for(int i=0; i<size; ++i) {
 		permuted[i] = i;
@@ -133,7 +133,7 @@ void trackingSorter::simplePartialSort(float *data, int size, int n) {
 	}
 }
 
-void trackingSorter::simplePartialSortDescending(float *data, int size, int n) {
+void trackingSorter::simplePartialSortDescending(double *data, int size, int n) {
 	permuted.resize(size);
 	for(int i=0; i<size; ++i) {
 		permuted[i] = i;
@@ -218,13 +218,13 @@ int trackingSorter::partition(int lo, int hi) {
 		do {
 			++i;
 		}while(data[i] < piv);
-		
+
 		do {
 			--j;
 		}while(data[j] > piv);
-		
+
 		if(i>=j) return j;
-		
+
 		std::swap(data[i], data[j]);
 		std::swap(permuted[i], permuted[j]);
 	}
@@ -238,13 +238,13 @@ int trackingSorter::partitionDescending(int lo, int hi) {
 		do {
 			++i;
 		}while(data[i] > piv);
-		
+
 		do {
 			--j;
 		}while(data[j] < piv);
-		
+
 		if(i>=j) return j;
-		
+
 		std::swap(data[i], data[j]);
 		std::swap(permuted[i], permuted[j]);
 	}
@@ -260,13 +260,13 @@ void trackingSorter::versenke(int i, int n) {
 	int ki;
 	while(i <= (n>>1)-1) {
 		ki = ((i+1)<<1)-1;
-		
+
 		if(ki+1 <= n-1) {
 			if(data[ki] < data[ki+1]) {
 				ki++;
 			}
 		}
-		
+
 		if(data[i] < data[ki]) {
 			std::swap(data[i], data[ki]);
 			std::swap(permuted[i], permuted[ki]);
@@ -290,7 +290,7 @@ void Bits2Bytes(unsigned char *bits, unsigned char *bytes, int nBytes) {
 		tmp |= *bits++;
 		*bytes = tmp;
 		++bytes;
-	}	
+	}
 }
 
 void Bits2Bytes(std::vector<float> &fbits, unsigned char *bytes, int nBytes) {
@@ -340,6 +340,6 @@ void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes) {
 		*bits++ = ((*bytes)>>1)&1;
 		*bits++ = ( *bytes    )&1;
 		++bytes;
-	}	
+	}
 }
 
