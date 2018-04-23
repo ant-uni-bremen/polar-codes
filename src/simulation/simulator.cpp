@@ -5,6 +5,8 @@
 #include <iostream>
 #include <cmath>
 
+#include <signalprocessing/modulation/ask.h>
+
 #include <polarcode/encoding/butterfly_fip_packed.h>
 
 #include <polarcode/decoding/fastssc_avx_float.h>
@@ -48,6 +50,8 @@ Simulator::Simulator(Setup::Configurator *config)
 		configureDepthFirstSim();
 	} else if(simType == "scan") {
 		configureScanSim();
+	} else if(simType == "ask") {
+		configureAskSim();
 	} else {
 		// Unknown simulation type, should be caught by cmd-parser
 		exit(EXIT_FAILURE);
@@ -113,16 +117,17 @@ DataPoint* Simulator::getDefaultDataPoint() {
 	dp->K = dp->N *          mConfiguration->getFloat("rate");
 	dp->L =                  mConfiguration->getInt("pathlimit");
 	dp->errorDetection =     errorDetectionStringToId(mConfiguration->getString("error-detection"));
-    dp->errorDetectionType = errorDetectionStringToType(mConfiguration->getString("error-detection"));
+	dp->errorDetectionType = errorDetectionStringToType(mConfiguration->getString("error-detection"));
 	dp->systematic =         !mConfiguration->getSwitch("non-systematic");
-    dp->decoderType    =   DecoderType::Flexible;	
-    dp->codingScheme = -1;
+	dp->decoderType    =   DecoderType::Flexible;
+	dp->codingScheme = -1;
 
 	// Set simulation parameters
 	dp->EbN0 =             mConfiguration->getFloat("snr-max");
 	dp->BlocksToSimulate = mConfiguration->getLongInt("workload") / dp->N;
 	dp->precision =        mConfiguration->getInt("precision");
 	dp->amplification =    mConfiguration->getFloat("amplification");
+	dp->bitsPerSymbol =    1;
 
 	// Statistics
 	//nothing to configure here, all values were set to zero
@@ -290,6 +295,22 @@ void Simulator::configureScanSim() {
 	delete jobTemplate;
 }
 
+void Simulator::configureAskSim() {
+	DataPoint* jobTemplate = getDefaultDataPoint();
+	unsigned bMin = 2;
+	unsigned bMax = 10;
+
+	for(unsigned b = bMin; b <= bMax; b++) {
+		DataPoint* job = new DataPoint(*jobTemplate);
+
+		job->bitsPerSymbol = b;
+
+		mJobList.push_back(job);
+	}
+
+	delete jobTemplate;
+}
+
 void Simulator::snrInflateJobList() {
 	std::vector<DataPoint*> compactList;
 	compactList.clear();
@@ -327,16 +348,17 @@ void Simulator::saveResults() {
 	std::ofstream file(fileName);
 
 
-	file << "\"N\",\"K\",\"dSNR\",\"C\",\"L\",\"Eb/N0\",\"BLER\",\"BER\",\"RER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\",\"Encoder Bitrate\",\"Amplification\",\"time min\",\"time max\",\"time mean\",\"time deviation\"" << std::endl;
+	file << "\"N\",\"K\",\"dSNR\",\"C\",\"L\",\"Eb/N0\",\"BPS\",\"BLER\",\"BER\",\"RER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\",\"Encoder Bitrate\",\"Amplification\",\"time min\",\"time max\",\"time mean\",\"time deviation\"" << std::endl;
 
 	for(auto job : mJobList) {
-    std::vector<float> timeValues = job->timeStat.valueList();
+	std::vector<float> timeValues = job->timeStat.valueList();
 		file<< job->N << ','
 			<< job->K << ','
 			<< job->designSNR << ','
 			<< job->errorDetection << ','
 			<< job->L << ','
-			<< job->EbN0 << ',';
+			<< job->EbN0 << ','
+			<< job->bitsPerSymbol << ',';
 		if(job->BLER > 0.0)         file << job->BLER << ',';   else file << "1e-99,";
 		if(job->BER  > 0.0)         file << job->BER  << ',';   else file << "1e-99,";
 		if(job->RER  > 0.0)         file << job->RER  << ',';   else file << "1e-99,";
@@ -356,7 +378,7 @@ void Simulator::saveResults() {
 //      for(auto& tp : timeValues){
 //        file << ',' << int(tp * 1e9);
 //      }
-    file << std::endl;
+	file << std::endl;
 	}
 	file.close();
 }
@@ -369,7 +391,8 @@ void SimThread(Simulator* Sim, int workerId) {
 
 SimulationWorker::SimulationWorker(Simulator* Sim, int workerId)
 	: mSim(Sim)
-	, mModem(new SignalProcessing::Modulation::Bpsk())
+	, mModulator(new SignalProcessing::Modulation::Bpsk())
+	, mDemodulator(new SignalProcessing::Modulation::Bpsk())
 	, mTransmitter(new SignalProcessing::Transmission::Awgn())
 	, mAmplifier(new SignalProcessing::Transmission::Scale())
 	, mWorkerId(workerId)
@@ -377,7 +400,8 @@ SimulationWorker::SimulationWorker(Simulator* Sim, int workerId)
 
 SimulationWorker::~SimulationWorker() {
 	delete mTransmitter;
-	delete mModem;
+	delete mModulator;
+	delete mDemodulator;
 	delete mAmplifier;
 }
 
@@ -400,6 +424,7 @@ void SimulationWorker::run() {
 			encode();
 			modulate();
 			transmit();
+			demodulate();
 			decode();
 			countErrors();
 		}
@@ -411,6 +436,7 @@ void SimulationWorker::run() {
 			encode();
 			modulate();
 			transmit();
+			demodulate();
 			decode();
 			countErrors();
 		}
@@ -512,14 +538,22 @@ void SimulationWorker::setErrorDetector() {
 }
 
 void SimulationWorker::setChannel() {
+	if(mJob->bitsPerSymbol > 1) {
+		delete mModulator;
+		delete mDemodulator;
+		mModulator = new SignalProcessing::Modulation::Ask(mJob->bitsPerSymbol);
+		mDemodulator = new SignalProcessing::Modulation::Ask(mJob->bitsPerSymbol);
+	}
 	// Set channel SNR to energy per bit over noise energy for
-	// real-valued AWGN channels.
+	// AWGN channels.
 	// Source: Chapter 11.4. in Nachrichtenübertragung by K.-D. Kammeyer, 2011
-	float EbN0_linear = pow(10.0, mJob->EbN0 / 10.0) * 2.0;
-	// Adapt SNR to code rate to get true energy per information bit
-	EbN0_linear *= mJob->K;
-	EbN0_linear /= mJob->N;
-	mTransmitter->setEsN0Linear(EbN0_linear);
+	float EbN0_linear = pow(10.0, mJob->EbN0 / 10.0);
+	// Adapt SNR to bit count per symbol and code rate to get
+	// true energy per information bit ("*2.0" to emulate complex signals)
+	float EsN0_linear = EbN0_linear * mJob->bitsPerSymbol/* * 2.0*/;
+	EsN0_linear *= mJob->K;
+	EsN0_linear /= mJob->N;
+	mTransmitter->setEsN0Linear(EsN0_linear);
 
 	mAmplifier->setFactor(mJob->amplification);
 }
@@ -559,21 +593,46 @@ void SimulationWorker::encode() {
 }
 
 void SimulationWorker::modulate() {
-	mModem->setInputData(mEncodedData);
-	mModem->modulate();
-	mSignal = mModem->outputSignal();
+	mModulator->setInputData(mEncodedData);
+	mModulator->modulate();
+	mSignal = mModulator->outputSignal();
 }
 
 void SimulationWorker::transmit() {
+/*	float sum = 0.0f;
+	for(float f : *mSignal) {
+		sum += f * f;
+	}
+	sum /= mSignal->size();
+	std::cout << "Pre-transmit energy: " << sum << std::endl
+			  << "Expected energy: " << 1.0f << std::endl
+			  << std::endl;
+*/
 	mTransmitter->setSignal(mSignal);
 	mTransmitter->transmit();
+/*
+	sum = 0.0f;
+	for(float f : *mSignal) {
+		sum += f * f;
+	}
+	sum /= mSignal->size();
+	std::cout << "Post-transmit energy: " << sum << std::endl
+			  << "Expected energy: " << (1.0f + 0.5f / mTransmitter->EsNoLin()) << std::endl
+			  << std::endl;
+*/
+}
 
-	mAmplifier->setSignal(mSignal);
-	mAmplifier->transmit();
+void SimulationWorker::demodulate() {
+	mDemodulator->setInputSignal(mSignal);
+	mDemodulator->demodulate();
+	mSignal = mDemodulator->outputSignal();
 }
 
 void SimulationWorker::decode() {
 	bool success;
+
+	mAmplifier->setSignal(mSignal);
+	mAmplifier->transmit();
 
 	startTiming();
 	mDecoder->setSignal(mSignal->data());

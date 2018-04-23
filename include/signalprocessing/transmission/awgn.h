@@ -55,6 +55,12 @@ public:
 	 */
 	float EsNo();
 
+	/*!
+	 * \brief Get linear E_S/N_0
+	 * \return Current E_S/N_0 in linear domain
+	 */
+	float EsNoLin();
+
 	void transmit();
 	
 };

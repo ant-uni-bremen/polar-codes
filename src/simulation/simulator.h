@@ -73,6 +73,7 @@ struct DataPoint
 	long BlocksToSimulate;///< Determines the BLER-precision
 	int precision;///< Quantization bits per symbol (32-bit float or 8-bit int)
 	float amplification;///< Amplification factor to optimize 8-bit quantization
+	int bitsPerSymbol;
 
 	//Statistics
 	int runs;///< Actual number of blocks simulated
@@ -115,6 +116,7 @@ class Simulator {
 	void configureFixedSim();
 	void configureDepthFirstSim();
 	void configureScanSim();
+	void configureAskSim();
 	void snrInflateJobList();
 
 	void saveResults();
@@ -162,7 +164,7 @@ class SimulationWorker {
 	PolarCode::Decoding::Decoder *mDecoder;
 	PolarCode::ErrorDetection::Detector *mErrorDetector;
 
-	SignalProcessing::Modulation::Modem *mModem;
+	SignalProcessing::Modulation::Modem *mModulator, *mDemodulator;
 	SignalProcessing::Transmission::Awgn *mTransmitter;
 	SignalProcessing::Transmission::Scale *mAmplifier;
 
@@ -192,6 +194,7 @@ class SimulationWorker {
 	void encode();
 	void modulate();
 	void transmit();
+	void demodulate();
 	void decode();
 	void countErrors();
 

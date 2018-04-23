@@ -16,7 +16,7 @@ using namespace TCLAP;
 void Configurator::setupArgumentDefaults() {
 	defaultStrings.insert({"simtype", "single"});
 
-	defaultLongInts.insert({"workload", 4e8L});
+	defaultLongInts.insert({"workload", 1e9L});
 
 	defaultFloats.insert({"snr-min", -1.59174539});
 	defaultFloats.insert({"snr-max",  4.0});
@@ -71,7 +71,8 @@ void Configurator::setupArgumentSimType() {
 									 "amplification",
 									 "fixed",
 									 "depthfirst",
-									 "scan"};
+									 "scan",
+									 "ask"};
 	availableSimTypes = new ValuesConstraint<string>(SimTypesVector);
 
 	auto SimType = new UnlabeledValueArg<string>(

@@ -26,7 +26,7 @@ namespace Modulation {
 class Ask : public Modem {
 	Bpsk *mBpsk;
 	unsigned mBitsPerSymbol;
-	float mPowerNormalizer, mNormalPower;
+	float mPowerNormalizer, mNormalMagnitude;
 	
 public:
 	Ask();
