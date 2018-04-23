@@ -60,10 +60,8 @@ BitContainer::~BitContainer() {
 void BitContainer::clear() {
 	mFrozenBits.clear();
 	mInformationBitCount = mElementCount;
-	if(mLUT != nullptr) {
-		delete [] mLUT;
-		mLUT = nullptr;
-	}
+	delete [] mLUT;
+	mLUT = nullptr;
 }
 
 void BitContainer::calculateLUT() {
@@ -120,7 +118,7 @@ FloatContainer::FloatContainer(size_t size, std::vector<unsigned> &frozenBits)
 }
 
 FloatContainer::~FloatContainer() {
-	if(mData != nullptr && !mDataIsExternal) {
+	if(!mDataIsExternal) {
 		_mm_free(mData);
 	}
 }
@@ -132,7 +130,7 @@ void FloatContainer::setSize(size_t newSize) {
 	mElementCount = newSize;
 
 	// Free previously allocated memory, if neccessary
-	if(mData != nullptr && !mDataIsExternal) {
+	if(!mDataIsExternal) {
 		_mm_free(mData);
 	} else {
 		mDataIsExternal = false;
@@ -358,7 +356,7 @@ CharContainer::CharContainer(char *external, size_t size)
 }
 
 CharContainer::~CharContainer() {
-	if(mData != nullptr && !mDataIsExternal) {
+	if(!mDataIsExternal) {
 		_mm_free(mData);
 	}
 }
@@ -371,7 +369,7 @@ void CharContainer::setSize(size_t newSize) {
 	mElementCount = newSize;
 
 	// Free previously allocated memory, if neccessary
-	if(mData != nullptr && !mDataIsExternal) {
+	if(!mDataIsExternal) {
 		_mm_free(mData);
 	} else {
 		mDataIsExternal = false;
@@ -572,12 +570,10 @@ PackedContainer::PackedContainer(char *external, size_t size, std::vector<unsign
 }
 
 PackedContainer::~PackedContainer() {
-	if(mData != nullptr && !mDataIsExternal) {
+	if(!mDataIsExternal) {
 		_mm_free(mData);
 	}
-	if(mInformationMask != nullptr) {
-		delete [] mInformationMask;
-	}
+	delete [] mInformationMask;
 }
 
 void PackedContainer::setSize(size_t newSize) {
@@ -588,16 +584,14 @@ void PackedContainer::setSize(size_t newSize) {
 	mFakeSize = std::max((size_t)BITSPERVECTOR, mElementCount);
 
 	// Free previously allocated memory
-	if(mData != nullptr && !mDataIsExternal) {
+	if(!mDataIsExternal) {
 		_mm_free(mData);
 	} else {
 		mDataIsExternal = false;
 	}
 
-	if(mInformationMask != nullptr) {
-		delete [] mInformationMask;
-		mInformationMask = nullptr;
-	}
+	delete [] mInformationMask;
+	mInformationMask = nullptr;
 
 	// Allocate new memory
 	mData = static_cast<char*>(_mm_malloc(mFakeSize / 8, BYTESPERVECTOR));
@@ -627,7 +621,7 @@ void PackedContainer::buildInformationMask() {
 	for(unsigned i = begin; i < mFakeSize / 64; ++i) {
 		unsigned long mask = ~0ULL;//set all bits
 		//clear frozen bits
-		while(frozenCounter < frozenBitCount && mFrozenBits[frozenCounter] < (i + 1) * 64) {//while the next frozen bit is in this qword
+		while(frozenCounter < frozenBitCount && mFrozenBits[frozenCounter] < (i - begin + 1) * 64) {//while the next frozen bit is in this qword
 			unsigned long bit = mFrozenBits[frozenCounter++] % 64;
 			bit = (bit & ~7ULL) + (7 - (bit % 8)) + bitOffset;//pay attention to endianness
 			mask ^= (1ULL << bit);//clear the mask bit
