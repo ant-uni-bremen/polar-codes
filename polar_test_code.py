@@ -248,10 +248,10 @@ class PolarEncoderTests(unittest.TestCase):
             print('GA is a miserable failure!')
             np.seterr(invalid='warn')
             cc = ChannelConstructorGaussianApproximation(N, snr)
-            print(cc.getCapacities())
+            # print(cc.getCapacities())
 
             cc = ChannelConstructorBhattacharyyaBounds(N, snr)
-            print(cc.getCapacities())
+            # print(cc.getCapacities())
         # bb = ChannelConstructorBhattacharyyaBounds(N, snr)
         # ga = ChannelConstructorGaussianApproximation(N, snr)
         # bb_caps = bb.getCapacities()
@@ -305,8 +305,8 @@ class PolarEncoderTests(unittest.TestCase):
             if not np.all(xmp == cw_pack):
                 err_ctr += 1
                 # print('This code is a miserable failure!')
-            # self.assertTrue(np.all(xmp == cw_pack))
-            # self.assertTrue(np.all(xm == np.unpackbits(cw_pack)))
+            self.assertTrue(np.all(xmp == cw_pack))
+            self.assertTrue(np.all(xm == np.unpackbits(cw_pack)))
 
         if err_ctr > 0:
             print('Miserable failure! {}'.format(err_ctr))
@@ -314,8 +314,8 @@ class PolarEncoderTests(unittest.TestCase):
     def test_006_cpp_decoder_impls(self):
         print('TEST: CPP Decoder')
         snr = -1.
-        test_size = np.arange(4, 11)
-        test_size = np.array([4, 5, 6, 8, 9, 10], dtype=int)
+        test_size = np.arange(4, 11, dtype=int)
+        # test_size = np.array([4, 5, 6, 8, 9, 10], dtype=int)
         for i in test_size:
             N = 2 ** i
             # self.validate_decoder(N, int(N * .75), snr)
