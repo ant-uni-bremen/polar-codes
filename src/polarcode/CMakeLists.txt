@@ -43,6 +43,7 @@ ADD_CUSTOM_COMMAND(TARGET pcfactory POST_BUILD
 
 add_library(PolarDecoder OBJECT
         decoding/decoder
+        decoding/errorlocator
         decoding/fastssc_fip_char
         decoding/scl_fip_char
         decoding/fastssc_avx_float
@@ -55,6 +56,7 @@ add_library(PolarDecoder OBJECT
 		decoding/scan
         ${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/decoder.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/errorlocator.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fip_char.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fip_templates.txx
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fastssc_fip_char.h

@@ -196,12 +196,8 @@ Node::Node(Node *other)
 }
 
 Node::~Node() {
-	if(mLlr != nullptr) {
-		xmDataPool->release(mLlr);
-	}
-	if(mBit != nullptr) {
-		xmDataPool->release(mBit);
-	}
+	xmDataPool->release(mLlr);
+	xmDataPool->release(mBit);
 }
 
 void Node::setInput(float *input) {
@@ -542,21 +538,23 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 	unsigned blockLength = parent->blockLength();
 	unsigned frozenBitCount = frozenBits.size();
 
-	if(frozenBitCount == blockLength) {
-		return new RateZeroDecoder(parent);
-	}
+	if(blockLength == 1) {
+		if(frozenBitCount == blockLength) {
+			return new RateZeroDecoder(parent);
+		}
 
-	if(frozenBitCount == 0) {
-		return new RateOneDecoder(parent);
+		if(frozenBitCount == 0) {
+			return new RateOneDecoder(parent);
+		}
 	}
-
+/*
 	if(frozenBitCount == blockLength-1) {
 		return new RepetitionDecoder(parent);
 	}
 
 	if(frozenBitCount == 1) {
 		return new SpcDecoder(parent);
-	}
+	}*/
 
 	if(blockLength <= 8) {
 		return new ShortRateRNode(frozenBits, parent);

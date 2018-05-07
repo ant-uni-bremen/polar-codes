@@ -3,6 +3,12 @@
 
 #include <immintrin.h>
 
+union HybridFloat {
+	float f;
+	unsigned int u;
+	int i;
+};
+
 #ifndef __AVX2__
 #define BITSPERVECTOR 128
 #define BYTESPERVECTOR 16

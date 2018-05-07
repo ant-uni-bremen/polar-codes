@@ -119,7 +119,7 @@ DataPoint* Simulator::getDefaultDataPoint() {
 	dp->errorDetection =     errorDetectionStringToId(mConfiguration->getString("error-detection"));
 	dp->errorDetectionType = errorDetectionStringToType(mConfiguration->getString("error-detection"));
 	dp->systematic =         !mConfiguration->getSwitch("non-systematic");
-	dp->decoderType    =   DecoderType::Flexible;
+	dp->decoderType =        PolarCode::Decoding::DecoderType::tFlexible;
 	dp->codingScheme = -1;
 
 	// Set simulation parameters
@@ -251,7 +251,7 @@ void Simulator::configureFixedSim() {
 		job->K = scheme.infoLength;
 		job->designSNR = scheme.designSnr;
 		job->systematic = scheme.systematic;
-		job->decoderType = DecoderType::Fixed;
+		job->decoderType = PolarCode::Decoding::DecoderType::tFixed;
 		job->codingScheme = i;
 		job->BlocksToSimulate = mConfiguration->getLongInt("workload") / job->N;
 
@@ -270,7 +270,7 @@ void Simulator::configureDepthFirstSim() {
 		DataPoint* job = new DataPoint(*jobTemplate);
 
 		job->L = l;
-		job->decoderType = DecoderType::DepthFirst;
+		job->decoderType = PolarCode::Decoding::DecoderType::tDepthFirst;
 
 		mJobList.push_back(job);
 	}
@@ -287,7 +287,7 @@ void Simulator::configureScanSim() {
 		DataPoint* job = new DataPoint(*jobTemplate);
 
 		job->L = l;
-		job->decoderType = DecoderType::Scan;
+		job->decoderType = PolarCode::Decoding::DecoderType::tScan;
 
 		mJobList.push_back(job);
 	}
@@ -471,11 +471,11 @@ void SimulationWorker::selectFrozenBits() {
 void SimulationWorker::setCoders() {
 	mEncoder = new PolarCode::Encoding::ButterflyFipPacked(mJob->N, mFrozenBits);
 
-	if(mJob->decoderType == Fixed) {
+	if(mJob->decoderType == PolarCode::Decoding::DecoderType::tFixed) {
 		mDecoder = new PolarCode::Decoding::FixedChar(mJob->codingScheme);
-	} else if(mJob->decoderType == DepthFirst) {
+	} else if(mJob->decoderType == PolarCode::Decoding::DecoderType::tDepthFirst) {
 		mDecoder = new PolarCode::Decoding::DepthFirst(mJob->N, mJob->L, mFrozenBits);
-	} else if(mJob->decoderType == Scan) {
+	} else if(mJob->decoderType == PolarCode::Decoding::DecoderType::tScan) {
 		mDecoder = new PolarCode::Decoding::Scan(mJob->N, mJob->L, mFrozenBits);
 	} else {
 		if(mJob->L > 1) {

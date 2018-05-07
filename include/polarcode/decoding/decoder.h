@@ -22,6 +22,13 @@ struct CodingScheme {
 // scheme.
 extern std::vector<CodingScheme> codeRegistry;
 
+enum DecoderType {
+	tFlexible,
+	tFixed,
+	tDepthFirst,
+	tScan
+};
+
 /*!
  * \brief The Decoder skeleton-class.
  *
@@ -29,7 +36,7 @@ extern std::vector<CodingScheme> codeRegistry;
  */
 class Decoder {
 private:
-    size_t mDecoderDuration;
+	size_t mDecoderDuration;
 
 protected:
 	ErrorDetection::Detector* mErrorDetector;///< Error detecting object
@@ -150,6 +157,13 @@ public:
 	 * \param pData Signed 8-bit memory with at least infoLength() bytes allocated.
 	 */
 	void getSoftInformation(void *pData);
+};
+
+class UndefinedDecoder : public Decoder {
+public:
+	UndefinedDecoder();
+	~UndefinedDecoder();
+	bool decode();
 };
 
 /*!

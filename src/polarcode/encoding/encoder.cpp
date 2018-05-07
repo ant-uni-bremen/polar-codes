@@ -1,6 +1,7 @@
 #include <polarcode/encoding/encoder.h>
 #include <polarcode/errordetection/dummy.h>
 #include <chrono>
+#include <iostream>
 
 namespace PolarCode {
 namespace Encoding {
@@ -77,6 +78,19 @@ void Encoder::encode_vector(void *pInfo, void *pCode){
 	getEncodedData(pCode);
 	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 	mEncoderDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+}
+
+UndefinedEncoder::UndefinedEncoder() {
+}
+
+UndefinedEncoder::~UndefinedEncoder() {
+}
+
+void UndefinedEncoder::initialize(size_t, const std::vector<unsigned> &) {
+}
+
+void UndefinedEncoder::encode() {
+	std::cerr << "Call to UndefinedEncoder::encode()!" << std::endl;
 }
 
 }//namespace Encoding
