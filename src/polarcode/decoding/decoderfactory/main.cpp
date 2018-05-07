@@ -256,9 +256,9 @@ string writeDecoder(unsigned length, vector<unsigned> frozenBits, unsigned bitAd
 	ret += "	G_function<" + sHalfLength + ">(" + inputLlr + ", " + lowerLlr + ", " + leftBits + ");\n";
 	ret += writeDecoder(length / 2, rightFrozen, rightBitAddress, DECRIGHT);
 	if(length <= 32) {
-		ret += "	CombineSoftBits<" + sHalfLength + ">(" + leftBits + ", " + rightBits + ", " + outputBits + ");\n";
+		ret += "	CombineBits<" + sHalfLength + ">(" + leftBits + ", " + rightBits + ", " + outputBits + ");\n";
 	} else {
-		ret += "	CombineSoftInPlace<" + sHalfLength + ">(" + outputBits + ");\n";
+		ret += "	CombineInPlace<" + sHalfLength + ">(" + outputBits + ");\n";
 	}
 	return ret;
 }

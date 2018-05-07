@@ -149,16 +149,18 @@ inline void G_function_0R(float input[subBlockLength * 2], float output[subBlock
 template<unsigned subBlockLength>
 inline void C_function(float *Bits) {
 	if(subBlockLength < 8) {
+		HybridFloat tempL, tempR;
 		for(unsigned i = 0; i < subBlockLength; i++) {
-			float tempL = Bits[i];
-			float tempR = Bits[i + subBlockLength];
-			Bits[i] = F_function_calc(tempL, tempR);
+			tempL.f = Bits[i];
+			tempR.f = Bits[i + subBlockLength];
+			tempL.u ^= tempR.u;
+			Bits[i] = tempL.f;
 		}
 	} else {
 		for(unsigned i = 0; i < subBlockLength; i += 8) {
 			__m256 tempL = _mm256_load_ps(Bits + i);
 			__m256 tempR = _mm256_load_ps(Bits + subBlockLength + i);
-			F_function_calc(tempL, tempR, Bits + i);
+			_mm256_store_ps(Bits + i, _mm256_xor_ps(tempL, tempR));
 		}
 	}
 }
@@ -272,7 +274,7 @@ inline void decodeSpc(float *input, float *output) {
 		iParity = 0;
 		minAbs = fabs(input[0]);
 		for(unsigned i = 0; i < size; ++i) {
-            output[i] = input[i];
+			output[i] = input[i];
 			iParity ^= iInput[i];
 			testAbs = fabs(input[i]);
 			if(testAbs < minAbs) {
