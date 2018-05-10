@@ -2,6 +2,7 @@
 #define PC_DEC_AVX_FLOAT_H
 
 #include <polarcode/avxconvenience.h>
+#include <polarcode/decoding/templatized_float.h>
 #include <cstring>
 #include <cassert>
 #include <cmath>
@@ -52,6 +53,21 @@ inline void F_function(float *LLRin, float *LLRout, unsigned subBlockLength) {
 			Right = _mm256_load_ps(LLRin+subBlockLength+i);
 			F_function_calc(Left, Right, LLRout+i);
 		}
+	}
+}
+
+inline void boxplusVectors(float *inLlrA, float *inLlrB, float *llrOut, unsigned blockLength) {
+	__m256 va, vb;
+	for(unsigned i = 0; i < blockLength; i += 8) {
+		va = _mm256_load_ps(inLlrA + i);
+		vb = _mm256_load_ps(inLlrB + i);
+		F_function_calc(va, vb, llrOut + i);
+	}
+}
+
+inline void boxplus(float *inLlrA, float *inLlrB, float *llrOut, unsigned blockLength) {
+	for(unsigned i = 0; i < blockLength; i++) {
+		llrOut[i] = TemplatizedFloatCalc::F_function_calc(inLlrA[i], inLlrB[i]);
 	}
 }
 

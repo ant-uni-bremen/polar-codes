@@ -56,28 +56,23 @@ inline void F_function_calc(__m256 &Left, __m256 &Right, float *Out)
 	_mm256_store_ps(Out, _mm256_or_ps(sgnV, minV));
 }
 
-inline float F_function_signXor(float &val, float &sign) {
-	unsigned int *iVal = reinterpret_cast<unsigned int*>(&val);
-	unsigned int *iSign = reinterpret_cast<unsigned int*>(&sign);
+inline float F_function_signXor(float &fa, float &fb) {
+	unsigned int *ia = reinterpret_cast<unsigned int*>(&fa);
+	unsigned int *ib = reinterpret_cast<unsigned int*>(&fb);
 	union {
 		float fRet;
 		unsigned int iRet;
 	};
 
-	iRet = *iVal ^ (*iSign & 0x80000000U);
+	iRet = (*ia ^ *ib) & 0x80000000U;
 	return fRet;
 }
 
-inline float F_function_calc(float &Left, float &Right)
+inline float F_function_calc(float Left, float Right)
 {
-	float absL = fabs(Left);
-	float absR = fabs(Right);
-
-	if(absL < absR) {
-		return F_function_signXor(Left, Right);
-	} else {
-		return F_function_signXor(Right, Left);
-	}
+	float min = fmin(fabs(Left), fabs(Right));
+	float sgn = F_function_signXor(Left, Right);
+	return float_or(min, sgn);
 }
 
 inline void G_function_calc(__m256 &Left, __m256 &Right, __m256 &Bits, float *Out)

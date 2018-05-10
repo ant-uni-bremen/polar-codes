@@ -308,5 +308,20 @@ __m128i subVectorBackShiftBytes_epu8(__m128i x, int shift);
 __m256 _mm256_subVectorShift_ps(__m256 x, int shift);
 __m256 _mm256_subVectorBackShift_ps(__m256 x, int shift);
 
+inline static void memFloatFill(float *dst, float value, const size_t blockLength) {
+	if(blockLength < 8) {
+		for(unsigned i = 0; i < blockLength; i++) {
+			dst[i] = value;
+		}
+	} else {
+		const __m256 vec = _mm256_set1_ps(value);
+		for(unsigned i = 0; i < blockLength; i += 8) {
+			_mm256_store_ps(dst + i, vec);
+		}
+	}
+}
+
+
+
 #endif //AVXCONVENIENCE
 

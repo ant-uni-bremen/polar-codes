@@ -19,6 +19,7 @@
 #include <polarcode/decoding/fixed_fip_char.h>
 #include <polarcode/decoding/depth_first.h>
 #include <polarcode/decoding/scan.h>
+#include <polarcode/decoding/fastsscan_float.h>
 
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
@@ -501,6 +502,7 @@ void SimulationWorker::setCoders() {
 				break;
 			case 32:
 				mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);
+				//mDecoder = new PolarCode::Decoding::FastSscanFloat(mJob->N, mFrozenBits);
 				break;
 			default:
 				std::cerr << "No decoder present for " << mJob->precision << "-bit decoding." << std::endl;

@@ -8,6 +8,7 @@
 #include <polarcode/decoding/fip_templates.txx>
 #include <polarcode/decoding/templatized_float.h>
 #include <polarcode/decoding/scan.h>
+#include <polarcode/decoding/fastsscan_float.h>
 #include <polarcode/construction/bhattacharrya.h>
 #include <chrono>
 #include <random>
@@ -498,6 +499,26 @@ void DecodingTest::testScan() {
 		decoder->decode();
 		decoder->getSoftCodeword(output);
 		std::cout << "Non-";
+		showScanTestOutput(i, output);
+		std::cout << std::endl;
+	}
+
+	delete decoder;
+
+	std::cout << "Fast-SSCAN Decoder:" << std::endl;
+	decoder =
+			new PolarCode::Decoding::FastSscanFloat(8, {0,1,2,4});
+
+	for(unsigned i = 1; i <= 2; i<<=1) {
+		decoder->setSignal(signal);
+
+		decoder->setSystematic(true);
+		decoder->decode();
+		for(unsigned j = 1; j < i; ++j) {
+			dynamic_cast<PolarCode::Decoding::FastSscanFloat*>(decoder)
+				->decodeAgain();
+		}
+		decoder->getSoftCodeword(output);
 		showScanTestOutput(i, output);
 		std::cout << std::endl;
 	}
