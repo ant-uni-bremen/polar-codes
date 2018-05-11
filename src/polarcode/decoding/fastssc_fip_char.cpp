@@ -388,7 +388,7 @@ void RateRNode::decode(fipv *LlrIn, fipv *BitsOut) {
 
 	mRight->decode(ChildLlr->data, BitsOut + mVecCount);
 
-	CombineSoftInPlace(BitsOut, mVecCount);
+	CombineInPlace(BitsOut, mVecCount);
 }
 
 void ShortRateRNode::decode(fipv *LlrIn, fipv *BitsOut) {
@@ -400,7 +400,7 @@ void ShortRateRNode::decode(fipv *LlrIn, fipv *BitsOut) {
 
 	mRight->decode(ChildLlr->data, RightBits->data);
 
-	CombineSoftBitsShort(LeftBits->data, RightBits->data, BitsOut, mBlockLength);
+	CombineBitsShort(LeftBits->data, RightBits->data, BitsOut, mBlockLength);
 }
 
 void ROneNode::decode(fipv *LlrIn, fipv *BitsOut) {
@@ -420,7 +420,7 @@ void ROneNode::simplifiedRightRateOneDecode(fipv *LlrIn, fipv *BitsOut) {
 
 		G_function_calc(Llr_l, Llr_r, Bits, &Llr_o);
 		/*nop*/ //Rate 1 decoder
-		F_function_calc(Bits, Llr_o, BitsOut + i);//Combine left bit
+		fi_store(BitsOut + i, fi_xor(Bits, Llr_o));//Combine left bit
 		fi_store(BitsOut + i + mVecCount, Llr_o);//Copy right bit
 	}
 }
@@ -440,8 +440,7 @@ void ShortROneNode::simplifiedRightRateOneDecodeShort(fipv *LlrIn, fipv *BitsOut
 	G_function(LlrIn, &Llr_r_subcode, BitsOut, mBlockLength);//Get right child LLRs
 	/*nop*/ //Rate 1 decoder
 	fipv Bits_r = subVectorBackShiftBytes_epu8(Llr_r_subcode, mBlockLength);
-	fipv Bits_o;
-	F_function_calc(Bits, Llr_r_subcode, &Bits_o);//Combine left bits
+	fipv Bits_o = fi_xor(Bits, Llr_r_subcode);//Combine left bits
 	memset(reinterpret_cast<char*>(&Bits_o) + mBlockLength, 0, mBlockLength);//Clear right bits
 	Bits = fi_or(Bits_o, Bits_r);//Merge bits into single vector
 	fi_store(BitsOut, Bits);//Save

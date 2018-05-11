@@ -312,17 +312,17 @@ inline void G_function_0R(fipv *LLRin, fipv *LLRout) {
 }
 
 template<unsigned blockLength>
-inline void CombineSoftInPlace(fipv *Bits) {
+inline void CombineInPlace(fipv *Bits) {
 	constexpr unsigned vecCount = nBit2cvecCount(blockLength);
 	for(unsigned i = 0; i < vecCount; i++) {
 		fipv tempL = fi_load(Bits + i);
 		fipv tempR = fi_load(Bits + vecCount + i);
-		F_function_calc(tempL, tempR, Bits + i);
+		fi_store(Bits + i, fi_xor(tempL, tempR));
 	}
 }
 
 template<unsigned blockLength>
-inline void CombineSoftBits(fipv *Left, fipv *Right, fipv *Out) {
+inline void CombineBits(fipv *Left, fipv *Right, fipv *Out) {
 	 if (blockLength < BYTESPERVECTOR) {
 		const fipv absCorrector = fi_set1_epi8(-127);
 
@@ -336,8 +336,8 @@ inline void CombineSoftBits(fipv *Left, fipv *Right, fipv *Out) {
 		LeftV = fi_max_epi8(LeftV, absCorrector);
 		RightV = fi_max_epi8(RightV, absCorrector);
 
-		//Boxplus operation for upper bits
-		F_function_calc(LeftV, RightV, &OutV);
+		//XOR operation for upper bits
+		OutV = fi_xor(LeftV, RightV);
 
 		// Copy operation for lower bits
 		OutV = fi_or(OutV, subVectorBackShiftBytes<blockLength>(RightV));
@@ -348,11 +348,8 @@ inline void CombineSoftBits(fipv *Left, fipv *Right, fipv *Out) {
 			fipv LeftV = fi_load(Left + i);
 			fipv RightV = fi_load(Right + i);
 
-			//Copy lower bits
-			fi_store(Out + vecCount + i, RightV);
-
-			//Boxplus for upper bits
-			F_function_calc(LeftV, RightV, Out + i);
+			fi_store(Out + i, fi_xor(LeftV, RightV));
+			fi_store(Out + i +vecCount, RightV);
 		}
 	}
 }

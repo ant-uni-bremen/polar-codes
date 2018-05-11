@@ -12,7 +12,7 @@ namespace Decoding {
 namespace FastSscAvx {
 
 inline __m256 hardDecode(__m256 x) {
-	static const __m256 mask = _mm256_set1_ps(-0.0);
+	const __m256 mask = _mm256_set1_ps(-0.0);
 	return _mm256_and_ps(x, mask);// Get signs of LLRs
 }
 
@@ -24,7 +24,7 @@ inline float hardDecode(float llr) {
 
 inline void F_function_calc(__m256 &Left, __m256 &Right, float *Out)
 {
-	static const __m256 sgnMask = _mm256_set1_ps(-0.0);
+	const __m256 sgnMask = _mm256_set1_ps(-0.0);
 	__m256 absL = _mm256_andnot_ps(sgnMask, Left);
 	__m256 absR = _mm256_andnot_ps(sgnMask, Right);
 	__m256 minV = _mm256_min_ps(absL, absR);
@@ -35,9 +35,9 @@ inline void F_function_calc(__m256 &Left, __m256 &Right, float *Out)
 
 inline void G_function_calc(__m256 &Left, __m256 &Right, __m256 &Bits, float *Out)
 {
-	const __m256 HBits = hardDecode(Bits);//When using soft-output decoding, hard-decoding is needed at this point.
-	const __m256 MLeft = _mm256_xor_ps(Left, HBits);//Change to diff-operation if bit is set, else keep add-operation
-	_mm256_store_ps(Out, _mm256_add_ps(MLeft, Right));
+	const __m256 sum = _mm256_add_ps(Right, Left);
+	const __m256 dif = _mm256_sub_ps(Right, Left);
+	_mm256_store_ps(Out, _mm256_blendv_ps(sum, dif, Bits));
 }
 
 
@@ -111,21 +111,21 @@ inline void MoveRightBits(__m256& Right, const unsigned subBlockLength) {
 	Right = _mm256_subVectorBackShift_ps(Right, subBlockLength);
 }
 
-inline void CombineSoft(float *Bits, const unsigned bitCount) {
-	for(unsigned i=0; i<bitCount; i+=8) {
-		__m256 tempL = _mm256_load_ps(Bits+i);
-		__m256 tempR = _mm256_load_ps(Bits+bitCount+i);
-		F_function_calc(tempL, tempR, Bits+i);
+inline void Combine(float *Bits, const unsigned bitCount) {
+	for(unsigned i = 0; i<bitCount; i += 8) {
+		__m256 tempL = _mm256_load_ps(Bits + i);
+		__m256 tempR = _mm256_load_ps(Bits + i + bitCount);
+		_mm256_store_ps(Bits + i, _mm256_xor_ps(tempL, tempR));
 	}
 }
 
 inline void Combine_0R(float *Bits, const unsigned bitCount) {
-	for(unsigned i=0; i<bitCount; ++i) {
-		Bits[i] = Bits[i+bitCount];
+	for(unsigned i = 0; i < bitCount; ++i) {
+		Bits[i] = Bits[i + bitCount];
 	}
 }
 
-inline void CombineSoftBitsShort(float *Left, float *Right, float *Out, const unsigned subBlockLength) {
+inline void CombineBitsShort(float *Left, float *Right, float *Out, const unsigned subBlockLength) {
 	__m256 LeftV = _mm256_load_ps(Left);
 	__m256 RightV = _mm256_load_ps(Right);
 	__m256 OutV;
@@ -133,8 +133,7 @@ inline void CombineSoftBitsShort(float *Left, float *Right, float *Out, const un
 	PrepareForShortOperation(LeftV, subBlockLength);
 	PrepareForShortOperation(RightV, subBlockLength);
 
-	//Boxplus operation for upper bits
-	F_function_calc(LeftV, RightV, reinterpret_cast<float*>(&OutV));
+	OutV = _mm256_xor_ps(LeftV, RightV);
 
 	// Copy operation for lower bits
 	MoveRightBits(RightV, subBlockLength);
@@ -142,29 +141,26 @@ inline void CombineSoftBitsShort(float *Left, float *Right, float *Out, const un
 	_mm256_store_ps(Out, OutV);
 }
 
-inline void CombineSoftBitsLong(float *Left, float *Right, float *Out, const unsigned subBlockLength) {
+inline void CombineBitsLong(float *Left, float *Right, float *Out, const unsigned subBlockLength) {
 	__m256 LeftV;
 	__m256 RightV;
-	for(unsigned i=0; i<subBlockLength; i+=8) {
-		LeftV = _mm256_load_ps(Left+i);
-		RightV = _mm256_load_ps(Right+i);
+	for(unsigned i = 0; i < subBlockLength; i += 8) {
+		LeftV = _mm256_load_ps(Left + i);
+		RightV = _mm256_load_ps(Right + i);
 
-		//Boxplus for upper bits
-		F_function_calc(LeftV, RightV, Out+i);
-
-		//Copy lower bits
-		_mm256_store_ps(Out+subBlockLength+i, RightV);
+		_mm256_store_ps(Out + i, _mm256_xor_ps(LeftV, RightV));
+		_mm256_store_ps(Out + i + subBlockLength, RightV);
 	}
 }
 
 inline void RepetitionPrepare(float* x, const unsigned codeLength) {
-	for(unsigned i=codeLength; i<8; ++i) {
-		x[i] = 0.0;
+	for(unsigned i = codeLength; i < 8; ++i) {
+		x[i] = 0.0f;
 	}
 }
 
 inline void SpcPrepare(float *x, const unsigned codeLength) {
-	for(unsigned i=codeLength; i<8; ++i) {
+	for(unsigned i = codeLength; i < 8; ++i) {
 		x[i] = INFINITY;
 	}
 }
@@ -177,7 +173,7 @@ inline void SpcPrepare(float *x, const unsigned codeLength) {
  * \return The number of AVX-vectors required to store _blockLength_ char bits.
  */
 inline size_t nBit2fvecCount(size_t blockLength) {
-	return (blockLength+7)/8;
+	return (blockLength + 7) / 8;
 }
 /*!
  * \brief Expand the blocklength to AVX-vector boundaries of eight floats.
@@ -189,7 +185,7 @@ inline size_t nBit2fvecCount(size_t blockLength) {
  * \return The expanded block length.
  */
 inline size_t nBit2fCount(size_t blockLength) {
-	return (blockLength+7)&(~7);
+	return (blockLength + 7) & (~7);
 }
 
 

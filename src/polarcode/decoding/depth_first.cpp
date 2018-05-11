@@ -282,7 +282,7 @@ void RateRNode::decode() {
 	mLeft->decode();
 	FastSscAvx::G_function(mInput, mRightLlr->data, mOutput, mBlockLength);
 	mRight->decode();
-	FastSscAvx::CombineSoft(mOutput, mBlockLength);
+	FastSscAvx::Combine(mOutput, mBlockLength);
 }
 
 /*************
@@ -312,7 +312,7 @@ void ShortRateRNode::decode() {
 	mLeft->decode();
 	FastSscAvx::G_function(mInput, mRightLlr->data, mLeftBits->data, mBlockLength);
 	mRight->decode();
-	FastSscAvx::CombineSoftBitsShort(mLeftBits->data, mRightBits->data, mOutput, mBlockLength);
+	FastSscAvx::CombineBitsShort(mLeftBits->data, mRightBits->data, mOutput, mBlockLength);
 }
 
 /*************
