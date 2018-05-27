@@ -282,8 +282,9 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 
 }// namespace FastSscanObjects
 
-FastSscanFloat::FastSscanFloat(unsigned blockLength, const std::vector<unsigned> &frozenBits) {
+FastSscanFloat::FastSscanFloat(unsigned blockLength, unsigned trialLimit, const std::vector<unsigned> &frozenBits) {
 	mBlockLength = 0;
+	mTrialLimit = trialLimit;
 	initialize(blockLength, frozenBits);
 }
 
@@ -318,8 +319,13 @@ void FastSscanFloat::initialize(unsigned blockLength, const std::vector<unsigned
 }
 
 bool FastSscanFloat::decode() {
+	bool success = false;
 	mRootNode->reset();
-	return decodeAgain() ? true : decodeAgain();
+
+	for(unsigned trial = 0; trial < mTrialLimit && !success; ++trial) {
+		success = decodeAgain();
+	}
+	return success;
 }
 
 bool FastSscanFloat::decodeAgain() {

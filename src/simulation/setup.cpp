@@ -16,7 +16,7 @@ using namespace TCLAP;
 void Configurator::setupArgumentDefaults() {
 	defaultStrings.insert({"simtype", "single"});
 
-	defaultLongInts.insert({"workload", 1e9L});
+	defaultLongInts.insert({"workload", 4e8L});
 
 	defaultFloats.insert({"snr-min", -1.59174539});
 	defaultFloats.insert({"snr-max",  4.0});
@@ -29,16 +29,16 @@ void Configurator::setupArgumentDefaults() {
 
 	defaultInts.insert({"n-fixed", 1024});
 	defaultInts.insert({"n-min",    128});
-	defaultInts.insert({"n-max",   4096});
+	defaultInts.insert({"n-max",   32768});
 
 	defaultFloats.insert({"r-fixed", 0.5});
 	defaultFloats.insert({"r-min",   0.25});
 	defaultFloats.insert({"r-max",   0.9});
 	defaultInts.insert({"r-count",   5});
 
-	defaultInts.insert({"l-fixed", 4});
+	defaultInts.insert({"l-fixed", 8});
 	defaultInts.insert({"l-min",   1});
-	defaultInts.insert({"l-max",   8});
+	defaultInts.insert({"l-max",   16});
 
 	defaultStrings.insert({"errorDetection","crc32"});
 
@@ -72,7 +72,9 @@ void Configurator::setupArgumentSimType() {
 									 "fixed",
 									 "depthfirst",
 									 "scan",
-									 "ask"};
+									 "fastsscan",
+									 "ask",
+									 "compareall"};
 	availableSimTypes = new ValuesConstraint<string>(SimTypesVector);
 
 	auto SimType = new UnlabeledValueArg<string>(

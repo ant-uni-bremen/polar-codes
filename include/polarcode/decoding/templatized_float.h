@@ -40,9 +40,10 @@ inline __m256 hardDecode(__m256 x) {
 }
 
 inline float hardDecode(float x) {
-	unsigned int *iX = reinterpret_cast<unsigned int*>(&x);
+/*	unsigned int *iX = reinterpret_cast<unsigned int*>(&x);
 	*iX &= 0x80000000U;
-	return x;
+	return x;*/
+	return (x<0) ? -0.0f : 0.0f;
 }
 
 inline void F_function_calc(__m256 &Left, __m256 &Right, float *Out)

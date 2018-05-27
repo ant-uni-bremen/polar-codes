@@ -12,19 +12,20 @@ namespace Decoding {
 namespace FastSscAvx {
 
 inline __m256 hardDecode(__m256 x) {
-	const __m256 mask = _mm256_set1_ps(-0.0);
+	const __m256 mask = _mm256_set1_ps(-0.0f);
 	return _mm256_and_ps(x, mask);// Get signs of LLRs
 }
 
 inline float hardDecode(float llr) {
-	unsigned int* iLlr = reinterpret_cast<unsigned int*>(&llr);
+/*	unsigned int* iLlr = reinterpret_cast<unsigned int*>(&llr);
 	*iLlr &= 0x80000000;
-	return llr;
+	return llr;*/
+	return (llr<0)? -0.0f : 0.0f;
 }
 
 inline void F_function_calc(__m256 &Left, __m256 &Right, float *Out)
 {
-	const __m256 sgnMask = _mm256_set1_ps(-0.0);
+	const __m256 sgnMask = _mm256_set1_ps(-0.0f);
 	__m256 absL = _mm256_andnot_ps(sgnMask, Left);
 	__m256 absR = _mm256_andnot_ps(sgnMask, Right);
 	__m256 minV = _mm256_min_ps(absL, absR);
@@ -100,10 +101,8 @@ inline void G_function_0R(float *LLRin, float *LLRout, unsigned subBlockLength) 
 
 
 inline void PrepareForShortOperation(__m256& Left, const unsigned subBlockLength) {
-	//memset(reinterpret_cast<float*>(&Left)+subBlockLength, 0, subBlockLength*4);
-	unsigned int *ptr = reinterpret_cast<unsigned int*>(&Left);
-	for(unsigned int i=subBlockLength; i<2*subBlockLength; ++i) {
-		ptr[i] = 0;
+	for(unsigned int i = subBlockLength; i < FLOATSPERVECTOR; ++i) {
+		Left[i] = 0.0f;
 	}
 }
 
@@ -112,7 +111,7 @@ inline void MoveRightBits(__m256& Right, const unsigned subBlockLength) {
 }
 
 inline void Combine(float *Bits, const unsigned bitCount) {
-	for(unsigned i = 0; i<bitCount; i += 8) {
+	for(unsigned i = 0; i < bitCount; i += 8) {
 		__m256 tempL = _mm256_load_ps(Bits + i);
 		__m256 tempR = _mm256_load_ps(Bits + i + bitCount);
 		_mm256_store_ps(Bits + i, _mm256_xor_ps(tempL, tempR));

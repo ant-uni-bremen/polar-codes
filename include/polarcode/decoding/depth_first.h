@@ -47,6 +47,7 @@ class Manager {
 	Node *xmRootNode;
 //	std::priority_queue<Configuration, std::vector<Configuration>, compareConfigMetrics> mConfigList;
 	std::queue<Configuration> mConfigList;
+	std::vector<unsigned> mNodeRanking;
 	int mTrialLimit;
 
 	Configuration mBestConfig;
@@ -59,6 +60,7 @@ public:
 
 	/*!
 	 * \brief Save a deciding node
+	 *
 	 * This function is called once on node creation, if the calling node makes
 	 * decoding decisions (R1, Rep, SPC; not R0, RR).
 	 * After decoding a frame, all decisice nodes can be asked about their
@@ -68,6 +70,8 @@ public:
 
 	void setRootNode(Node *);
 
+	void setNodeRanking(std::vector<unsigned>);
+
 	/*!
 	 * \brief First decoding run
 	 */
@@ -75,6 +79,7 @@ public:
 
 	/*!
 	 * \brief Change the weakest decision and decode again.
+	 *
 	 * If the output of the first decoding run is erroneous, call this function
 	 * to change the weakest decoders' decision and decode all subsequent bits.
 	 * This function asks each partial decoder in mNodeList about its
@@ -217,6 +222,8 @@ public:
 
 	bool decode();
 	void initialize(size_t blockLength, const std::vector<unsigned> &frozenBits);
+
+	void setErrorStatistics(std::vector<unsigned>);
 };
 
 

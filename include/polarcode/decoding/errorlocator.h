@@ -95,6 +95,7 @@ class ErrorLocator : public Decoder {
 
 	void prepare();
 	bool findErrors();
+	int findFirstError();
 
 public:
 	ErrorLocator(unsigned blockLength, const std::vector<unsigned> &frozenBits);
@@ -103,6 +104,8 @@ public:
 	bool decode();
 	void initialize(unsigned blockLength, const std::vector<unsigned> &frozenBits);
 	void clear();
+
+	int decodeFindFirstError();
 
 	void pushBit(ErrorLocatorNodes::Node *node, bool frozen);
 

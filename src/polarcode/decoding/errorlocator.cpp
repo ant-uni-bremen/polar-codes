@@ -227,6 +227,12 @@ bool ErrorLocator::decode() {
 	return true;
 }
 
+int ErrorLocator::decodeFindFirstError() {
+	prepare();
+	mRootNode->decode();
+	return findFirstError();
+}
+
 void ErrorLocator::pushBit(ErrorLocatorNodes::Node *node, bool frozen) {
 	mSystematicNodes.push_back(node);
 	node->mId = mSystematicNodes.size() - 1;
@@ -271,6 +277,20 @@ bool ErrorLocator::findErrors() {
 		}
 	}
 	return false;
+}
+
+int ErrorLocator::findFirstError() {
+	HybridFloat desired, actual;
+	for(auto node : mInfoBits) {
+		desired.f = node->mDesiredValue;
+		actual.f = node->mValue;
+
+		if(!signEq(desired, actual) && !node->mReplace) {
+			mFirstError = node->mId;
+			return mFirstError;
+		}
+	}
+	return -1;
 }
 
 std::vector<float> ErrorLocator::getOutput() {

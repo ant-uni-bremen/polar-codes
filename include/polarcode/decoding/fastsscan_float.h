@@ -100,13 +100,14 @@ class FastSscanFloat : public Decoder {
 	FastSscanObjects::Node *mNodeBase, *mRootNode;
 	FastSscanObjects::datapool_t *mDataPool;
 	FastSscanObjects::block_t *mTemp;
+	unsigned mTrialLimit;
 
 	void clear();
 	void calculateOutput();
 	bool check();
 
 public:
-	FastSscanFloat(unsigned blockLength, const std::vector<unsigned> &frozenBits);
+	FastSscanFloat(unsigned blockLength, unsigned trialLimit, const std::vector<unsigned> &frozenBits);
 	~FastSscanFloat();
 
 	bool decode();

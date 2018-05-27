@@ -52,6 +52,8 @@ inline std::string errorDetectionStringToType(std::string errDetStr) {
  */
 struct DataPoint
 {
+	std::string name;
+
 	//Codec-Parameters
 	float designSNR;///< Design-SNR for code construction
 	int N;///< Blocklength
@@ -62,6 +64,7 @@ struct DataPoint
 	bool systematic;///< True, if systematic coding will be used
 	PolarCode::Decoding::DecoderType decoderType;
 	int codingScheme;///< -1 for flexible decoder, 0 or higher for fixed decoder according to _codeRegistry_
+	std::vector<unsigned> scfNodeRanking;///< SCFlip: Ranking of the worst info bit channels
 
 	//Simulation-Parameters
 	float EbN0;///< Bit-energy to noise-energy ratio for AWGN-channel
@@ -110,11 +113,13 @@ class Simulator {
 	void configureAmplificationSim();
 	void configureFixedSim();
 	void configureDepthFirstSim();
-	void configureScanSim();
+	void configureScanSim(bool fastSimplified);
 	void configureAskSim();
 	void snrInflateJobList();
+	void configureComparisonSim();
 
 	void saveResults();
+	void saveComparisonResults();
 
 public:
 	/*!

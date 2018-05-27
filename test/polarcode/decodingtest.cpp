@@ -529,7 +529,7 @@ void DecodingTest::testScan() {
 
 	std::cout << "Fast-SSCAN Decoder:" << std::endl;
 	decoder =
-			new PolarCode::Decoding::FastSscanFloat(8, {0,1,2,4});
+			new PolarCode::Decoding::FastSscanFloat(8, 1, {0,1,2,4});
 
 	for(unsigned i = 1; i <= 2; i<<=1) {
 		decoder->setSignal(signal);
