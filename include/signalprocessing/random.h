@@ -1,6 +1,6 @@
 #ifndef PCDSP_RANDOM_H
 #define PCDSP_RANDOM_H
-#undef __RDRND__
+//#undef __RDRND__
 
 #include "lcg.h"
 #include <mutex>
