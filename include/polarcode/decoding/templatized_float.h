@@ -99,7 +99,7 @@ inline void F_function(float LLRin[subBlockLength*2], float LLRout[subBlockLengt
 		}
 	} else {
 		for(unsigned i = 0; i < subBlockLength; i += 8) {
-			__m256 Left = _mm256_load_ps(&(LLRin[i]));
+			__m256 Left = _mm256_load_ps(LLRin + i);
 			__m256 Right = _mm256_load_ps(LLRin + subBlockLength + i);
 			F_function_calc(Left, Right, LLRout + i);
 		}
@@ -189,13 +189,13 @@ constexpr int partialSum(const std::array<int, N> &arr) {
 template<const int size>
 inline void decodeRateZero(float *output) {
 	if(size >= 8) {
-		const __m256 inf = _mm256_set1_ps(INFINITY);
+		const __m256 inf = _mm256_setzero_ps();
 		for(int i = 0; i < size; i += 8) {
 			_mm256_store_ps(output + i, inf);
 		}
 	} else {
 		for(int i = 0; i < size; i++) {
-			output[i] = INFINITY;
+			output[i] = 0.0f;
 		}
 	}
 }
@@ -284,23 +284,21 @@ inline void decodeSpc(float *input, float *output) {
 	reinterpret_cast<unsigned int*>(output)[minIdx] ^= iParity;
 }
 
-#define RAWFLOAT(x) (*(reinterpret_cast<unsigned int*>(&(x))))
-
 template<const int size>
 inline void decodeROneRight(float input[size], float output[size]) {
 	using namespace TemplatizedFloatCalc;
 	if(size >= 8) {
 		for(unsigned i = 0; i < size; i += 8) {
-			__m256 left = _mm256_load_ps(input + i);
+			__m256 left  = _mm256_load_ps(input + i);
 			__m256 right = _mm256_load_ps(input + size + i);
-			__m256 bit = _mm256_load_ps(output + i);
-			__m256 hbit = hardDecode(bit);
+			__m256 bit   = _mm256_load_ps(output + i);
+			__m256 hbit  = hardDecode(bit);
 
 			__m256 out = _mm256_xor_ps(left, hbit);// G-function
 			out = _mm256_add_ps(out, right);// G-function
 			/* nop */ // Rate-1 decoder
+			_mm256_store_ps(output + i, _mm256_xor_ps(hbit, out));// Store left bit
 			_mm256_store_ps(output + size + i, out);// Store right bit
-			F_function_calc(bit, out, output + i);// "C-function"
 		}
 	} else {
 		for(unsigned i = 0; i < size; i++) {
@@ -309,11 +307,11 @@ inline void decodeROneRight(float input[size], float output[size]) {
 			float &bit = output[i];
 			float hbit = hardDecode(bit);
 
-			float out = float_or(left, hbit);
+			float out = float_xor(left, hbit);
 			out += right;
 
+			output[i] = float_xor(hbit, out);
 			output[size + i] = out;
-			output[i] = F_function_calc(bit, out);
 		}
 	}
 }
@@ -374,7 +372,7 @@ class TemplatizedFloat : public Decoder {
 			constexpr int leftFrozenBitCount = partialSum<begin, size / 2, N>(frozenBitSet);
 			constexpr int rightFrozenBitCount = partialSum<begin + size / 2, size / 2, N>(frozenBitSet);
 
-			if(rightFrozenBitCount == 0) {
+			if(rightFrozenBitCount == 0 && size < 8) {
 				return decodeROne<begin, size>(input, output);
 			} else if(leftFrozenBitCount == size / 2) {
 				return decodeZeroR<begin, size>(input, output);
