@@ -24,7 +24,7 @@ endif()
 #add_definitions(-Wl,--no-as-needed)
 
 add_subdirectory(src)
-add_subdirectory(test)
+#add_subdirectory(test)
 #add_subdirectory(doc)
 add_subdirectory(include/polarcode)
 

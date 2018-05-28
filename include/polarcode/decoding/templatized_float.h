@@ -90,7 +90,7 @@ inline float G_function_calc(float &Left, float &Right, float &Bit)
 }
 
 template<unsigned subBlockLength>
-inline void F_function(float *LLRin, float LLRout[subBlockLength]) {
+inline void F_function(float LLRin[subBlockLength*2], float LLRout[subBlockLength]) {
 	if(subBlockLength < 8) {
 		for(unsigned i = 0; i < subBlockLength; ++i) {
 			float &Left = LLRin[i];
@@ -99,7 +99,7 @@ inline void F_function(float *LLRin, float LLRout[subBlockLength]) {
 		}
 	} else {
 		for(unsigned i = 0; i < subBlockLength; i += 8) {
-			__m256 Left = _mm256_load_ps(LLRin + i);
+			__m256 Left = _mm256_load_ps(&(LLRin[i]));
 			__m256 Right = _mm256_load_ps(LLRin + subBlockLength + i);
 			F_function_calc(Left, Right, LLRout + i);
 		}
@@ -384,7 +384,7 @@ class TemplatizedFloat : public Decoder {
 		}
 /* */
 
-/* Precise soft-output decoding
+/* Full butterfly decoding
 		if(size == 1) {
 			if(frozenBitCount == 1) {
 				decodeRateZero<1>(output);
@@ -398,9 +398,10 @@ class TemplatizedFloat : public Decoder {
 	}
 
 public:
-	TemplatizedFloat() {
+	TemplatizedFloat(std::vector<unsigned> frozenBits) {
 		mLlrContainer = new FloatContainer(N);
-		mBitContainer = new FloatContainer(N);
+		mBitContainer = new FloatContainer(N, frozenBits);
+		mOutputContainer = new unsigned char[(N-frozenBits.size())/8];
 	}
 
 	~TemplatizedFloat() {
@@ -410,6 +411,7 @@ public:
 		decodeNode<0, N>(
 			dynamic_cast<FloatContainer*>(mLlrContainer)->data(),
 			dynamic_cast<FloatContainer*>(mBitContainer)->data());
+		mBitContainer->getPackedInformationBits(mOutputContainer);
 		return true;
 	}
 };

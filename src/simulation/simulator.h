@@ -117,6 +117,7 @@ class Simulator {
 	void configureAskSim();
 	void snrInflateJobList();
 	void configureComparisonSim();
+	void printCode();
 
 	void saveResults();
 	void saveComparisonResults();

@@ -137,7 +137,7 @@ void FloatContainer::setSize(size_t newSize) {
 	}
 
 	// Allocate new memory
-	mData = static_cast<float*>(_mm_malloc(4*mElementCount, BYTESPERVECTOR));
+	mData = static_cast<float*>(_mm_malloc(4*mElementCount, 32/*BYTESPER(AVX)VECTOR*/));
 	if(mData == nullptr) {
 		throw "Allocating memory for float-container failed.";
 	}

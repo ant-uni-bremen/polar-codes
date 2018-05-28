@@ -74,7 +74,8 @@ void Configurator::setupArgumentSimType() {
 									 "scan",
 									 "fastsscan",
 									 "ask",
-									 "compareall"};
+									 "compareall",
+									 "getcode"};
 	availableSimTypes = new ValuesConstraint<string>(SimTypesVector);
 
 	auto SimType = new UnlabeledValueArg<string>(
