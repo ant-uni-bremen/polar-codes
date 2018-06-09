@@ -90,7 +90,7 @@ public:
 	 * \param flags Set to [NO_LEFT | NO_RIGHT] to disable child creation.
 	 */
 	RateRNode(const std::vector<unsigned> &frozenBits, Node *parent, ChildCreationFlags flags = BOTH);
-	~RateRNode();
+	virtual ~RateRNode();
 	void setOutput(float *);
 	void decode();
 };
@@ -108,7 +108,7 @@ public:
 	 * \param parent The parent node, defining the length of this code.
 	 */
 	ShortRateRNode(const std::vector<unsigned> &frozenBits, Node *parent);
-	~ShortRateRNode();
+	virtual ~ShortRateRNode();
 	void setOutput(float *);
 	void decode();
 };

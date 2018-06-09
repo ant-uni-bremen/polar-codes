@@ -256,10 +256,10 @@ void DecodingTest::testGeneralDecodingFunctionsSse() {
 	llr[0]   = _mm_setr_epi8(   127,   127,   127,   127,   127,   127,   127,   127, 0, 0, 0, 0, 0, 0, 0, 0);
 	llr[1]   = _mm_setr_epi8(  -128,  -128,  -128,  -128,  -128,  -128,  -128,  -128, 0, 0, 0, 0, 0, 0, 0, 0);
 	expected = _mm_setr_epi8(  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127,  -127);
-	PolarCode::Decoding::FastSscFip::CombineSoftBitsShort(llr, llr + 1, &bits, 8);
-	CPPUNIT_ASSERT(testVectors(bits, expected));
-	PolarCode::Decoding::FixedDecoding::CombineSoftBits<8>(llr, llr + 1, &bits);
-	CPPUNIT_ASSERT(testVectors(bits, expected));
+	PolarCode::Decoding::FastSscFip::CombineBitsShort(llr, llr + 1, &bits, 8);
+	CPPUNIT_ASSERT(testBitVectors(bits, expected));
+	PolarCode::Decoding::FixedDecoding::CombineBits<8>(llr, llr + 1, &bits);
+	CPPUNIT_ASSERT(testBitVectors(bits, expected));
 
 	//Extended combine-test
 	{
@@ -275,9 +275,9 @@ void DecodingTest::testGeneralDecodingFunctionsSse() {
 			for(int right = -128; right < 0; right++) {
 				llrLeft.c[0] = static_cast<char>(left);
 				llrRight.c[0] = static_cast<char>(right);
-				PolarCode::Decoding::FastSscFip::CombineSoftBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
+				PolarCode::Decoding::FastSscFip::CombineBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
 				CPPUNIT_ASSERT(result.c[0] >= 0);
-				PolarCode::Decoding::FixedDecoding::CombineSoftBits<1>(&llrLeft.v, &llrRight.v, &result.v);
+				PolarCode::Decoding::FixedDecoding::CombineBits<1>(&llrLeft.v, &llrRight.v, &result.v);
 				CPPUNIT_ASSERT(result.c[0] >= 0);
 			}
 		}
@@ -285,9 +285,9 @@ void DecodingTest::testGeneralDecodingFunctionsSse() {
 			for(int right = 0; right < 128; right++) {
 				llrLeft.c[0] = static_cast<char>(left);
 				llrRight.c[0] = static_cast<char>(right);
-				PolarCode::Decoding::FastSscFip::CombineSoftBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
+				PolarCode::Decoding::FastSscFip::CombineBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
 				CPPUNIT_ASSERT(result.c[0] >= 0);
-				PolarCode::Decoding::FixedDecoding::CombineSoftBits<1>(&llrLeft.v, &llrRight.v, &result.v);
+				PolarCode::Decoding::FixedDecoding::CombineBits<1>(&llrLeft.v, &llrRight.v, &result.v);
 				CPPUNIT_ASSERT(result.c[0] >= 0);
 			}
 		}
@@ -295,10 +295,10 @@ void DecodingTest::testGeneralDecodingFunctionsSse() {
 			for(int right = 0; right < 128; right++) {
 				llrLeft.c[0] = static_cast<char>(left);
 				llrRight.c[0] = static_cast<char>(right);
-				PolarCode::Decoding::FastSscFip::CombineSoftBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
+				PolarCode::Decoding::FastSscFip::CombineBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
 				//std::cout << "Left: " << left << ", Right: " << right << ", Result: " << (int)result.c[0] << std::endl;
 				CPPUNIT_ASSERT(result.c[0] < 0);
-				PolarCode::Decoding::FixedDecoding::CombineSoftBits<1>(&llrLeft.v, &llrRight.v, &result.v);
+				PolarCode::Decoding::FixedDecoding::CombineBits<1>(&llrLeft.v, &llrRight.v, &result.v);
 				CPPUNIT_ASSERT(result.c[0] < 0);
 			}
 		}
@@ -306,9 +306,9 @@ void DecodingTest::testGeneralDecodingFunctionsSse() {
 			for(int right = -128; right < 0; right++) {
 				llrLeft.c[0] = static_cast<char>(left);
 				llrRight.c[0] = static_cast<char>(right);
-				PolarCode::Decoding::FastSscFip::CombineSoftBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
+				PolarCode::Decoding::FastSscFip::CombineBitsShort(&llrLeft.v, &llrRight.v, &result.v, 1);
 				CPPUNIT_ASSERT(result.c[0] < 0);
-				PolarCode::Decoding::FixedDecoding::CombineSoftBits<1>(&llrLeft.v, &llrRight.v, &result.v);
+				PolarCode::Decoding::FixedDecoding::CombineBits<1>(&llrLeft.v, &llrRight.v, &result.v);
 				CPPUNIT_ASSERT(result.c[0] < 0);
 			}
 		}
@@ -457,6 +457,7 @@ void DecodingTest::testListDecoder() {
 
 
 constexpr std::array<int, 8> frozenEight = {1, 1, 1, 0, 1, 0, 0, 0};
+std::vector<unsigned> frozenEightIdx = {3, 5, 6, 7};
 
 void DecodingTest::testTemplatized() {
 	/*
@@ -466,7 +467,7 @@ void DecodingTest::testTemplatized() {
 	 */
 	#if defined(__GNUC__) && __GNUC__ >= 6
 	PolarCode::Decoding::Decoder *decoder =
-			new PolarCode::Decoding::TemplatizedFloat<8, frozenEight>();
+			new PolarCode::Decoding::TemplatizedFloat<8, frozenEight>(frozenEightIdx);
 	#else
 	std::vector<unsigned> frozenBits({0,1,2,4});
 	PolarCode::Decoding::Decoder *decoder =

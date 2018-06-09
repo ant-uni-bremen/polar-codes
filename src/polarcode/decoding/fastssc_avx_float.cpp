@@ -57,8 +57,8 @@ Node::Node(size_t blockLength, datapool_t *pool)
 }
 
 Node::~Node() {
-	if(mLlr != nullptr) xmDataPool->release(mLlr);
-	if(mBit != nullptr) xmDataPool->release(mBit);
+	xmDataPool->release(mLlr);
+	xmDataPool->release(mBit);
 }
 
 void Node::decode() {

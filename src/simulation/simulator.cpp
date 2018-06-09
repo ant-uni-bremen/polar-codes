@@ -369,12 +369,6 @@ void Simulator::configureComparisonSim() {
 	float ampFloat = 4 * pow(10.0, jobTemplate->EbN0/10.0);
 
 	job = new DataPoint(*jobTemplate);
-	job->name = "FFSSC";
-	job->decoderType = PolarCode::Decoding::DecoderType::tFixed;
-	job->amplification = ampFloat;
-	jobList.push_back(job);
-
-	job = new DataPoint(*jobTemplate);
 	job->name = "Fast-SSC32";
 	job->decoderType = PolarCode::Decoding::DecoderType::tFlexible;
 	job->precision = 32;
@@ -421,16 +415,37 @@ void Simulator::configureComparisonSim() {
 	jobList.push_back(job);
 
 
+	{// Push two versions of the above list
+		auto highRateTemplate = getDefaultDataPoint();
+
+		highRateTemplate->EbN0 = 3.0;
+		ampFloat = 4 * pow(10.0, highRateTemplate->EbN0/10.0);
+		highRateTemplate->N = 4096;
+		highRateTemplate->K = 2048+1024;
+
+		for(auto ljob : jobList) {
+			mJobList.push_back(ljob);
+			job = new DataPoint(*ljob);
+			job->N = highRateTemplate->N;
+			job->K = highRateTemplate->K;
+			job->EbN0 = highRateTemplate->EbN0;
+			if(job->precision == 32) {
+				job->amplification = ampFloat;
+			}
+			mJobList.push_back(job);
+		}
+
+		delete highRateTemplate;
+	}
+
+	// And add the fixed/templatized decoder
+	job = new DataPoint(*jobTemplate);
+	job->name = "FFSSC";
+	job->decoderType = PolarCode::Decoding::DecoderType::tFixed;
+	job->amplification = ampFloat;
+	mJobList.push_back(job);
 
 	delete jobTemplate;
-
-	for(auto ljob : jobList) {
-		mJobList.push_back(ljob);
-//		job = new DataPoint(*ljob);
-//		job->N = 4096;
-//		job->K = 2048+1024;
-//		mJobList.push_back(job);
-	}
 }
 
 void Simulator::printCode() {
@@ -677,13 +692,13 @@ void SimulationWorker::selectFrozenBits() {
 	if(mJob->decoderType != PolarCode::Decoding::DecoderType::tFixed) {
 		mConstructor = new PolarCode::Construction::Bhattacharrya(mJob->N, mJob->K, mJob->designSNR);
 		mFrozenBits = mConstructor->construct();
-	}/* else {
+	} else {
 		mConstructor = nullptr;
-		std::vector<PolarCode::Decoding::CodingScheme> &registry = PolarCode::Decoding::codeRegistry;
-		std::vector<unsigned> &frozenBits = registry[mJob->codingScheme].frozenBits;
-		mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
-	}*/
-	mFrozenBits.assign(fixed1024FrozenIdx.begin(), fixed1024FrozenIdx.end());
+//		std::vector<PolarCode::Decoding::CodingScheme> &registry = PolarCode::Decoding::codeRegistry;
+//		std::vector<unsigned> &frozenBits = registry[mJob->codingScheme].frozenBits;
+//		mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+		mFrozenBits.assign(fixed1024FrozenIdx.begin(), fixed1024FrozenIdx.end());
+	}
 }
 
 
@@ -899,9 +914,9 @@ void SimulationWorker::calculateStatistics() {
 	mJob->time = mJob->timeStat.evaluate();
 	//mJob->timeStat.printContents();
 	mJob->bits = mJob->runs * (mJob->K - mJob->errorDetection);
-	mJob->BLER = (float)mJob->errors/mJob->runs;
-	mJob->BER = (float)mJob->biterrors/mJob->bits;
-	mJob->RER = (float)mJob->reportedErrors/mJob->runs;
+	mJob->BLER = (float)mJob->errors / mJob->runs;
+	mJob->BER = (double)mJob->biterrors / ((double)mJob->runs * (double)mJob->K);
+	mJob->RER = (float)mJob->reportedErrors / mJob->runs;
 	mJob->blps = mJob->runs;
 	mJob->cbps = mJob->runs * mJob->N;
 	mJob->pbps = mJob->bits;

@@ -93,7 +93,6 @@ void Awgn::transmit_vectorized() {
 		//Store signal
 		_mm256_storeu_ps(fSignal + i,     siga);
 		_mm256_storeu_ps(fSignal + i + 8, sigb);
-
 	}
 }
 
