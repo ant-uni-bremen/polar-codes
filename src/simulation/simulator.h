@@ -74,11 +74,11 @@ struct DataPoint
 	int bitsPerSymbol;
 
 	//Statistics
-	int runs;///< Actual number of blocks simulated
-	int bits;///< Number of payload bits sent out
-	int errors;///< ~ erroneous blocks
-	int reportedErrors;///< ~ block errors reported by error detection
-	int biterrors;///< ~ flipped payload bits
+	long runs;///< Actual number of blocks simulated
+	long bits;///< Number of payload bits sent out
+	long errors;///< ~ erroneous blocks
+	long reportedErrors;///< ~ block errors reported by error detection
+	long biterrors;///< ~ flipped payload bits
 	float apparentlyBestMetric;///< Lowest metric of output candidates (before error detection)
 	float selectedPathMetric;///< Metric of the selected decoding path (after error detection)
 

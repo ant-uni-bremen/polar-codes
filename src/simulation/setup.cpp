@@ -16,11 +16,11 @@ using namespace TCLAP;
 void Configurator::setupArgumentDefaults() {
 	defaultStrings.insert({"simtype", "single"});
 
-	defaultLongInts.insert({"workload", 4e8L});
+	defaultLongInts.insert({"workload", 1e9L});
 
 	defaultFloats.insert({"snr-min", -1.59174539});
 	defaultFloats.insert({"snr-max",  4.0});
-	defaultInts.insert({"snr-count", 12});
+	defaultInts.insert({"snr-count", 16});
 
 	defaultFloats.insert({"dsnr-fixed", 0.0});
 	defaultFloats.insert({"dsnr-min",  -1.59174539});
