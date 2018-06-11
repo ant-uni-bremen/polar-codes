@@ -4,6 +4,7 @@
 #include <cmath>
 #include <QGraphicsScene>
 #include <QGraphicsSimpleTextItem>
+#include <QTimer>
 
 #include "ArrayFuncs.h"
 
@@ -14,7 +15,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->setupUi(this);
 
 	connect(this, SIGNAL(parametersChanged()), this, SLOT(updateTree()));
-	connect(this, SIGNAL(sceneChanged()), this, SLOT(updateScene()));
 
 	Scene = new QGraphicsScene(this);
 	ui->graphicsView->setScene(Scene);
@@ -32,6 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	ellipseOffset = QPointF(ellipseSize.width()/2, ellipseSize.height()/2);
 
 	emit parametersChanged();
+	QTimer::singleShot(200, this, SLOT(updateTree()));
 }
 
 MainWindow::~MainWindow()
@@ -120,7 +121,7 @@ void MainWindow::updateTree()
 			}
 		}
 	}
-	emit sceneChanged();
+	updateScene();
 }
 
 void MainWindow::updateScene()
@@ -160,10 +161,9 @@ void MainWindow::updateScene()
 	{
 		QPointF coord = getCoord(layer, 0);
 		coord.setX(5);
-		QString string;
-		if(layer >= (n-1)) string = "Man";
-		else if(layer == n-2) string = "SSE";
-		else string = "AVX";
+		QString string = QString::number(1<<(n-layer));
+		if(layer == n) string += QStringLiteral(" bit");
+		else string += QStringLiteral(" bits");
 		item = Scene->addSimpleText(string);
 		item->moveBy(coord.x(), coord.y());
 	}
@@ -377,5 +377,5 @@ void MainWindow::on_spinBox_2_valueChanged(int arg1)
 void MainWindow::on_checkBox_toggled(bool checked)
 {
 	grayMode = checked;
-	emit sceneChanged();
+	updateScene();
 }

@@ -34,12 +34,10 @@ public:
 
 signals:
 	void parametersChanged();
-	void sceneChanged();
 
 private slots:
 	void on_spinBox_valueChanged(int arg1);
 	void updateTree();
-	void updateScene();
 	void on_doubleSpinBox_2_valueChanged(double arg1);
 	void on_doubleSpinBox_valueChanged(double arg1);
 	void on_spinBox_2_valueChanged(int arg1);
@@ -58,6 +56,8 @@ private:
 	void addNodes(int nodeID, int layer, int element, bool gray);
 
 	void updateKBox();
+
+	void updateScene();
 
 	Ui::MainWindow *ui;
 
