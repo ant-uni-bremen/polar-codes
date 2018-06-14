@@ -127,6 +127,14 @@ public:
 	void clearFrozenBits();
 };
 
+class UndefinedEncoder : public Encoder {
+public:
+	UndefinedEncoder();
+	~UndefinedEncoder();
+	void initialize(size_t, const std::vector<unsigned>&);
+	void encode();
+};
+
 }//namespace Encoding
 }//namespace PolarCode
 

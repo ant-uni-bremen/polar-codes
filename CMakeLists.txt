@@ -13,7 +13,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-add_definitions(-std=c++11 -Wall -Wno-ignored-attributes)
+add_definitions(-std=c++14 -Wall -Wno-ignored-attributes)
 add_definitions(-march=native -fPIC)
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-O3)

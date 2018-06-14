@@ -25,8 +25,32 @@ void splitFrozenBits(const std::vector<unsigned> &source,
 }
 
 
-PolarCoder::PolarCoder(Encoding::Encoder *encoder, Decoding::Decoder *decoder)
-	: mEncoder(encoder), mDecoder(decoder) {
+PolarCoder::PolarCoder()
+	: mBlockLength(0)
+	, mInformationLength(0)
+	, mSystematic(true)
+	, mDesignSnr(0.0f)
+	, mFrozenBits({})
+	, mEncoder(new Encoding::UndefinedEncoder())
+	, mDecoder(new Decoding::UndefinedDecoder())
+{
 }
+
+PolarCoder::~PolarCoder() {
+	delete mEncoder;
+	delete mDecoder;
+}
+
+void PolarCoder::setCode(unsigned N, unsigned K, bool systematic) {
+	mBlockLength = N;
+	mInformationLength = K;
+	mSystematic = systematic;
+}
+
+void PolarCoder::setDesignSnr(float dSnr) {
+	mDesignSnr = dSnr;
+}
+
+
 
 }//namespace PolarCode

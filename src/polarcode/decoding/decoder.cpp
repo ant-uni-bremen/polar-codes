@@ -129,5 +129,16 @@ bool Decoder::decode_vector(const char *pLlr, void* pData) {
   return res;
 }
 
+UndefinedDecoder::UndefinedDecoder() {
+}
+
+UndefinedDecoder::~UndefinedDecoder() {
+}
+
+bool UndefinedDecoder::decode() {
+	std::cerr << "Call to UndefinedDecoder::decode()!" << std::endl;
+	return false;
+}
+
 }//namespace Decoding
 }//namespace PolarCode

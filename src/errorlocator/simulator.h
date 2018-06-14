@@ -1,15 +1,16 @@
-#ifndef PCSIM_SIMULATOR_H
-#define PCSIM_SIMULATOR_H
+#ifndef PCERL_SIMULATOR_H
+#define PCERL_SIMULATOR_H
 
 #include <atomic>
 #include <chrono>
 #include <queue>
+#include <mutex>
+#include <vector>
 
 
 #include <polarcode/construction/bhattacharrya.h>
 #include <polarcode/encoding/encoder.h>
-#include <polarcode/decoding/decoder.h>
-#include <polarcode/errordetection/errordetector.h>
+#include <polarcode/decoding/errorlocator.h>
 
 #include <signalprocessing/random.h>
 #include <signalprocessing/modulation/bpsk.h>
@@ -20,29 +21,7 @@
 #include "setup.h"
 #include "statistics.h"
 
-namespace Simulation {
-
-inline int errorDetectionStringToId(std::string str) {
-	if(str == "crc8") {
-		return 8;
-	} else if(str == "crc32") {
-		return 32;
-	} else {
-		//implicit "none"
-		return 0;
-	}
-}
-
-
-
-inline std::string errorDetectionStringToType(std::string errDetStr) {
-	std::string prefixCRC = "crc";
-	if(errDetStr.substr(0, prefixCRC.size()) == prefixCRC) {
-		return prefixCRC;
-	} else{ // implicit none!
-		return std::string("none");
-	}
-}
+namespace SimulationErrorLocator {
 
 /*!
  * \brief A collection of simulation input/output, called 'job'.
@@ -52,44 +31,22 @@ inline std::string errorDetectionStringToType(std::string errDetStr) {
  */
 struct DataPoint
 {
+	std::mutex mutex;
+
 	//Codec-Parameters
 	float designSNR;///< Design-SNR for code construction
 	int N;///< Blocklength
 	int K;///< Information length
-	int L;///< List length for list-decoding
-	int errorDetection;///< 0=none,8/32=crc (effectively the number of check bits)
-	std::string errorDetectionType;
-	bool systematic;///< True, if systematic coding will be used
-	PolarCode::Decoding::DecoderType decoderType;
-	int codingScheme;///< -1 for flexible decoder, 0 or higher for fixed decoder according to _codeRegistry_
+	std::vector<bool> frozenSet;
 
 	//Simulation-Parameters
 	float EbN0;///< Bit-energy to noise-energy ratio for AWGN-channel
 	long BlocksToSimulate;///< Determines the BLER-precision
-	int precision;///< Quantization bits per symbol (32-bit float or 8-bit int)
-	float amplification;///< Amplification factor to optimize 8-bit quantization
-	int bitsPerSymbol;
 
 	//Statistics
-	int runs;///< Actual number of blocks simulated
-	int bits;///< Number of payload bits sent out
-	int errors;///< ~ erroneous blocks
-	int reportedErrors;///< ~ block errors reported by error detection
-	int biterrors;///< ~ flipped payload bits
-	float apparentlyBestMetric;///< Lowest metric of output candidates (before error detection)
-	float selectedPathMetric;///< Metric of the selected decoding path (after error detection)
-
-	float BLER;///< Block Error Rate
-	float BER;///< Bit Error Rate
-	float RER;///< Reported Error Rate
-	Statistics timeStat;///< Decoding time in seconds
-	StatisticsOutput time;
-	float blps;///< Blocks per second
-	float cbps;///< Channel bits per second
-	float pbps;///< Payload bits per second (including errors)
-	float effectiveRate;///< Successfully transmitted payload bits per second
-	float encTime;///< Encoding time in seconds
-	float ebps;///< Encoder speed in bits per second
+	int runs;
+	std::vector<int> firstErrorPosition;
+	std::vector<Statistics> additionalErrors;
 };
 
 /*!
@@ -97,23 +54,10 @@ struct DataPoint
  */
 class Simulator {
 	Setup::Configurator *mConfiguration;
+	DataPoint* mJob;
+	std::map<int, std::map<int, int>> mErrorCounter;
 
-	std::vector<DataPoint*> mJobList;
-	std::atomic<unsigned> mNextJob;
-
-	DataPoint* getDefaultDataPoint();
-	void configureSingleRun();
-	void configureCodeLengthSim();
-	void configureDesignSnrSim();
-	void configureListLengthSim();
-	void configureRateSim();
-	void configureAmplificationSim();
-	void configureFixedSim();
-	void configureDepthFirstSim();
-	void configureScanSim();
-	void configureAskSim();
-	void snrInflateJobList();
-
+	void configure();
 	void saveResults();
 
 public:
@@ -137,6 +81,8 @@ public:
 	 * \return Pointer to a previously unassigned job or nullptr, if all work is done.
 	 */
 	DataPoint* getJob();
+
+	void incrementErrorCounter(int numErrors, int firstErrorPosition);
 };
 
 /*!
@@ -156,8 +102,7 @@ class SimulationWorker {
 	DataPoint *mJob;
 	PolarCode::Construction::Bhattacharrya *mConstructor;
 	PolarCode::Encoding::Encoder *mEncoder;
-	PolarCode::Decoding::Decoder *mDecoder;
-	PolarCode::ErrorDetection::Detector *mErrorDetector;
+	PolarCode::Decoding::ErrorLocator *mDecoder, *mReferenceDecoder;
 
 	SignalProcessing::Modulation::Modem *mModulator, *mDemodulator;
 	SignalProcessing::Transmission::Awgn *mTransmitter;
@@ -168,20 +113,13 @@ class SimulationWorker {
 	unsigned char* mInputData;
 	PolarCode::PackedContainer *mEncodedData;
 	std::vector<float> *mSignal;
+	std::vector<float> mReferenceSignal;
 	unsigned char* mDecodedData;
 
-	std::chrono::high_resolution_clock::time_point mTimeStart, mTimeEnd;
-	std::chrono::duration<float> mTimeUsed;
-
 	int mWorkerId;
-	bool warmup;
-
-	void startTiming();
-	void stopTiming();
 
 	void selectFrozenBits();
 	void setCoders();
-	void setErrorDetector();
 	void setChannel();
 	void allocateMemory();
 
@@ -218,4 +156,4 @@ public:
 
 }
 
-#endif //PCSIM_SIMULATOR_H
+#endif //PCERL_SIMULATOR_H
