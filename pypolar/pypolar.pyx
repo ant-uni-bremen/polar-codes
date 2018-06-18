@@ -110,6 +110,12 @@ cdef class PolarDecoder:
     def infoLength(self):
         return self.kernel.infoLength()
 
+    def setSystematic(self, flag):
+        self.kernel.setSystematic(flag)
+
+    def isSystematic(self):
+        return self.kernel.isSystematic()
+
     def decode_vector(self, np.ndarray[np.float32_t, ndim=1] llrs):
         #print "float decoder "
         cdef np.ndarray[np.uint8_t, ndim=1] infoword = np.zeros((self.kernel.infoLength() // 8, ), dtype=np.uint8)

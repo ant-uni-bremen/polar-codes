@@ -38,6 +38,8 @@ cdef extern from "polarcode/decoding/decoder.h" namespace "PolarCode::Decoding":
         vector[unsigned int] frozenBits()
         void getSoftCodeword(void *pData)
         void getSoftInformation(void *pData)
+        void setSystematic(bool sys)
+        bool isSystematic()
 
     Decoder* makeDecoder(size_t, size_t, vector[unsigned int], int decoder_impl)
 
