@@ -240,7 +240,7 @@ void RateRNode::decode() {
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
 		xmPathList->getWriteAccessToBit(path, mStage+1);
-		FastSscAvx::CombineSoftBitsLong(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
+		FastSscAvx::CombineBitsLong(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
 	}
 
 	xmPathList->clearStage(mStage);
@@ -275,7 +275,7 @@ void ShortRateRNode::decode() {
 	pathCount = xmPathList->PathCount();
 	for(unsigned path=0; path < pathCount; ++path) {
 		xmPathList->getWriteAccessToBit(path, mStage+1);
-		FastSscAvx::CombineSoftBitsShort(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
+		FastSscAvx::CombineBitsShort(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage+1), mBlockLength);
 	}
 
 	xmPathList->clearStage(mStage);
@@ -384,7 +384,7 @@ void RateOneDecoder::decode() {
 		}
 
 		for(unsigned index : mBitFlipHints[mIndices[path]]) {
-			iBitDestination[index] ^= 0x80000000;
+			iBitDestination[index] ^= 0x80000000U;
 		}
 	}
 
@@ -416,41 +416,28 @@ void RepetitionDecoder::decode() {
 		__m256 vOne   = _mm256_setzero_ps();//metric for '1' decision
 		__m256 vResult = _mm256_setzero_ps();//repetition decoding result
 		float* LlrSource = xmPathList->Llr(path, mStage);
-		for(unsigned i=mBlockLength; i<8; ++i) {
-			LlrSource[i] = 0.0;
+		for(unsigned i = mBlockLength; i < 8; ++i) {
+			LlrSource[i] = 0.0f;
 		}
-		for(unsigned i=0; i<mBlockLength; i+=8) {
-			__m256 Llr = _mm256_load_ps(LlrSource+i);
+		for(unsigned i = 0; i < mBlockLength; i += 8) {
+			__m256 Llr = _mm256_load_ps(LlrSource + i);
 			vZero   = _mm256_add_ps(vZero, _mm256_min_ps(Llr, zero));
 			vOne    = _mm256_add_ps(vOne,  _mm256_max_ps(Llr, zero));
 			vResult = _mm256_add_ps(vResult, Llr);
 		}
 
-		{// Calculate output LLR, but fix the sign bit to the candidate's assumption
-			union {
-				float        fResultZero;
-				unsigned int iResultZero;
-			};
-			union {
-				float        fResultOne;
-				unsigned int iResultOne;
-			};
+		float result = fabs(reduce_add_ps(vResult));
 
-			fResultOne = fResultZero = reduce_add_ps(vResult);
-			iResultZero &= 0x7FFFFFFF;// Unset sign bit
-			iResultOne  |= 0x80000000;// Set sign bit
-
-			mResults[path*2]   = fResultZero;
-			mResults[path*2+1] = fResultOne;
-		}
+		mResults[path*2]   = result;
+		mResults[path*2+1] = -result;
 
 		mMetrics[path*2]   = metric + reduce_add_ps(vZero);
 		mMetrics[path*2+1] = metric - reduce_add_ps(vOne);
 	}
 
-	unsigned newPathCount = std::min(pathCount*2, (unsigned)mListSize);
+	unsigned newPathCount = std::min(pathCount * 2, mListSize);
 	xmPathList->setNextPathCount(newPathCount);
-	simplePartialSortDescending<unsigned,float>(mIndices, mMetrics, newPathCount, pathCount*2);
+	simplePartialSortDescending(mIndices, mMetrics, newPathCount, pathCount*2);
 
 	for(unsigned path = 0; path < newPathCount; ++path) {
 		xmPathList->duplicatePath(path, mIndices[path]/2, mStage);
@@ -465,8 +452,8 @@ void RepetitionDecoder::decode() {
 		__m256 output = _mm256_set1_ps(mResults[mIndices[path]]);
 		float* bitDestination = xmPathList->NextBit(path, mStage);
 
-		for(unsigned i=0; i<mBlockLength; i+=8) {
-			_mm256_store_ps(bitDestination+i, output);
+		for(unsigned i = 0; i < mBlockLength; i += 8) {
+			_mm256_store_ps(bitDestination + i, output);
 		}
 	}
 
@@ -611,11 +598,15 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 	size_t blockLength = parent->blockLength();
 	size_t frozenBitCount = frozenBits.size();
 
+	if(frozenBitCount == 0) {
+		return new RateOneDecoder(parent);
+	}
+
 	if(frozenBitCount == blockLength) {
 		return new RateZeroDecoder(parent);
 	}
 
-	if(frozenBitCount == blockLength-1) {
+	if(frozenBitCount == blockLength-1 && blockLength < 8) {
 		return new RepetitionDecoder(parent);
 	}
 
@@ -623,9 +614,6 @@ Node* createDecoder(const std::vector<unsigned> &frozenBits, Node *parent) {
 		return new SpcDecoder(parent);
 	}
 
-	if(frozenBitCount == 0) {
-		return new RateOneDecoder(parent);
-	}
 
 	if(blockLength <= 8) {
 		return new ShortRateRNode(frozenBits, parent);

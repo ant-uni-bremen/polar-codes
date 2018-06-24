@@ -83,21 +83,21 @@ vector<CodingScheme> createRegistry() {
 	scheme.frozenBits = constructor->construct();
 	reg.push_back(scheme);
 
-	//N=4096, K=2048
+/*	//N=4096, K=2048
 	scheme.blockLength = 4096;
 	scheme.infoLength = scheme.blockLength / 2;
 	constructor->setBlockLength(scheme.blockLength);
 	constructor->setInformationLength(scheme.infoLength);
 	scheme.frozenBits = constructor->construct();
-	reg.push_back(scheme);
+	reg.push_back(scheme);*/
 
-	//N=32768, K=8192
+/*	//N=32768, K=8192
 	scheme.blockLength = 32768;
 	scheme.infoLength = scheme.blockLength / 2;
 	constructor->setBlockLength(scheme.blockLength);
 	constructor->setInformationLength(scheme.infoLength);
 	scheme.frozenBits = constructor->construct();
-	reg.push_back(scheme);
+	reg.push_back(scheme);*/
 	return reg;
 }
 
@@ -256,9 +256,9 @@ string writeDecoder(unsigned length, vector<unsigned> frozenBits, unsigned bitAd
 	ret += "	G_function<" + sHalfLength + ">(" + inputLlr + ", " + lowerLlr + ", " + leftBits + ");\n";
 	ret += writeDecoder(length / 2, rightFrozen, rightBitAddress, DECRIGHT);
 	if(length <= 32) {
-		ret += "	CombineSoftBits<" + sHalfLength + ">(" + leftBits + ", " + rightBits + ", " + outputBits + ");\n";
+		ret += "	CombineBits<" + sHalfLength + ">(" + leftBits + ", " + rightBits + ", " + outputBits + ");\n";
 	} else {
-		ret += "	CombineSoftInPlace<" + sHalfLength + ">(" + outputBits + ");\n";
+		ret += "	CombineInPlace<" + sHalfLength + ">(" + outputBits + ");\n";
 	}
 	return ret;
 }

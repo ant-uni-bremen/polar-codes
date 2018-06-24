@@ -57,8 +57,8 @@ Node::Node(size_t blockLength, datapool_t *pool)
 }
 
 Node::~Node() {
-	if(mLlr != nullptr) xmDataPool->release(mLlr);
-	if(mBit != nullptr) xmDataPool->release(mBit);
+	xmDataPool->release(mLlr);
+	xmDataPool->release(mBit);
 }
 
 void Node::decode() {
@@ -141,7 +141,7 @@ void RateRNode::decode() {
 	mLeft->decode();
 	G_function(mInput, mRightLlr->data, mOutput, mBlockLength);
 	mRight->decode();
-	CombineSoft(mOutput, mBlockLength);
+	Combine(mOutput, mBlockLength);
 }
 
 /*************
@@ -171,7 +171,7 @@ void ShortRateRNode::decode() {
 	mLeft->decode();
 	G_function(mInput, mRightLlr->data, mLeftBits->data, mBlockLength);
 	mRight->decode();
-	CombineSoftBitsShort(mLeftBits->data, mRightBits->data, mOutput, mBlockLength);
+	CombineBitsShort(mLeftBits->data, mRightBits->data, mOutput, mBlockLength);
 }
 
 /*************
@@ -201,8 +201,8 @@ void ROneNode::rightDecode() {
 		__m256 Llr_o = _mm256_xor_ps(Llr_l, HBits);//G-function
 		Llr_o = _mm256_add_ps(Llr_o, Llr_r);//G-function
 		/*nop*/ //Rate 1 decoder
-		_mm256_store_ps(mOutput+mBlockLength+i, Llr_o);//Right bit
-		F_function_calc(Bits, Llr_o, mOutput+i);//Combine left bit
+		_mm256_store_ps(mOutput + i, _mm256_xor_ps(Bits, Llr_o));//Combine left bit
+		_mm256_store_ps(mOutput + i + mBlockLength, Llr_o);//Right bit
 	}
 }
 

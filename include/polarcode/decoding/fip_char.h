@@ -130,7 +130,7 @@ inline void MoveRightBits(fipv* Right, const unsigned subBlockLength) {
 /* Following combine functions are named by this scheme:
  *
  *
- * 'Combine' + 'Soft' +  option 1 + option 2
+ * 'Combine' + option 1 + option 2
  *
  * 1. 'InPlace' for in-place combination
  *    or 'Bits', when left and right bits are in different sources
@@ -143,15 +143,15 @@ inline void MoveRightBits(fipv* Right, const unsigned subBlockLength) {
  * 'InPlace' and 'Short' is impossible.
  */
 
-inline void CombineSoftInPlace(fipv *Bits, const unsigned vecCount) {
+inline void CombineInPlace(fipv *Bits, const unsigned vecCount) {
 	for(unsigned i = 0; i < vecCount; i++) {
 		fipv tempL = fi_load(Bits + i);
 		fipv tempR = fi_load(Bits + vecCount + i);
-		F_function_calc(tempL, tempR, Bits + i);
+		fi_store(Bits + i, fi_xor(tempL, tempR));
 	}
 }
 
-inline void CombineSoftBits(fipv *Left, fipv *Right, fipv *Out, const unsigned subBlockLength) {
+inline void CombineBits(fipv *Left, fipv *Right, fipv *Out, const unsigned subBlockLength) {
 	const unsigned vecCount = nBit2cvecCount(subBlockLength);
 	fipv LeftV;
 	fipv RightV;
@@ -159,15 +159,12 @@ inline void CombineSoftBits(fipv *Left, fipv *Right, fipv *Out, const unsigned s
 		LeftV = fi_load(Left + i);
 		RightV = fi_load(Right + i);
 
-		//Copy lower bits
-		fi_store(Out + vecCount + i, RightV);
-
-		//Boxplus for upper bits
-		F_function_calc(LeftV, RightV, Out+i);
+		fi_store(Out + i, fi_xor(LeftV, RightV));
+		fi_store(Out + i + vecCount, RightV);
 	}
 }
 
-inline void CombineSoftBitsShort(fipv *Left, fipv *Right, fipv *Out, const unsigned subBlockLength) {
+inline void CombineBitsShort(fipv *Left, fipv *Right, fipv *Out, const unsigned subBlockLength) {
 	const fipv absCorrector = fi_set1_epi8(-127);
 	PrepareForShortOperation(Left, subBlockLength);
 	PrepareForShortOperation(Right, subBlockLength);
@@ -179,8 +176,7 @@ inline void CombineSoftBitsShort(fipv *Left, fipv *Right, fipv *Out, const unsig
 	LeftV = fi_max_epi8(LeftV, absCorrector);
 	RightV = fi_max_epi8(RightV, absCorrector);
 
-	//Boxplus operation for upper bits
-	F_function_calc(LeftV, RightV, &OutV);
+	OutV = fi_xor(LeftV, RightV);
 
 	// Copy operation for lower bits
 	MoveRightBits(&RightV, subBlockLength);

@@ -29,13 +29,17 @@ unsigned int CRC32::gen(unsigned int *data, int blockCount) {
 }
 
 bool CRC32::check(void *pData, int bytes) {
-	unsigned int chkSum;
+	unsigned int chkSum, savedChkSum;
 	int reducedBlockCount = (bytes>>2)-1;
 	unsigned int *data = reinterpret_cast<unsigned int*>(pData);
 
-	checkBlockSizeRestriction(reducedBlockCount+1, bytes);
+	//checkBlockSizeRestriction(reducedBlockCount+1, bytes);
+	savedChkSum = data[reducedBlockCount];
+	data[reducedBlockCount] = 0;
 
 	chkSum = gen(data, reducedBlockCount);
+	data[reducedBlockCount] = savedChkSum;
+
 	return chkSum == data[reducedBlockCount];
 }
 
@@ -44,7 +48,8 @@ void CRC32::generate(void *pData, int bytes) {
 	int reducedBlockCount = (bytes/4)-1;
 	unsigned int *data = reinterpret_cast<unsigned int*>(pData);
 
-	checkBlockSizeRestriction(reducedBlockCount+1, bytes);
+	//checkBlockSizeRestriction(reducedBlockCount+1, bytes);
+	data[reducedBlockCount] = 0;
 
 	chkSum = gen(data, reducedBlockCount);
 	data[reducedBlockCount] = chkSum;

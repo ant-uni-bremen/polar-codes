@@ -25,20 +25,20 @@ add_library(PolarConstructor OBJECT
             ${CMAKE_SOURCE_DIR}/include/polarcode/construction/bhattacharrya.h)
 
 
-add_executable(pcfactory
-    $<TARGET_OBJECTS:PolarConstructor>
-    arrayfuncs.cpp
-    decoding/decoderfactory/main)
+#add_executable(pcfactory
+#    $<TARGET_OBJECTS:PolarConstructor>
+#    arrayfuncs.cpp
+#    decoding/decoderfactory/main)
 
-#First compilation: Declare, that this command creates the missing file fixeddecoders.cpp
-ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders.cpp
-    DEPENDS PolarConstructor
-    COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/pcfactory" "${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders.cpp")
+##First compilation: Declare, that this command creates the missing file fixeddecoders.cpp
+#ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders.cpp
+#    DEPENDS PolarConstructor
+#    COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/pcfactory" "${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders.cpp")
 
-#Following compilations: Declare, that this command should be run, if the factory has been rebuilt, e.g. after changing MCSs.
-ADD_CUSTOM_COMMAND(TARGET pcfactory POST_BUILD
-    DEPENDS PolarConstructor
-    COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/pcfactory" "${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders.cpp")
+##Following compilations: Declare, that this command should be run, if the factory has been rebuilt, e.g. after changing MCSs.
+#ADD_CUSTOM_COMMAND(TARGET pcfactory POST_BUILD
+#    DEPENDS PolarConstructor
+#    COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/pcfactory" "${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders.cpp")
 
 
 add_library(PolarDecoder OBJECT
@@ -48,13 +48,14 @@ add_library(PolarDecoder OBJECT
         decoding/scl_fip_char
         decoding/fastssc_avx_float
         decoding/scl_avx_float
-        decoding/fixed_fip_char
+#        decoding/fixed_fip_char
         decoding/adaptive_float
         decoding/adaptive_char
         decoding/adaptive_mixed
         decoding/depth_first
-		decoding/scan
-        ${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders
+        decoding/scan
+        decoding/fastsscan_float
+#        ${CMAKE_SOURCE_DIR}/src/polarcode/decoding/decoderfactory/fixeddecoders
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/decoder.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/errorlocator.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fip_char.h
@@ -68,8 +69,9 @@ add_library(PolarDecoder OBJECT
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_char.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/adaptive_mixed.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/depth_first.h
-		${CMAKE_SOURCE_DIR}/include/polarcode/decoding/templatized_float.h
-		${CMAKE_SOURCE_DIR}/include/polarcode/decoding/scan.h)
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/templatized_float.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/scan.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/decoding/fastsscan_float.h)
 
 add_library(PolarCode
         $<TARGET_OBJECTS:PolarConstructor>

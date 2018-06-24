@@ -26,7 +26,8 @@ enum DecoderType {
 	tFlexible,
 	tFixed,
 	tDepthFirst,
-	tScan
+	tScan,
+	tFastSscan
 };
 
 /*!

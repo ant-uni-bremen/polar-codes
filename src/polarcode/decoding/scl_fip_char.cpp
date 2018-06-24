@@ -323,7 +323,7 @@ void RateRNode::decode() {
 	pathCount = xmPathList->PathCount();
 	for(unsigned path = 0; path < pathCount; ++path) {
 		xmPathList->getWriteAccessToBit(path, mStage + 1);
-		FastSscFip::CombineSoftBits(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage + 1), mBlockLength);
+		FastSscFip::CombineBits(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage + 1), mBlockLength);
 	}
 
 	xmPathList->clearStage(mStage);
@@ -350,7 +350,7 @@ void ShortRateRNode::decode() {
 	pathCount = xmPathList->PathCount();
 	for(unsigned path = 0; path < pathCount; ++path) {
 		xmPathList->getWriteAccessToBit(path, mStage + 1);
-		FastSscFip::CombineSoftBitsShort(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage + 1), mBlockLength);
+		FastSscFip::CombineBitsShort(xmPathList->LeftBit(path, mStage), xmPathList->Bit(path, mStage), xmPathList->Bit(path, mStage + 1), mBlockLength);
 	}
 
 	xmPathList->clearStage(mStage);

@@ -19,10 +19,13 @@
 #include <polarcode/decoding/fixed_fip_char.h>
 #include <polarcode/decoding/depth_first.h>
 #include <polarcode/decoding/scan.h>
+#include <polarcode/decoding/fastsscan_float.h>
 
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
 #include <polarcode/errordetection/crc32.h>
+
+#include "fixedfrozenbits.h"
 
 namespace Simulation {
 
@@ -49,9 +52,16 @@ Simulator::Simulator(Setup::Configurator *config)
 	} else if(simType == "depthfirst") {
 		configureDepthFirstSim();
 	} else if(simType == "scan") {
-		configureScanSim();
+		configureScanSim(false);
+	} else if(simType == "fastsscan") {
+		configureScanSim(true);
 	} else if(simType == "ask") {
 		configureAskSim();
+	} else if(simType == "compareall") {
+		configureComparisonSim();
+		return;// No SNR inflation
+	} else if(simType == "getcode") {
+		printCode();
 	} else {
 		// Unknown simulation type, should be caught by cmd-parser
 		exit(EXIT_FAILURE);
@@ -90,7 +100,11 @@ void Simulator::run() {
 
 
 	// Write results into file
-	saveResults();
+	if(mConfiguration->getString("simtype") == "compareall") {
+		saveComparisonResults();
+	} else {
+		saveResults();
+	}
 }
 
 DataPoint* Simulator::getJob() {
@@ -237,7 +251,7 @@ void Simulator::configureAmplificationSim() {
 }
 
 void Simulator::configureFixedSim() {
-	using scheme_t = PolarCode::Decoding::CodingScheme;
+/*	using scheme_t = PolarCode::Decoding::CodingScheme;
 	DataPoint* jobTemplate = getDefaultDataPoint();
 
 	std::vector<scheme_t> &registry = PolarCode::Decoding::codeRegistry;
@@ -258,13 +272,20 @@ void Simulator::configureFixedSim() {
 		mJobList.push_back(job);
 	}
 
-	delete jobTemplate;
+	delete jobTemplate;*/
+
+
+	DataPoint* config = getDefaultDataPoint();
+	config->decoderType = PolarCode::Decoding::DecoderType::tFixed;
+	mJobList.push_back(config);
 }
 
 void Simulator::configureDepthFirstSim() {
 	DataPoint* jobTemplate = getDefaultDataPoint();
 	unsigned lMin = mConfiguration->getInt("l-min");
 	unsigned lMax = mConfiguration->getInt("l-max");
+
+//	collectNodeStatistics();
 
 	for(unsigned l = lMin; l <= lMax; l *= 2) {
 		DataPoint* job = new DataPoint(*jobTemplate);
@@ -278,7 +299,7 @@ void Simulator::configureDepthFirstSim() {
 	delete jobTemplate;
 }
 
-void Simulator::configureScanSim() {
+void Simulator::configureScanSim(bool fastSimplified) {
 	DataPoint* jobTemplate = getDefaultDataPoint();
 	unsigned lMin = mConfiguration->getInt("l-min");
 	unsigned lMax = mConfiguration->getInt("l-max");
@@ -287,7 +308,8 @@ void Simulator::configureScanSim() {
 		DataPoint* job = new DataPoint(*jobTemplate);
 
 		job->L = l;
-		job->decoderType = PolarCode::Decoding::DecoderType::tScan;
+		job->decoderType = fastSimplified ? PolarCode::Decoding::DecoderType::tFastSscan
+										  : PolarCode::Decoding::DecoderType::tScan;
 
 		mJobList.push_back(job);
 	}
@@ -311,34 +333,157 @@ void Simulator::configureAskSim() {
 	delete jobTemplate;
 }
 
+void pushJobsInRange(float snrMin, float snrMax, unsigned snrCount, DataPoint* jobBase, std::vector<DataPoint*> *jobList) {
+	float scale = (snrMax-snrMin)/(snrCount-1);
+
+	for(unsigned i = 1; i < snrCount; ++i) {
+		DataPoint* newJob = new DataPoint(*jobBase);
+		newJob->EbN0 = snrMin + i * scale;
+		if(newJob->precision == 32) {
+			//For float-only decoding: Correct LLR-coefficient is
+			// L_ch = 4 * abs(alpha)^2 * E_S/N_0
+			//and LLR(y|x) = L_ch*y', with y' = y / (abs(alpha) * sqrt(E_S * T_S))
+			//
+			//Direct source: See Channel Coding II lecture, held by Dr.-Ing. Dirk Wübben, Universität Bremen
+			newJob->amplification = 4 * pow(10.0, newJob->EbN0/10.0);//assume abs(alpha)=1
+		}
+		jobList->push_back(newJob);
+	}
+}
+
 void Simulator::snrInflateJobList() {
 	std::vector<DataPoint*> compactList;
 	compactList.clear();
 	std::swap(compactList, mJobList);
 
-	float snrMin = mConfiguration->getFloat("snr-min");
-	float snrMax = mConfiguration->getFloat("snr-max");
+	float snrMinSparse = mConfiguration->getFloat("snr-min");
+	float snrMinDense = 0.0f;
+	float snrMaxDense = 2.0f;
+	float snrMaxSparse = mConfiguration->getFloat("snr-max");
 	unsigned snrCount = mConfiguration->getInt("snr-count");
-	float scale = (snrMax-snrMin)/(snrCount-1);
 
 	for(DataPoint* job : compactList) {
-		for(unsigned i=0; i<snrCount; ++i) {
-			// use copy constructor! Otherwise bad side effects are imminent!
-			DataPoint* newJob = new DataPoint(*job);
-			newJob->EbN0 = snrMin + i*scale;
-			if(newJob->precision == 32) {
-				//For float-only decoding: Correct LLR-coefficient is
-				// L_ch = 4 * abs(alpha)^2 * E_S/N_0
-				//and LLR(y|x) = L_ch*y', with y' = y / (abs(alpha) * sqrt(E_S * T_S))
-				//
-				//Direct source: See Channel Coding II lecture, held by Dr.-Ing. Dirk Wübben, Universität Bremen
-				newJob->amplification = 4 * pow(10.0, newJob->EbN0/10.0);//assume abs(alpha)=1
-			}
-			mJobList.push_back(newJob);
-		}
+		pushJobsInRange(snrMinSparse, snrMinDense, snrCount / 4, job, &mJobList);
+		pushJobsInRange(snrMinDense, snrMaxDense, snrCount / 2, job, &mJobList);
+		pushJobsInRange(snrMaxDense, snrMaxSparse, snrCount / 4, job, &mJobList);
 		delete job;
 	}
 }
+
+void Simulator::configureComparisonSim() {
+	std::vector<DataPoint*> jobList;
+	DataPoint* jobTemplate = getDefaultDataPoint();
+	DataPoint* job;
+
+	jobTemplate->EbN0 = 2.0;
+	float ampFloat = 4 * pow(10.0, jobTemplate->EbN0/10.0);
+
+	job = new DataPoint(*jobTemplate);
+	job->name = "Fast-SSC32";
+	job->decoderType = PolarCode::Decoding::DecoderType::tFlexible;
+	job->precision = 32;
+	job->amplification = ampFloat;
+	job->L = 1;
+	jobList.push_back(job);
+
+	job = new DataPoint(*jobTemplate);
+	job->name = "Fast-SSC8";
+	job->decoderType = PolarCode::Decoding::DecoderType::tFlexible;
+	job->precision = 8;
+	job->L = 1;
+	jobList.push_back(job);
+
+	job = new DataPoint(*jobTemplate);
+	job->name = "SCL32";
+	job->decoderType = PolarCode::Decoding::DecoderType::tFlexible;
+	job->precision = 32;
+	job->amplification = ampFloat;
+	jobList.push_back(job);
+
+	job = new DataPoint(*jobTemplate);
+	job->name = "SCL8";
+	job->decoderType = PolarCode::Decoding::DecoderType::tFlexible;
+	job->precision = 8;
+	jobList.push_back(job);
+
+	job = new DataPoint(*jobTemplate);
+	job->name = "SCFlip";
+	job->decoderType = PolarCode::Decoding::DecoderType::tDepthFirst;
+	job->amplification = ampFloat;
+	jobList.push_back(job);
+
+/*	job = new DataPoint(*jobTemplate);
+	job->name = "SCAN";
+	job->decoderType = PolarCode::Decoding::DecoderType::tScan;
+	job->amplification = ampFloat;
+	jobList.push_back(job);*/
+
+	job = new DataPoint(*jobTemplate);
+	job->name = "Fast-SSCAN";
+	job->decoderType = PolarCode::Decoding::DecoderType::tFastSscan;
+	job->amplification = ampFloat;
+	jobList.push_back(job);
+
+
+	{// Push two versions of the above list
+		auto highRateTemplate = getDefaultDataPoint();
+
+		highRateTemplate->EbN0 = 3.0;
+		ampFloat = 4 * pow(10.0, highRateTemplate->EbN0/10.0);
+		highRateTemplate->N = 4096;
+		highRateTemplate->K = 2048+1024;
+
+		for(auto ljob : jobList) {
+			mJobList.push_back(ljob);
+			job = new DataPoint(*ljob);
+			job->N = highRateTemplate->N;
+			job->K = highRateTemplate->K;
+			job->EbN0 = highRateTemplate->EbN0;
+			if(job->precision == 32) {
+				job->amplification = ampFloat;
+			}
+			mJobList.push_back(job);
+		}
+
+		delete highRateTemplate;
+	}
+
+	// And add the fixed/templatized decoder
+	job = new DataPoint(*jobTemplate);
+	job->name = "FFSSC";
+	job->decoderType = PolarCode::Decoding::DecoderType::tFixed;
+	job->amplification = ampFloat;
+	mJobList.push_back(job);
+
+	delete jobTemplate;
+}
+
+void Simulator::printCode() {
+	DataPoint* config = getDefaultDataPoint();
+	auto constructor = new PolarCode::Construction::Bhattacharrya(
+						config->N,
+						config->K,
+						config->designSNR);
+	auto frozenBits = constructor->construct();
+
+	unsigned counter = 0;
+	for(unsigned i = 0; i < (unsigned)config->N; ++i) {
+		if(frozenBits[counter] == i) {
+			++counter;
+			std::cout << "1,";
+		} else {
+			std::cout << "0,";
+		}
+	}
+	std::cout << std::endl << std::endl;
+
+	for(auto i : frozenBits) {
+		std::cout << i << ",";
+	}
+
+	std::cout << std::endl;
+}
+
 
 void Simulator::saveResults() {
 	std::string fileName = mConfiguration->getString("output");
@@ -378,6 +523,47 @@ void Simulator::saveResults() {
 //      for(auto& tp : timeValues){
 //        file << ',' << int(tp * 1e9);
 //      }
+	file << std::endl;
+	}
+	file.close();
+}
+
+void Simulator::saveComparisonResults() {
+	std::string fileName = mConfiguration->getString("output");
+	fileName += "_";
+	fileName += mConfiguration->getString("simtype");
+	fileName += ".csv";
+	std::ofstream file(fileName);
+
+
+	file << "\"Name\",\"N\",\"K\",\"dSNR\",\"C\",\"L\",\"Eb/N0\",\"BPS\",\"BLER\",\"BER\",\"RER\",\"Runs\",\"Errors\",\"Time\",\"Blockspeed\",\"Coded Bitrate\",\"Payload Bitrate\",\"Effective Payload Bitrate\",\"Encoder Bitrate\",\"Amplification\",\"time min\",\"time max\",\"time mean\",\"time deviation\"" << std::endl;
+
+	for(auto job : mJobList) {
+		file
+			<< '"' << job->name << "\","
+			<< job->N << ','
+			<< job->K << ','
+			<< job->designSNR << ','
+			<< job->errorDetection << ','
+			<< job->L << ','
+			<< job->EbN0 << ','
+			<< job->bitsPerSymbol << ',';
+		if(job->BLER > 0.0)         file << job->BLER << ',';   else file << "1e-99,";
+		if(job->BER  > 0.0)         file << job->BER  << ',';   else file << "1e-99,";
+		if(job->RER  > 0.0)         file << job->RER  << ',';   else file << "1e-99,";
+		file << job->runs << ','
+			 << job->errors << ','
+			 << job->time.sum << ','
+			 << job->blps << ','
+			 << job->cbps << ','
+			 << job->pbps << ','
+			 << job->effectiveRate << ','
+			 << job->ebps << ','
+			 << job->amplification << ','
+			 << int(job->time.min * 1e9) << ','
+			 << int(job->time.max * 1e9) << ','
+			 << int(job->time.mean * 1e9) << ','
+			 << int(job->time.dev * 1e9);
 	file << std::endl;
 	}
 	file.close();
@@ -457,26 +643,31 @@ void SimulationWorker::stopTiming() {
 }
 
 void SimulationWorker::selectFrozenBits() {
-	if(mJob->codingScheme < 0) {
+	if(mJob->decoderType != PolarCode::Decoding::DecoderType::tFixed) {
 		mConstructor = new PolarCode::Construction::Bhattacharrya(mJob->N, mJob->K, mJob->designSNR);
 		mFrozenBits = mConstructor->construct();
 	} else {
 		mConstructor = nullptr;
-		std::vector<PolarCode::Decoding::CodingScheme> &registry = PolarCode::Decoding::codeRegistry;
-		std::vector<unsigned> &frozenBits = registry[mJob->codingScheme].frozenBits;
-		mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+//		std::vector<PolarCode::Decoding::CodingScheme> &registry = PolarCode::Decoding::codeRegistry;
+//		std::vector<unsigned> &frozenBits = registry[mJob->codingScheme].frozenBits;
+//		mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+		mFrozenBits.assign(fixed1024FrozenIdx.begin(), fixed1024FrozenIdx.end());
 	}
 }
+
 
 void SimulationWorker::setCoders() {
 	mEncoder = new PolarCode::Encoding::ButterflyFipPacked(mJob->N, mFrozenBits);
 
 	if(mJob->decoderType == PolarCode::Decoding::DecoderType::tFixed) {
-		mDecoder = new PolarCode::Decoding::FixedChar(mJob->codingScheme);
+		//mDecoder = new PolarCode::Decoding::FixedChar(mJob->codingScheme);
+		mDecoder = new PolarCode::Decoding::TemplatizedFloat<1024, fixed1024FrozenSet>(fixed1024FrozenIdx);
 	} else if(mJob->decoderType == PolarCode::Decoding::DecoderType::tDepthFirst) {
 		mDecoder = new PolarCode::Decoding::DepthFirst(mJob->N, mJob->L, mFrozenBits);
 	} else if(mJob->decoderType == PolarCode::Decoding::DecoderType::tScan) {
 		mDecoder = new PolarCode::Decoding::Scan(mJob->N, mJob->L, mFrozenBits);
+	} else if(mJob->decoderType == PolarCode::Decoding::DecoderType::tFastSscan) {
+		mDecoder = new PolarCode::Decoding::FastSscanFloat(mJob->N, mJob->L, mFrozenBits);
 	} else {
 		if(mJob->L > 1) {
 			switch(mJob->precision) {
@@ -485,6 +676,7 @@ void SimulationWorker::setCoders() {
 				break;
 			case 32:
 				mDecoder = new PolarCode::Decoding::AdaptiveFloat(mJob->N, mJob->L, mFrozenBits);
+				//mDecoder = new PolarCode::Decoding::SclAvxFloat(mJob->N, mJob->L, mFrozenBits);
 				break;
 			case 832:
 				mDecoder = new PolarCode::Decoding::AdaptiveMixed(mJob->N, mJob->L, mFrozenBits);
@@ -501,6 +693,7 @@ void SimulationWorker::setCoders() {
 				break;
 			case 32:
 				mDecoder = new PolarCode::Decoding::FastSscAvxFloat(mJob->N, mFrozenBits);
+				//mDecoder = new PolarCode::Decoding::FastSscanFloat(mJob->N, mFrozenBits);
 				break;
 			default:
 				std::cerr << "No decoder present for " << mJob->precision << "-bit decoding." << std::endl;
@@ -675,9 +868,9 @@ void SimulationWorker::calculateStatistics() {
 	mJob->time = mJob->timeStat.evaluate();
 	//mJob->timeStat.printContents();
 	mJob->bits = mJob->runs * (mJob->K - mJob->errorDetection);
-	mJob->BLER = (float)mJob->errors/mJob->runs;
-	mJob->BER = (float)mJob->biterrors/mJob->bits;
-	mJob->RER = (float)mJob->reportedErrors/mJob->runs;
+	mJob->BLER = (float)mJob->errors / mJob->runs;
+	mJob->BER = (double)mJob->biterrors / ((double)mJob->runs * (double)mJob->K);
+	mJob->RER = (float)mJob->reportedErrors / mJob->runs;
 	mJob->blps = mJob->runs;
 	mJob->cbps = mJob->runs * mJob->N;
 	mJob->pbps = mJob->bits;
@@ -689,7 +882,6 @@ void SimulationWorker::calculateStatistics() {
 	mJob->effectiveRate = (mJob->runs-mJob->errors+0.0f)
 						* (mJob->K - mJob->errorDetection)
 						/ mJob->time.sum;
-
 }
 
 void SimulationWorker::jobStartingOutput() {
@@ -718,12 +910,12 @@ void SimulationWorker::jobEndingOutput() {
 	output += "] BLER=" + std::to_string(mJob->BLER);
 	output += ", BER=" + std::to_string(mJob->BER);
 	output += ", RER=" + std::to_string(mJob->RER);
-	output += ", payload:" + std::to_string(mJob->pbps * 1e-6);
-	output += "Mbps, delay[µs]=" + std::to_string(mJob->time.min * 1e6);
-	output += "/" + std::to_string(mJob->time.max * 1e6);
-	output += "/" + std::to_string(mJob->time.mean * 1e6);
-	output += "/" + std::to_string(mJob->time.dev * 1e6);
-	output += " (min/max/mean/dev)\n";
+	output += ", throughput:" + std::to_string(mJob->cbps * 1e-6);
+	output += "Mbps, delay[µs]=[" + std::to_string(mJob->time.min * 1e6);
+	output += ";" + std::to_string(mJob->time.max * 1e6);
+	output += "](" + std::to_string(mJob->time.mean * 1e6);
+	output += "," + std::to_string(mJob->time.dev * 1e6);
+	output += ") [min;max](mean,dev)\n";
 
 	std::cout << output;
 

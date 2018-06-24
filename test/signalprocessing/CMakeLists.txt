@@ -1,3 +1,4 @@
 add_library(SigProcTest OBJECT
         modulationtest
-        transmissiontest) 
+        transmissiontest
+        mathtest)

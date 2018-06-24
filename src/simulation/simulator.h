@@ -52,6 +52,8 @@ inline std::string errorDetectionStringToType(std::string errDetStr) {
  */
 struct DataPoint
 {
+	std::string name;
+
 	//Codec-Parameters
 	float designSNR;///< Design-SNR for code construction
 	int N;///< Blocklength
@@ -62,6 +64,7 @@ struct DataPoint
 	bool systematic;///< True, if systematic coding will be used
 	PolarCode::Decoding::DecoderType decoderType;
 	int codingScheme;///< -1 for flexible decoder, 0 or higher for fixed decoder according to _codeRegistry_
+	std::vector<unsigned> scfNodeRanking;///< SCFlip: Ranking of the worst info bit channels
 
 	//Simulation-Parameters
 	float EbN0;///< Bit-energy to noise-energy ratio for AWGN-channel
@@ -71,11 +74,11 @@ struct DataPoint
 	int bitsPerSymbol;
 
 	//Statistics
-	int runs;///< Actual number of blocks simulated
-	int bits;///< Number of payload bits sent out
-	int errors;///< ~ erroneous blocks
-	int reportedErrors;///< ~ block errors reported by error detection
-	int biterrors;///< ~ flipped payload bits
+	long runs;///< Actual number of blocks simulated
+	long bits;///< Number of payload bits sent out
+	long errors;///< ~ erroneous blocks
+	long reportedErrors;///< ~ block errors reported by error detection
+	long biterrors;///< ~ flipped payload bits
 	float apparentlyBestMetric;///< Lowest metric of output candidates (before error detection)
 	float selectedPathMetric;///< Metric of the selected decoding path (after error detection)
 
@@ -110,11 +113,14 @@ class Simulator {
 	void configureAmplificationSim();
 	void configureFixedSim();
 	void configureDepthFirstSim();
-	void configureScanSim();
+	void configureScanSim(bool fastSimplified);
 	void configureAskSim();
 	void snrInflateJobList();
+	void configureComparisonSim();
+	void printCode();
 
 	void saveResults();
+	void saveComparisonResults();
 
 public:
 	/*!
