@@ -32,9 +32,13 @@ cdef class PolarEncoder:
     def __del__(self):
         del self.kernel
 
-    def setErrorDetection(self):
-        detector = new polar_interface.CRC8()
-        self.kernel.setErrorDetection(detector)
+    def setErrorDetection(self, which):
+        if which == 0:
+            self.kernel.setErrorDetection(new polar_interface.Dummy())
+        elif which == 32:
+            self.kernel.setErrorDetection(new polar_interface.CRC32())
+        else:
+            self.kernel.setErrorDetection(new polar_interface.CRC8())
 
     def encode(self):
         self.kernel.encode()
@@ -93,9 +97,13 @@ cdef class PolarDecoder:
     def __del__(self):
         del self.kernel
 
-    def setErrorDetection(self):
-        detector = new polar_interface.CRC8()
-        self.kernel.setErrorDetection(detector)
+    def setErrorDetection(self, which):
+        if which == 0:
+            self.kernel.setErrorDetection(new polar_interface.Dummy())
+        elif which == 32:
+            self.kernel.setErrorDetection(new polar_interface.CRC32())
+        else:
+            self.kernel.setErrorDetection(new polar_interface.CRC8())
 
     def decode(self):
         self.kernel.decode()
