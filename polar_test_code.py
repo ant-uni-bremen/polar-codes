@@ -336,11 +336,11 @@ class PolarEncoderTests(unittest.TestCase):
         dec2 = pypolar.PolarDecoder(N, 4, f, 'float')
         dec3 = pypolar.PolarDecoder(N, 4, f, 'scan')
         # if crc is 'CRC8':
-        p.setErrorDetection()
-        dec0.setErrorDetection()
-        dec1.setErrorDetection()
-        dec2.setErrorDetection()
-        dec3.setErrorDetection()
+        p.setErrorDetection(8)
+        dec0.setErrorDetection(8)
+        dec1.setErrorDetection(8)
+        dec2.setErrorDetection(8)
+        # dec3.setErrorDetection(8)
         print('Decoder Initialization finished!')
 
         for i in np.arange(10):
