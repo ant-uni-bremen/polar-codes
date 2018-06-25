@@ -658,10 +658,14 @@ void SimulationWorker::selectFrozenBits() {
 
 void SimulationWorker::setCoders() {
 	mEncoder = new PolarCode::Encoding::ButterflyFipPacked(mJob->N, mFrozenBits);
-
+#if __GNUC__ < 5
+	if(mJob->decoderType == PolarCode::Decoding::DecoderType::tFixed) {
+		mDecoder = new PolarCode::Decoding::FastSscFipChar(mJob->N, mFrozenBits);
+#else
 	if(mJob->decoderType == PolarCode::Decoding::DecoderType::tFixed) {
 		//mDecoder = new PolarCode::Decoding::FixedChar(mJob->codingScheme);
 		mDecoder = new PolarCode::Decoding::TemplatizedFloat<1024, fixed1024FrozenSet>(fixed1024FrozenIdx);
+#endif
 	} else if(mJob->decoderType == PolarCode::Decoding::DecoderType::tDepthFirst) {
 		mDecoder = new PolarCode::Decoding::DepthFirst(mJob->N, mJob->L, mFrozenBits);
 	} else if(mJob->decoderType == PolarCode::Decoding::DecoderType::tScan) {
