@@ -658,7 +658,7 @@ void SimulationWorker::selectFrozenBits() {
 
 void SimulationWorker::setCoders() {
 	mEncoder = new PolarCode::Encoding::ButterflyFipPacked(mJob->N, mFrozenBits);
-#if __GNUC__ < 5
+#if __GNUC__ < 6
 	if(mJob->decoderType == PolarCode::Decoding::DecoderType::tFixed) {
 		mDecoder = new PolarCode::Decoding::FastSscFipChar(mJob->N, mFrozenBits);
 #else
