@@ -17,6 +17,8 @@ cdef uint_cppvector_to_ndarray(vector[unsigned int] v):
 
 def frozen_bits(blockLength, infoLength, designSNR):
     vf = polar_interface.frozen_bits(blockLength, infoLength, designSNR)
+    if vf.size() < 1:
+        return np.array([], dtype=int)
     return uint_cppvector_to_ndarray(vf)
 
 

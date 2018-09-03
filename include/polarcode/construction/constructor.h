@@ -7,8 +7,6 @@
 namespace PolarCode {
 namespace Construction {
 
-class InvalidBlockLengthException{};
-
 /**
  * \brief The Constructor class
  */
@@ -32,7 +30,7 @@ public:
 	 * \brief Set the block length of the code to construct.
 	 * \param newBlockLength The desired code word length.
 	 */
-	void setBlockLength(size_t newBlockLength) throw (InvalidBlockLengthException);
+	void setBlockLength(size_t newBlockLength);
 
 	/*!
 	 * \brief Set the number of information bits in the code to construct.
@@ -47,7 +45,7 @@ public:
 	void setDesignSnr(float designSnr);
 };
 
-		std::vector<unsigned> frozen_bits(const int blockLength, const int infoLength, const float designSNR);
+std::vector<unsigned> frozen_bits(const int blockLength, const int infoLength, const float designSNR);
 
 }//namespace Construction
 }//namespace PolarCode

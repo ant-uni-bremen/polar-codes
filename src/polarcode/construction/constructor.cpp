@@ -1,6 +1,7 @@
 #include <polarcode/construction/constructor.h>
 #include <polarcode/construction/bhattacharrya.h>
 #include <cmath>
+#include <stdexcept>
 
 namespace PolarCode {
 namespace Construction {
@@ -14,11 +15,10 @@ Constructor::Constructor()
 Constructor::~Constructor() {
 }
 
-void Constructor::setBlockLength(size_t newBlockLength)
-		throw (InvalidBlockLengthException) {
+void Constructor::setBlockLength(size_t newBlockLength){
 	size_t testLength = 1 << static_cast<size_t>(log2(newBlockLength));
 	if(testLength != newBlockLength) {
-		throw InvalidBlockLengthException();
+		throw std::invalid_argument("new blockLength is not a power of 2!");
 	}
 	mBlockLength = newBlockLength;
 }
