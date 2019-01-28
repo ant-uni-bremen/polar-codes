@@ -1,5 +1,5 @@
 project ("Polar Coding Simulation")
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5.1)
 find_package(Doxygen)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
@@ -18,7 +18,9 @@ IF(NOT HAVE_TCLAP)
   message( FATAL_ERROR "TCLAP is not found (apt install libtclap-dev)" )
 ENDIF()
 
-add_definitions(-std=c++14 -Wall -Wno-ignored-attributes)
+set(CMAKE_CXX_STANDARD 14)
+
+add_definitions(-Wall -Wno-ignored-attributes)
 add_definitions(-march=native -fPIC)
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-O3)
