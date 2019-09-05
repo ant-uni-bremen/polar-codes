@@ -23,10 +23,17 @@ from Cython.Distutils import build_ext
 import subprocess
 import inspect
 import os
+import sys
+pv = sys.version_info
+print('Running script with Python {}.{}'.format(pv.major, pv.minor))
 
 
 def run_pkg_config(opts, params):
-    return subprocess.check_output(("pkg-config", "--" + opts, params))
+    if pv.major < 3:
+        return subprocess.check_output(("pkg-config", "--" + opts, params))
+    else:
+        return subprocess.check_output(("pkg-config", "--" + opts,
+                                        params)).decode()
 
 
 def sanitize_pkg_output(pkg_str):
@@ -140,7 +147,7 @@ ext_modules = [
 # setuptools Doc: https://pythonhosted.org/an_example_pypi_project/setuptools.html
 setup(
     name="python-polar-code",
-    version="0.0.1",
+    version="0.0.2",
     author="Johannes Demel",
     author_email="demel@ant.uni-bremen.de",
     description='Python bindings for Polar Code',

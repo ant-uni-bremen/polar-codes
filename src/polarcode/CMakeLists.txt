@@ -88,8 +88,19 @@ add_library(PolarCode
         ${CMAKE_SOURCE_DIR}/include/polarcode/datapool.txx
         ${CMAKE_SOURCE_DIR}/include/polarcode/polarcode.h)
 
+target_compile_features(PolarCode PRIVATE cxx_std_14)
+
+include(GNUInstallDirs)
 install(TARGETS PolarCode
+        EXPORT polarcode-targets
 #        RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
 #        ARCHIVE DESTINATION lib/static)
+)
+
+install(EXPORT polarcode-targets
+    FILE
+        PolarCodeTargets.cmake
+    DESTINATION
+        ${CMAKE_INSTALL_LIBDIR}/cmake/PolarCode
 )

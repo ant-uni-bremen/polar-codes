@@ -1,10 +1,24 @@
-project ("Polar Coding Simulation")
-cmake_minimum_required(VERSION 3.5.1)
-find_package(Doxygen)
+########################################################################
+# Project setup
+########################################################################
+cmake_minimum_required(VERSION 3.8)
+project ("Polar Coding Simulation" CXX)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
+#set(CMAKE_CXX_STANDARD 14)
+
+#select the release build type by default to get optimization flags
+if(NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE "Release")
+   message(STATUS "Build type not specified: defaulting to release.")
+endif(NOT CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
+
+#make sure our local CMake Modules path comes first
+list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
+
 find_package(CppUnit)
 #find_package(Threads)
+find_package(Doxygen)
 
 SET(BUILD_SHARED_LIBS ON)
 
@@ -18,7 +32,7 @@ IF(NOT HAVE_TCLAP)
   message( FATAL_ERROR "TCLAP is not found (apt install libtclap-dev)" )
 ENDIF()
 
-set(CMAKE_CXX_STANDARD 14)
+
 
 add_definitions(-Wall -Wno-ignored-attributes)
 add_definitions(-march=native -fPIC)
@@ -37,6 +51,18 @@ add_subdirectory(include/polarcode)
 
 
 ########################################################################
+# Create uninstall target
+########################################################################
+configure_file(
+    ${CMAKE_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+@ONLY)
+
+add_custom_target(uninstall
+    ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+)
+
+########################################################################
 # Setup the package config file
 ########################################################################
 #set variables found in the pc.in file
@@ -44,10 +70,6 @@ set(prefix ${CMAKE_INSTALL_PREFIX})
 set(exec_prefix "\${prefix}")
 set(libdir "\${exec_prefix}/lib${LIB_SUFFIX}")
 set(includedir "\${prefix}/include")
-set(grcdir "\${prefix}/share/gnuradio/grc/blocks/")
-set(GR_PKG_DATA_DIR "\${prefix}/share/gnuradio/")
-set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
-set(GR_LIBRARY_DIR lib${LIB_SUFFIX})
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/PolarCode.pc.in
@@ -58,4 +80,15 @@ install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/PolarCode.pc
     DESTINATION lib${LIB_SUFFIX}/pkgconfig
     COMPONENT "PolarCode_devel"
+)
+
+########################################################################
+# Install cmake search helper for this library
+########################################################################
+if(NOT CMAKE_MODULES_DIR)
+  set(CMAKE_MODULES_DIR lib/cmake)
+endif(NOT CMAKE_MODULES_DIR)
+
+install(FILES cmake/Modules/PolarCodeConfig.cmake
+    DESTINATION ${CMAKE_MODULES_DIR}/PolarCode
 )

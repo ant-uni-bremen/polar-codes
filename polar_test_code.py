@@ -8,6 +8,8 @@ from polar_code_tools import design_snr_to_bec_eta, calculate_bec_channel_capaci
 from polar_code_tools import get_info_indices, get_expanding_matrix, calculate_ga
 from channel_construction import ChannelConstructorBhattacharyyaBounds, ChannelConstructorGaussianApproximation
 import sys
+pv = sys.version_info
+print('Running script with Python {}.{}'.format(pv.major, pv.minor))
 sys.path.insert(0, './build/lib.linux-x86_64-2.7')
 
 import pypolar
@@ -174,7 +176,7 @@ class PolarEncoderTests(unittest.TestCase):
         P = Gs[:, f]
         G = np.hstack((np.identity(K, dtype=Gs.dtype), P))
         H = np.hstack((P.T, np.identity(N - K, dtype=Gs.dtype)))
-        self.assertEquals(np.linalg.matrix_rank(H), N - K)
+        self.assertEqual(np.linalg.matrix_rank(H), N - K)
         self.assertTrue(np.all(G.dot(H.T) % 2 == 0))
 
     def check_matrix_domination_contiguity(self, N, f):
@@ -210,12 +212,12 @@ class PolarEncoderTests(unittest.TestCase):
         f = np.sort(f)
         frozenBitMap = get_frozenBitMap(polar_capacities, N - K)
         info_pos = np.setdiff1d(np.arange(N, dtype=f.dtype), f)
-        self.assertEquals(info_pos.size, K)
-        self.assertEquals(f.size, N - K)
-        self.assertEquals(np.sum(frozenBitMap), -K)
+        self.assertEqual(info_pos.size, K)
+        self.assertEqual(f.size, N - K)
+        self.assertEqual(np.sum(frozenBitMap), -K)
 
         p = pypolar.PolarEncoder(N, f)
-        self.assertEquals(p.blockLength(), N)
+        self.assertEqual(p.blockLength(), N)
 
         self.assertTrue(np.all(f == p.frozenBits()))
         self.assertTrue(np.all(f == np.arange(N)[np.where(frozenBitMap == 0)]))
