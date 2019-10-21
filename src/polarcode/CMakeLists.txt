@@ -82,11 +82,13 @@ add_library(PolarCode
         arrayfuncs
         bitcontainer
         polarcode
+        puncturer
         ${CMAKE_SOURCE_DIR}/include/polarcode/avxconvenience.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/arrayfuncs.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/bitcontainer.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/datapool.txx
-        ${CMAKE_SOURCE_DIR}/include/polarcode/polarcode.h)
+        ${CMAKE_SOURCE_DIR}/include/polarcode/polarcode.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/puncturer.h)
 
 target_compile_features(PolarCode PRIVATE cxx_std_14)
 

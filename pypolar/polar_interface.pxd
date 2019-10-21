@@ -17,6 +17,17 @@ cdef extern from "polarcode/encoding/encoder.h" namespace "PolarCode::Encoding":
         size_t duration_ns()
 
 
+cdef extern from "polarcode/puncturer.h" namespace "PolarCode":
+    cdef cppclass Puncturer:
+        Puncturer(size_t, vector[unsigned int]) except +
+        size_t blockLength()
+        size_t parentBlockLength()
+        vector[unsigned int] blockOutputPositions()
+        void puncturePacked(unsigned char*, const unsigned char*)
+        void puncture[T](T*, const T*)
+        void depuncture[T](T*, const T*)
+
+
 cdef extern from "polarcode/encoding/butterfly_fip_packed.h" namespace "PolarCode::Encoding":
     cdef cppclass ButterflyFipPacked(Encoder):
         ButterflyFipPacked(size_t, vector[unsigned int]) except +

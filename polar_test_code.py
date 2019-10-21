@@ -10,7 +10,7 @@ from channel_construction import ChannelConstructorBhattacharyyaBounds, ChannelC
 import sys
 pv = sys.version_info
 print('Running script with Python {}.{}'.format(pv.major, pv.minor))
-sys.path.insert(0, './build/lib.linux-x86_64-2.7')
+sys.path.insert(0, './build/lib.linux-x86_64-{}.{}'.format(pv.major, pv.minor))
 
 import pypolar
 
@@ -82,6 +82,94 @@ def encode_matrix(u, N, frozenBitMap):
     x[np.where(frozenBitMap == -1)] = u
     x = x.dot(G) % 2
     return x
+
+
+class PuncturerTests(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_001_setup(self):
+        for n in range(5, 11):
+            N = 2 ** n
+            K = N // 2
+            eta = design_snr_to_bec_eta(0.0, 1.0)
+            polar_capacities = calculate_bec_channel_capacities(eta, N)
+            f = np.sort(get_frozenBitPositions(polar_capacities, N - K))
+
+            punc0 = pypolar.Puncturer(N - (N // 4), f)
+            self.assertEqual(punc0.parentBlockLength(), N)
+            self.assertEqual(punc0.blockLength(), N - (N // 4))
+
+            refpunc0 = pypolar.pyPuncturer(N - (N // 4), f)
+
+            self.assertListEqual(refpunc0.puncture_positions().tolist(),
+                                 punc0.blockOutputPositions().tolist())
+
+            punc1 = pypolar.Puncturer(N - (N // 8), f)
+            self.assertEqual(punc1.parentBlockLength(), N)
+            self.assertEqual(punc1.blockLength(), N - (N // 8))
+
+            refpunc1 = pypolar.pyPuncturer(N - (N // 8), f)
+
+            self.assertListEqual(refpunc1.puncture_positions().tolist(),
+                                 punc1.blockOutputPositions().tolist())
+
+    def test_002_puncture_bits(self):
+        N = 2 ** 6
+        K = N // 2
+        eta = design_snr_to_bec_eta(0.0, 1.0)
+        polar_capacities = calculate_bec_channel_capacities(eta, N)
+        f = np.sort(get_frozenBitPositions(polar_capacities, N - K))
+
+        refpunc = pypolar.pyPuncturer(N - (N // 4), f)
+        punc = pypolar.Puncturer(N - (N // 4), f)
+
+        vec = np.random.randint(0, 256, N // 8, dtype=np.uint8)
+        unpvec = np.unpackbits(vec)
+        unpres = punc.puncture(unpvec)
+        res = punc.puncturePacked(vec)
+        self.assertListEqual(np.unpackbits(res).tolist(), unpres.tolist())
+
+        ref = refpunc.puncture(unpvec)
+        self.assertListEqual(ref.tolist(), unpres.tolist())
+
+        fvec = np.arange(N, dtype=np.float32)
+        fres = punc.puncture(fvec)
+        fref = refpunc.puncture(fvec)
+        self.assertListEqual(fref.tolist(), fres.tolist())
+
+        dvec = np.arange(N, dtype=np.float64)
+        dres = punc.puncture(dvec)
+        dref = refpunc.puncture(dvec)
+        self.assertListEqual(dref.tolist(), dres.tolist())
+
+    def test_003_depuncture_bits(self):
+        N = 2 ** 6
+        K = N // 2
+        eta = design_snr_to_bec_eta(0.0, 1.0)
+        polar_capacities = calculate_bec_channel_capacities(eta, N)
+        f = np.sort(get_frozenBitPositions(polar_capacities, N - K))
+
+        punc = pypolar.Puncturer(N - (N // 4), f)
+        refpunc = pypolar.pyPuncturer(N - (N // 4), f)
+
+        vec = np.random.normal(0.0, 1.0, N - (N // 4)).astype(np.float32)
+        res = punc.depuncture(vec)
+        ref = refpunc.depuncture(vec)
+        self.assertListEqual(ref.tolist(), res.tolist())
+
+        vec = np.random.normal(0.0, 1.0, N - (N // 4)).astype(np.float64)
+        res = punc.depuncture(vec)
+        ref = refpunc.depuncture(vec)
+        self.assertListEqual(ref.tolist(), res.tolist())
+
+        vec = np.random.randint(0, 256, N - (N // 4), dtype=np.uint8)
+        res = punc.depuncture(vec)
+        ref = refpunc.depuncture(vec)
+        self.assertListEqual(ref.tolist(), res.tolist())
 
 
 class PolarEncoderTests(unittest.TestCase):

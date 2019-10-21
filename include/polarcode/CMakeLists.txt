@@ -8,6 +8,7 @@ add_subdirectory(errordetection)
 add_subdirectory(construction)
 
 install(FILES
-    bitcontainer.h DESTINATION include/polarcode
+    bitcontainer.h
+    puncturer.h DESTINATION include/polarcode
 )
 
