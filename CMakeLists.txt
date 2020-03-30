@@ -21,6 +21,10 @@ find_package(CppUnit)
 find_package(Doxygen)
 find_package(OpenSSL)
 
+add_subdirectory(pybind11)
+# Probably the preferred way long term:
+# find_package(pybind11 REQUIRED)
+
 SET(BUILD_SHARED_LIBS ON)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -33,13 +37,6 @@ IF(NOT HAVE_TCLAP)
   message( FATAL_ERROR "TCLAP is not found (apt install libtclap-dev)" )
 ENDIF()
 
-#link_directories(${OPENSSL_LIBRARY_DIRS})
-#link_directories(${OPENSSL_CRYPTO_LIBRARY})
-#add_library(
-#        ${OPENSSL_LIBRARY_DIRS}
-#        ${OPENSSL_SSL_LIBRARY}
-#        ${OPENSSL_CRYPTO_LIBRARY}
-#)
 
 
 add_definitions(-Wall -Wno-ignored-attributes)
@@ -54,10 +51,30 @@ endif()
 
 #add_definitions(-Wl,--no-as-needed)
 
+
+
+
+########################################################################
+# Sets the python installation directory PYTHON_DIR
+########################################################################
+if(NOT DEFINED PYTHON_DIR)
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "
+from distutils import sysconfig
+print(sysconfig.get_python_lib(plat_specific=True, prefix=''))
+" OUTPUT_VARIABLE PYTHON_DIR OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+endif()
+file(TO_CMAKE_PATH ${PYTHON_DIR} PYTHON_DIR)
+message(STATUS "The PYTHON install dir: ${PYTHON_DIR}")
+
+########################################################################
+# Add subdirectories with actual code
+########################################################################
 add_subdirectory(src)
 add_subdirectory(test)
 #add_subdirectory(doc)
 add_subdirectory(include/polarcode)
+add_subdirectory(python)
 
 
 ########################################################################
