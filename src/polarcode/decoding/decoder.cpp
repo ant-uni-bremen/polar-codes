@@ -4,6 +4,7 @@
 #include <cstring>
 #include <chrono>
 #include <iostream>
+#include <algorithm>
 #include <polarcode/decoding/fastssc_fip_char.h>
 #include <polarcode/decoding/fastssc_avx_float.h>
 #include <polarcode/decoding/scl_fip_char.h>
@@ -13,6 +14,37 @@
 
 namespace PolarCode {
 namespace Decoding {
+
+Decoder* create(size_t blockLength, size_t listSize,
+				const std::vector<unsigned> &frozenBits,
+				std::string decoderType) {
+	std::transform(decoderType.begin(), decoderType.end(), decoderType.begin(),
+				   [](unsigned char c){return std::tolower(c); } );
+	int decoderFlag = 0;
+	if(decoderType.find("char") != std::string::npos){
+		decoderFlag = 0;
+	}
+	else if(decoderType.find("float") != std::string::npos)
+	{
+		decoderFlag = 1;
+	}
+	else if(decoderType.find("mixed") != std::string::npos)
+	{
+		decoderFlag = 2;
+	}
+	else if(decoderType.find("scan") != std::string::npos)
+	{
+		decoderFlag = 3;
+	}
+	else{
+		throw std::logic_error("Unknown PolarDecoder type!");
+	}
+
+	if(listSize < 2 && decoderFlag != 0){
+		decoderFlag = 1;
+	}
+	return makeDecoder(blockLength, listSize, frozenBits, decoderFlag);
+}
 
 Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits, int decoder_impl){
   Decoder* dec;

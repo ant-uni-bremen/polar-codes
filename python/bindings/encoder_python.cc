@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Johannes Demel
  *
@@ -19,9 +18,7 @@
 #include <polarcode/encoding/encoder.h>
 #include <polarcode/encoding/butterfly_fip_packed.h>
 #include <polarcode/errordetection/errordetector.h>
-#include <polarcode/errordetection/dummy.h>
-#include <polarcode/errordetection/crc8.h>
-#include <polarcode/errordetection/crc32.h>
+
 
 namespace py = pybind11;
 
@@ -38,22 +35,7 @@ void bind_encoder(py::module& m)
         .def("isSystematic", &Encoder::isSystematic)
         .def("frozenBits", &Encoder::frozenBits)
         .def("setErrorDetection", [](ButterflyFipPacked& self, unsigned size, std::string type){
-            std::transform(type.begin(), type.end(), type.begin(),
-                           [](unsigned char c){return std::tolower(c); } );
-            if(type.find("crc") != std::string::npos){
-                switch (size) {
-                case 0: self.setErrorDetection(new Dummy()); break;
-                case 8: self.setErrorDetection(new CRC8()); break;
-                case 32: self.setErrorDetection(new CRC32()); break;
-                default: self.setErrorDetection(new Dummy());
-                }
-            }
-            else if(type.find("cmac") != std::string::npos){
-                throw std::logic_error("CMAC INTERFACE NOT IMPLEMENTED");
-            }
-            else{
-                throw std::runtime_error("Unknown Error detector requested!");
-            }
+            self.setErrorDetection(PolarCode::ErrorDetection::create(size, type));
         },
         py::arg("size") = 0,
         py::arg("type") = "crc")

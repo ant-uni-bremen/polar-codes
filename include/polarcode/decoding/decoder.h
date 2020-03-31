@@ -174,6 +174,19 @@ public:
  * \param frozenBits positions of frozen bits ordered in ascending order.
  */
   Decoder* makeDecoder(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits, int decoder_impl=0);
+
+/*!
+ * \brief Get Pointer to newly created PolarDecoder impl. Fast or List Decoders.
+ * \param blockLength size of a polar codeword
+ * \param listSize if '1' FastSSC Decoder is returned. Else: SCL Decoder
+ * \param frozenBits positions of frozen bits ordered in ascending order.
+ * \param decoderType choose decoder type. ['char', 'float', 'mixed', 'scan', ]
+ */
+  Decoder* create(size_t blockLength, size_t listSize,
+  				  const std::vector<unsigned> &frozenBits,
+				  std::string decoderType);
+
+
 }//namespace Decoding
 }//namespace PolarCode
 

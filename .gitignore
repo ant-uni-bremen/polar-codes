@@ -18,6 +18,7 @@ CTestTestfile.cmake
 build-PCTree-Desktop-Debug/
 build-PCTree-Desktop-Release/
 .idea/
+.vscode/
 build/
 cpp_build/
 cython_build/

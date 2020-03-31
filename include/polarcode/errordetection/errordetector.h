@@ -1,6 +1,8 @@
 #ifndef PC_ERR_ERRORDETECTOR_H
 #define PC_ERR_ERRORDETECTOR_H
 
+#include <string>
+
 namespace PolarCode {
 namespace ErrorDetection {
 
@@ -52,6 +54,17 @@ public:
 	virtual int multiCheck(void **data, int nArrays, int nBytes) = 0;
 
 };
+
+	/*!
+	 * \brief Create new Detector with specified parameters
+	 *
+	 * Serves as a wrapper to ease Detector creation
+	 *
+	 * \param size Checksum size in bits, must align to bytes, e.g. 0, 8, 16, ...
+	 * \param type Detector type. Currently CRC or CMAC.
+	 * \return A new Detector object.
+	 */
+Detector* create(unsigned size, std::string type);
 
 }//namespace ErrorDetection
 }//namespace PolarCode

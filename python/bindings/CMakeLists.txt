@@ -5,6 +5,7 @@
 pybind11_add_module(polarcode_python
     puncturer_python.cc
     encoder_python.cc
+    decoder_python.cc
     python_bindings.cc
 )
 
