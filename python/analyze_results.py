@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# The first few lines make the locally build module available in this python script!
-from __future__ import print_function, division
+#!/usr/bin/env python3
 import sys, os
 my_dir = os.path.dirname(os.path.realpath(__file__))
 # print(my_dir)

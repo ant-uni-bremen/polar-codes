@@ -23,4 +23,4 @@ if(CMAKE_COMPILER_IS_GNUCC AND NOT APPLE)
     PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
 endif()
 
-install(TARGETS polarcode_python DESTINATION ${PYTHON_DIR}/pybindpolar COMPONENT pythonapi)
+install(TARGETS polarcode_python DESTINATION ${PYTHON_DIR}/pypolar COMPONENT pythonapi)

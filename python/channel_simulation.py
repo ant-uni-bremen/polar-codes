@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from __future__ import print_function, division
+#!/usr/bin/env python3
 import numpy as np
 import scipy.signal as scisig
 
@@ -17,7 +16,7 @@ def get_complex_noise_vector(vec_len, sigma):
     '''
     Generate a random vector with specified size and noise power. Noise power is given as amplitude.
     :param vec_len: number of complex noise samples
-    :param sigma: standard deviation of noise. 
+    :param sigma: standard deviation of noise.
     :return: complex random vector
     '''
     dev = np.sqrt(.5) * sigma  # we expect a complex value, needs to be split for I and Q
@@ -112,9 +111,6 @@ def verify_tap_values():
         raise ValueError('Average tap energy ({}) not within bound ({}) of target ({})!'.format(avg_e, epsilon, target))
 
 
-
-
-
 def get_2tap_pdp(channel_delay, attenuation_db, samp_rate):
     if attenuation_db > 0.0:
         attenuation_db *= -1.
@@ -135,31 +131,6 @@ def validate_2tap_pdp():
         pdp = get_2tap_pdp(channel_delay, i, samp_rate)
         e = calculate_signal_energy(pdp)
         print(e, pdp)
-
-
-def hiflecs_channel_taps(channel_delay=100.e-9, attenuation_db=-10., samp_rate=25.6e6, print_channel_summary=True):
-    '''
-    the default params were discussed in a Telco on 10.1.2017
-
-    This function returns the channel taps for a 2-tap Rayleigh channel.
-    The second path is attenuated by "attenuation_db" in relation to the first path
-    The parameters channel_delay and samp_rate are used to calculate the sample distance between the first and second path.
-    '''
-    # First, get a power delay profile.
-    pdp = get_2tap_pdp(channel_delay, attenuation_db, samp_rate)
-
-    # get random complex symbols with E(|h|^2) == 1.
-    h = random_complex_symbols(len(pdp))
-    h *= pdp
-
-    if print_channel_summary:
-        print('HiFlecs channel PARAMS: tau={}s, Att={}dB, sample rate {}sps'.format(channel_delay, attenuation_db, samp_rate))
-        print('sample duration {}s, 2nd path sigma={}, #taps={}'.format(1. / samp_rate, pdp[-1], len(pdp)))
-        print('channel energy: ', calculate_signal_energy(h))
-        print('channel taps:   ', h)
-        print('tap amplitudes: ', np.abs(h))
-        print('2nd path atten: ', 20 * np.log10(np.abs(h[-1]) / np.abs(h[0])))
-    return h
 
 
 def main():

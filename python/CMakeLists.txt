@@ -10,7 +10,7 @@
 install(
     FILES
     __init__.py
-    DESTINATION ${PYTHON_DIR}/pybindpolar
+    DESTINATION ${PYTHON_DIR}/pypolar
 )
 
 add_subdirectory(bindings)
