@@ -8,11 +8,17 @@ namespace ErrorDetection {
 
 /*!
  * \brief Error detection via eight bit Cyclic Redundancy Check
+ *
+ * Polynom: 0x07
+ * Init: 0x00
+ * XorOut: 0x00
+ * RefIn: false
+ * RefOut: false
  */
 class CRC8 : public Detector {
 	unsigned char table[256];
 	unsigned char gen(unsigned char *data, int bytes);
-	
+
 public:
 	CRC8();
 	~CRC8();

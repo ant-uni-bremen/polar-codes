@@ -17,13 +17,16 @@ namespace py = pybind11;
 void bind_puncturer(py::module& m);
 void bind_encoder(py::module& m);
 void bind_decoder(py::module& m);
+void bind_detector(py::module& m);
+void bind_constructor(py::module& m);
 
 
 PYBIND11_MODULE(polarcode_python, m) {
     bind_puncturer(m);
     bind_encoder(m);
     bind_decoder(m);
-
+    bind_detector(m);
+    bind_constructor(m);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

@@ -42,7 +42,7 @@ void bind_encoder(py::module& m)
         .def("encode_vector",
              [](ButterflyFipPacked& self,
                 const py::array_t<uint8_t, py::array::c_style |
-                                           py::array::forcecast> array) {
+                                           py::array::forcecast> &array) {
             py::buffer_info inb = array.request();
             if(inb.ndim != 1){
                 throw std::runtime_error("Only ONE-dimensional vectors allowed!");

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-from __future__ import print_function, division
 import numpy as np
 import scipy.special as sps
 import matplotlib.pyplot as plt
-from matplotlib2tikz import save
 
-import pypolar
+import pybindpolar as pypolar
 from polar_code_tools import calculate_bec_channel_capacities, design_snr_to_bec_eta
 
 
@@ -24,8 +22,9 @@ def plot_channel_capacities(capacity, save_file=None):
     plt.grid()
     plt.gcf().set_size_inches(plt.gcf().get_size_inches() * .5)
     if save_file:
-        save(save_file)
-        # plt.savefig(save_file)
+        # save(save_file)
+        plt.savefig(save_file)
+        pass
     plt.show()
 
 

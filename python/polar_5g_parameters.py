@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# The first few lines make the locally build module available in this python script!
-from __future__ import print_function, division
 import sys, os
 my_dir = os.path.dirname(os.path.realpath(__file__))
 # print(my_dir)
@@ -14,9 +12,9 @@ import pybcjr
 import time
 import datetime
 import matplotlib.pyplot as plt
-import pysymboldemapper as sd
+import symbolmapping as sd
 
-import pypolar
+import pybindpolar as pypolar
 
 
 def is_power_of2(n):
@@ -97,7 +95,8 @@ def get_polar_5g_positions(block_length):
         raise ValueError('Block length is not a power of 2!')
     if not block_length >= 0 and block_length <= 1024:
         raise ValueError('Block length is out-of-bounds!')
-    z_values, pos_values = load_polar_5g_channel_reliability_values('5g_polar_code_reliability_table.csv')
+    csv_file = os.path.join(my_dir, '5g_polar_code_reliability_table.csv')
+    z_values, pos_values = load_polar_5g_channel_reliability_values(csv_file)
     if block_length == 1024:
         return pos_values
     sub_pos_values = np.zeros(block_length, dtype=int)
@@ -250,7 +249,7 @@ def main():
 
     return
 
-    z_values, pos_values = load_polar_5g_channel_reliability_values('5g_polar_code_reliability_table.csv')
+    z_values, pos_values = load_polar_5g_channel_reliability_values('./5g_polar_code_reliability_table.csv')
 
     info_length = 0
     K = 1024

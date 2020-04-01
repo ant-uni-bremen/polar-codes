@@ -309,7 +309,7 @@ def main():
 
         f = get_frozenBitPositions(capacities, N - K)
         f = np.sort(f)
-        ip = get_info_indices(f, N)
+        # ip = get_info_indices(f, N)
         # print(ip)
         # print(f)
 

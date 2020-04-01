@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Johannes Demel
  *
@@ -10,9 +9,6 @@
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
-
-// #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-// #include <numpy/arrayobject.h>
 
 #include <cstdint>
 

@@ -253,7 +253,7 @@ def plot_capacity_approx(N, snr):
     import matplotlib.pyplot as plt
     bb = ChannelConstructorBhattacharyyaBounds(N, snr)
     ga = ChannelConstructorGaussianApproximation(N, snr)
-    return
+    # return
 
     for n in range(6, 9):
         nn = 2 ** n
