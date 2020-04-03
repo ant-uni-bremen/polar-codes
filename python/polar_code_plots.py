@@ -3,7 +3,7 @@ import numpy as np
 import scipy.special as sps
 import matplotlib.pyplot as plt
 
-import pybindpolar as pypolar
+import pypolar
 from polar_code_tools import calculate_bec_channel_capacities, design_snr_to_bec_eta
 
 

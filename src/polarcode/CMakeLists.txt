@@ -2,11 +2,13 @@ add_library(ErrorDetector OBJECT
         errordetection/errordetector
         errordetection/dummy
         errordetection/crc8
+        errordetection/crc16
         errordetection/crc32
         errordetection/cmac
         ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/errordetector.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/dummy.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/crc8.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/crc16.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/crc32.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/errordetection/cmac.h)
 

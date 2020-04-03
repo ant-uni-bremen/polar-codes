@@ -14,7 +14,7 @@ import datetime
 import matplotlib.pyplot as plt
 import symbolmapping as sd
 
-import pybindpolar as pypolar
+import pypolar
 
 
 def is_power_of2(n):

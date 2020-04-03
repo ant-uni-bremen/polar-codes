@@ -1,6 +1,7 @@
 #include <polarcode/errordetection/errordetector.h>
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
+#include <polarcode/errordetection/crc16.h>
 #include <polarcode/errordetection/crc32.h>
 #include <polarcode/errordetection/cmac.h>
 
@@ -19,6 +20,7 @@ Detector* create(unsigned size, std::string type){
         switch (size) {
         case 0: detector = new Dummy(); break;
         case 8: detector = new CRC8(); break;
+        case 16: detector = new CRC16(); break;
         case 32: detector = new CRC32(); break;
         default: detector = new Dummy();
         }
