@@ -164,5 +164,17 @@ def calculate_code_properties(N, K, design_snr_db):
     assert dmin_ext_search == dmin_P
 
 
+def main():
+    a = np.array([-0.742-0.216j, -0.586-0.325j, -0.077-0.331j, +0.604-0.537j, ], dtype=np.complex64)
+    b = np.array([+0.800-0.569j, +0.621-0.834j, -0.801+0.775j, +0.344-0.703j, ], dtype=np.complex64)
+    print(a)
+    print(b)
+    print(a / b)
+
+    r = a.real * b.real + 1.j * a.imag * b.real - 1.j * a.real * b.imag + a.imag * b.imag
+    r /= (b.real ** 2 + b.imag ** 2)
+    print(r)
+
 if __name__ == '__main__':
-    unittest.main(failfast=False)
+    main()
+    # unittest.main(failfast=False)

@@ -114,8 +114,8 @@ class DetectorTests(unittest.TestCase):
         for s in self.cmac_lens:
             det = pypolar.Detector(s, 'cmAC')
             res = det.generate(msg)
-            # print(msg)
-            # print(res)
+            print(msg)
+            print(res)
             self.assertListEqual(list(msg), list(res[:-(s // 8)]))
             self.assertTrue(det.check(res))
 
