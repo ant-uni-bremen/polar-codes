@@ -110,6 +110,6 @@ install(EXPORT polarcode-targets
     FILE
         PolarCodeTargets.cmake
     DESTINATION
-        cmake/PolarCode
+        lib/cmake/PolarCode
 )
 # ${CMAKE_MODULES_DIR}/cmake/PolarCode
