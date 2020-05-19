@@ -21,6 +21,7 @@ public:
 	Dummy();
 	~Dummy();
 
+	std::string getType();
 	unsigned getCheckBitCount();
 
 	/*!

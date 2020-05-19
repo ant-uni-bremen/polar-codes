@@ -34,6 +34,7 @@ void bind_encoder(py::module& m)
         .def("setSystematic", &Encoder::setSystematic)
         .def("isSystematic", &Encoder::isSystematic)
         .def("frozenBits", &Encoder::frozenBits)
+        .def("getErrorDetectionMode", &Encoder::getErrorDetectionMode)
         .def("setErrorDetection", [](ButterflyFipPacked& self, unsigned size, std::string type){
             self.setErrorDetection(PolarCode::ErrorDetection::create(size, type));
         },

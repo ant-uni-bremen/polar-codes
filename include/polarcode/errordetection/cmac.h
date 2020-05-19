@@ -23,6 +23,7 @@ namespace PolarCode {
             cmac(std::vector<unsigned char> initKey, unsigned int bitCount=128);
             ~cmac();
             void setKey(std::vector<unsigned char> key);
+            std::string getType(){return std::string("CMAC");}
             unsigned getCheckBitCount(){return mBitCount;}
             void generate(void *pData, int bytes);
             bool check(void *pData, int bytes);

@@ -17,6 +17,12 @@ Detector* create(unsigned size, std::string type){
                    [](unsigned char c){return std::tolower(c); } );
     Detector* detector;
     if(type.find("crc") != std::string::npos){
+        std::vector<unsigned> crc_sizes({0, 8, 16, 32});
+        bool found = (std::find(crc_sizes.begin(),
+                                crc_sizes.end(), size) != crc_sizes.end());
+        if(not found){
+            throw std::logic_error("CRC INVALID SIZE!");
+        }
         switch (size) {
         case 0: detector = new Dummy(); break;
         case 8: detector = new CRC8(); break;

@@ -1,34 +1,46 @@
 #include <polarcode/errordetection/dummy.h>
 
-namespace PolarCode {
-namespace ErrorDetection {
+namespace PolarCode
+{
+	namespace ErrorDetection
+	{
 
-Dummy globalDummyDetector;
+		Dummy globalDummyDetector;
 
-Dummy::Dummy() {
-}
+		Dummy::Dummy()
+		{
+		}
 
-Dummy::~Dummy() {
-}
+		Dummy::~Dummy()
+		{
+		}
 
-unsigned Dummy::getCheckBitCount() {
-	return 0;
-}
+		unsigned Dummy::getCheckBitCount()
+		{
+			return 0;
+		}
 
-//Null check believes the code was okay
-bool Dummy::check(void *dataPtr, int bytes) {
-	return true;
-}
+		std::string Dummy::getType()
+		{
+			return std::string("DUMMY");
+		}
 
-void Dummy::generate(void *dataPtr, int bytes) {
-	//Nothing to do
-}
+		//Null check believes the code was okay
+		bool Dummy::check(void *dataPtr, int bytes)
+		{
+			return true;
+		}
 
+		void Dummy::generate(void *dataPtr, int bytes)
+		{
+			//Nothing to do
+		}
 
-//Whatever we have to check, the first array is okay
-int Dummy::multiCheck(void **dataPtr, int nArrays, int nBytes) {
-	return 0;
-}
+		//Whatever we have to check, the first array is okay
+		int Dummy::multiCheck(void **dataPtr, int nArrays, int nBytes)
+		{
+			return 0;
+		}
 
-}//namespace ErrorDetection
-}//namespace PolarCode
+	} //namespace ErrorDetection
+} //namespace PolarCode

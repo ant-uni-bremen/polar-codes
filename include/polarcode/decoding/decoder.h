@@ -130,6 +130,15 @@ public:
 	virtual void setErrorDetection(ErrorDetection::Detector* pDetector);
 
 	/*!
+	 * \brief Get error detection mode
+	 * \return String indicating error detection mode and length.
+	 */
+	std::string getErrorDetectionMode(){
+		return std::string(mErrorDetector->getType() + "-" +
+						   std::to_string(mErrorDetector->getCheckBitCount()));
+	}
+
+	/*!
 	 * \brief Copy the received signal into decoder's memory.
 	 * \param pLlr Pointer to single precision floating point LLRs.
 	 */

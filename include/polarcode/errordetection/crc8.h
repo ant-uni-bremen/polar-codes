@@ -23,6 +23,7 @@ public:
 	CRC8();
 	~CRC8();
 
+	std::string getType(){return std::string("CRC");}
 	unsigned getCheckBitCount(){return 8;}
 	void generate(void *pData, int bytes);
 	bool check(void *pData, int bytes);

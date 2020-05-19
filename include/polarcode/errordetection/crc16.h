@@ -24,6 +24,7 @@ public:
 	CRC16();
 	~CRC16();
 
+	std::string getType(){return std::string("CRC");}
 	unsigned getCheckBitCount(){return 16;}
 	void generate(void *pData, int bytes);
 	bool check(void *pData, int bytes);

@@ -33,6 +33,7 @@ void bind_decoder(py::module& m)
         .def("setSystematic", &Decoder::setSystematic)
         .def("isSystematic", &Decoder::isSystematic)
         .def("frozenBits", &Decoder::frozenBits)
+        .def("getErrorDetectionMode", &Decoder::getErrorDetectionMode)
         .def("setErrorDetection", [](Decoder& self, unsigned size, std::string type){
             self.setErrorDetection(PolarCode::ErrorDetection::create(size, type));
         },
@@ -74,4 +75,3 @@ void bind_decoder(py::module& m)
         })
         ;
 }
-

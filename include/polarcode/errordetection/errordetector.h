@@ -25,6 +25,12 @@ public:
 	virtual unsigned getCheckBitCount() = 0;
 
 	/*!
+	 * \brief Get error detection type (CRC or CMAC).
+	 * \return std::string with type name.
+	 */
+	virtual std::string getType() = 0;
+
+	/*!
 	 * \brief Replaces the last bytes of data with a checksum.
 	 * \param data Memory location to generate the checksum of.
 	 * \param bytes Number of bytes of data including the checksum.

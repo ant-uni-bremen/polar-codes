@@ -70,6 +70,14 @@ public:
 	 */
 	void setErrorDetection(ErrorDetection::Detector* pDetector);
 
+	/*!
+	 * \brief Get error detection mode
+	 * \return String indicating error detection mode and length.
+	 */
+	std::string getErrorDetectionMode(){
+		return std::string(mErrorDetector->getType() + "-" +
+						   std::to_string(mErrorDetector->getCheckBitCount()));
+	}
 
 	/*!
 	 * \brief Explicitly call setSystematic(false); to use
