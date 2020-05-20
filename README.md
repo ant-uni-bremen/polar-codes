@@ -17,6 +17,7 @@ on your system:
 - doxygen
 - libcppunit-dev
 - libtclap-dev
+- libssl-dev
 
 ### The install commands
 ```
