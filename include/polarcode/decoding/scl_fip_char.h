@@ -401,6 +401,14 @@ public:
 	 * \param newListSize The new maximum path count for decoding.
 	 */
 	void setListSize(size_t newListSize);
+
+	/*!
+	 * \brief Get decoder list size
+	 * \return size_t with Decoder List size.
+	 */
+	size_t getListSize(){
+		return mListSize;
+	}
 };
 
 

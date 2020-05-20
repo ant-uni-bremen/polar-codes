@@ -36,6 +36,14 @@ public:
 	void setIterationLimit(unsigned iterationLimit);
 
 	void getExtrinsicChannelInformation(float *);
+
+	/*!
+	 * \brief Get decoder list size
+	 * \return size_t with Decoder List size.
+	 */
+	size_t getListSize(){
+		return mIterationLimit;
+	}
 };
 
 

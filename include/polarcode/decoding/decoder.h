@@ -139,6 +139,14 @@ public:
 	}
 
 	/*!
+	 * \brief Get decoder list size
+	 * \return size_t with Decoder List size.
+	 */
+	virtual size_t getListSize(){
+		return 1;
+	}
+
+	/*!
 	 * \brief Copy the received signal into decoder's memory.
 	 * \param pLlr Pointer to single precision floating point LLRs.
 	 */

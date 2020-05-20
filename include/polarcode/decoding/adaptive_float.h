@@ -34,6 +34,14 @@ public:
 	void setSystematic(bool sys);
 	void setErrorDetection(ErrorDetection::Detector* pDetector);
 	void setSignal(const float *pLlr);
+
+	/*!
+	 * \brief Get decoder list size
+	 * \return size_t with Decoder List size.
+	 */
+	size_t getListSize(){
+		return mListSize;
+	}
 };
 
 
