@@ -13,7 +13,7 @@ CRC16::~CRC16() {
 }
 
 uint16_t CRC16::gen(uint16_t *data, int byteSize) {
-	return CRC::Calculate(data, byteSize, CRC::CRC_16_XMODEM());
+	return CRC::Calculate(data, byteSize, CRC::CRC_16_CCITTFALSE());
 }
 
 bool CRC16::check(void *pData, int bytes) {

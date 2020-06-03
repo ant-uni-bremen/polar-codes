@@ -1,5 +1,5 @@
 #include <polarcode/decoding/adaptive_float.h>
-
+#include <iostream>
 namespace PolarCode {
 namespace Decoding {
 
@@ -29,6 +29,7 @@ bool AdaptiveFloat::decode() {
 	bool success = mFastDecoder->decode();
 	mOutputContainer = mFastDecoder->packedOutput();
 	mBitContainer = mFastDecoder->outputContainer();
+
 	if(!success && mListSize > 1) {
 		success = mListDecoder->decode();
 		mOutputContainer = mListDecoder->packedOutput();

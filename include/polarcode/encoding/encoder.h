@@ -51,7 +51,7 @@ public:
 							const std::vector<unsigned> &frozenBits) = 0;
 
 	/*!
-	 * \brief Query codeword block Length
+	 * \brief Query infoword block Length
 	 */
 	size_t infoLength(){ return blockLength() - mFrozenBits.size(); }
 	/*!

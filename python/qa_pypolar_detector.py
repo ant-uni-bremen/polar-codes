@@ -125,17 +125,18 @@ class DetectorTests(unittest.TestCase):
                 self.assertFalse(det.check(refFalse))
 
     def test_007_crc16_gen(self):
+        # http://www.sunshine2k.de/coding/javascript/crc/crc_js.html use: CRC16_CCITT_FALSE
         # https://crccalc.com/
-        # Polynimial: 0x1021 (CRC-16/XMODEM)
+        # Polynimial: 0x1021 (CRC-16/XMODEM) now using: CCITTFALSE
         # Input reflected: false
         # Output reflected: false
         # Initial value: 0x0000 0000
         # Final XOR value: 0x0000 0000
         det = pypolar.Detector(16, 'cRc')
-
+        print('CRC-16 generator test')
         msg = 'Test'
-        # AC 48
-        ref = ['0xac', '0x48', ]
+        # 28 88
+        ref = ['0x28', '0x88', ]
         ref = [int(i, 16) for i in ref]
         msg = np.array([ord(i) for i in msg])
         print([hex(i) for i in msg])
@@ -145,8 +146,8 @@ class DetectorTests(unittest.TestCase):
         self.assertListEqual(ref, list(res[-2:]))
 
         msg = 'RIPloPTiger'
-        # BD 60
-        ref = ['0xbd', '0x60', ]
+        # 69 6F
+        ref = ['0x69', '0x6f', ]
         ref = [int(i, 16) for i in ref]
         msg = np.array([ord(i) for i in msg])
         print([hex(i) for i in msg])
@@ -159,11 +160,12 @@ class DetectorTests(unittest.TestCase):
         det = pypolar.Detector(16, 'cRc')
 
         msg = 'DisgustinRoastedWhip'
-        # 55 93
-        ref = ['0x55', '0x93', ]
+        # A3 2B
+        ref = ['0xa3', '0x2b', ]
         ref = [int(i, 16) for i in ref]
         msg = np.array([ord(i) for i in msg])
         ref = np.concatenate((msg, ref))
+        print(det.generate(msg))
         self.assertTrue(det.check(ref))
 
         for i in range(ref.size):
