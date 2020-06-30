@@ -1,3 +1,10 @@
+# Copyright 2019, 2020 Florian Lotze, Johannes Demel
+#
+# This file is part of PolarCodes
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
 find_package(Doxygen)
 option(BUILD_DOCUMENTATION "Create and install the HTML based API
 documentation (requires Doxygen)" ${DOXYGEN_FOUND})

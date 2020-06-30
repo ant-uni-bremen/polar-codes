@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef ALIGNEDNEW_H
 #define ALIGNEDNEW_H
 
@@ -27,6 +35,6 @@ struct alignas(ALIGNMENT) AlignedNew {
 	if (alloc_failed)  throw ::std::bad_alloc();
 	return result;
   }
-}; 
+};
 
 #endif //ALIGNEDNEW_H

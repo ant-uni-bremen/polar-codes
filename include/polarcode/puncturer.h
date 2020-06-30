@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2019 Johannes Demel
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef PC_PUNCTURER_H
 #define PC_PUNCTURER_H
 

@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2020 Johannes Demel
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include "polarcode/errordetection/cmac.h"
 #include <polarcode/avxconvenience.h>
 #include <openssl/evp.h>

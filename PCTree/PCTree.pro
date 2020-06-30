@@ -1,8 +1,9 @@
-#-------------------------------------------------
+# Copyright 2017 Florian Lotze
 #
-# Project created by QtCreator 2017-06-09T12:24:46
+# This file is part of PolarCodes
 #
-#-------------------------------------------------
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
 
 QT       += core gui
 

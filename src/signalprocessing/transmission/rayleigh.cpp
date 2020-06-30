@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include <signalprocessing/transmission/rayleigh.h>
 #include <cmath>
 #include <cstddef>
@@ -104,4 +112,3 @@ void Rayleigh::transmit_vectorized() {
 
 }//namespace Transmission
 }//namespace SignalProcessing
-

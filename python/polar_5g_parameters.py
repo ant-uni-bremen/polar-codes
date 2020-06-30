@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright 2020 Johannes Demel.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
 import sys, os
 my_dir = os.path.dirname(os.path.realpath(__file__))
 # print(my_dir)

@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef PCDSP_MODULATION_ASK
 #define PCDSP_MODULATION_ASK
 
@@ -27,7 +35,7 @@ class Ask : public Modem {
 	Bpsk *mBpsk;
 	unsigned mBitsPerSymbol;
 	float mPowerNormalizer, mNormalMagnitude;
-	
+
 public:
 	Ask();
 	/*!
@@ -37,7 +45,7 @@ public:
 	 */
 	Ask(unsigned bitsPerSymbol, bool normalizeOutput = true);
 	~Ask();
-	
+
 	/*!
 	 * \brief Set the new bits-per-symbol value.
 	 */
@@ -47,7 +55,7 @@ public:
 	 * \brief Get the current bits-per-symbol value.
 	 */
 	unsigned bitsPerSymbol();
-	
+
 	void modulate();
 	void demodulate();
 };
@@ -57,5 +65,3 @@ public:
 }//namespace SignalProcessing
 
 #endif //PCDSP_MODULATION_ASK
-
- 

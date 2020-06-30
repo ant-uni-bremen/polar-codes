@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef PCDSP_TRANSMITTER_SCALE_H
 #define PCDSP_TRANSMITTER_SCALE_H
 
@@ -23,7 +31,7 @@ public:
 	 */
 	Scale(float factor);
 	~Scale();
-	
+
 	/*!
 	 * \brief Set a new scaling factor.
 	 */
@@ -36,9 +44,9 @@ public:
 	float Factor();
 
 	void transmit();
-	
+
 };
-    
+
 }//namespace Transmission
 }//namespace SignalProcessing
 

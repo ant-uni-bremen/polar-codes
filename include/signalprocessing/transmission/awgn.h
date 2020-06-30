@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef PCDSP_TRANSMITTER_AWGN_H
 #define PCDSP_TRANSMITTER_AWGN_H
 
@@ -38,7 +46,7 @@ public:
 	 */
 	Awgn(float EsN0_dB);
 	~Awgn();
-	
+
 	/*!
 	 * \brief Set a new SNR given in dB.
 	 */
@@ -62,9 +70,9 @@ public:
 	float EsNoLin();
 
 	void transmit();
-	
+
 };
-    
+
 }//namespace Transmission
 }//namespace SignalProcessing
 

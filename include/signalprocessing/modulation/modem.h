@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef PCDSP_MODULATOR_H
 #define PCDSP_MODULATOR_H
 
@@ -21,7 +29,7 @@ protected:
 public:
 	Modem();
 	virtual ~Modem();
-	
+
 	/*!
 	 * \brief Tell the modem to get binary input data from any kind of BitContainer.
 	 *
@@ -34,7 +42,7 @@ public:
 	 * \brief For demodulators, set the location of an input signal.
 	 */
 	void setInputSignal(std::vector<float> *);
-	
+
 
 	/*!
 	 * \brief Get a pointer to the output signal vector.
@@ -45,7 +53,7 @@ public:
 	 * \brief Insert detected bits of the demodulated signal into a BitContainer.
 	 */
 	void getDataOutput(PolarCode::BitContainer *);
-	
+
 
 	/*!
 	 * \brief Call the modulation routine.

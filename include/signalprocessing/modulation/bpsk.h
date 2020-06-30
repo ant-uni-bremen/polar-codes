@@ -1,4 +1,12 @@
-#ifndef PCDSP_MODULATION_BPSK 
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
+#ifndef PCDSP_MODULATION_BPSK
 #define PCDSP_MODULATION_BPSK
 
 #include <signalprocessing/modulation/modem.h>
@@ -24,7 +32,7 @@ class Bpsk : public Modem {
 public:
 	Bpsk();
 	~Bpsk();
-	
+
 	void modulate();
 	void demodulate();
 };
@@ -34,4 +42,3 @@ public:
 }//namespace SignalProcessing
 
 #endif //PCDSP_MODULATION_BPSK
-

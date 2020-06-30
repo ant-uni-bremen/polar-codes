@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include <polarcode/arrayfuncs.h>
 
 #include <cassert>
@@ -342,4 +350,3 @@ void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes) {
 		++bytes;
 	}
 }
-

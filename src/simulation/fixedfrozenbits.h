@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef FIXEDFROZENBITS_H
 #define FIXEDFROZENBITS_H
 
@@ -58,4 +66,3 @@ const std::vector<unsigned> fixed1024FrozenIdx = {
 	774,776,777,778,780,784,785,786,800,832,896};
 
 #endif
-

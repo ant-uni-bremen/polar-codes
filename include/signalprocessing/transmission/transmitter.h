@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef PCDSP_TRANSMITTER_H
 #define PCDSP_TRANSMITTER_H
 
@@ -13,11 +21,11 @@ namespace Transmission {
 class Transmitter {
 protected:
 	std::vector<float> *mSignal;///< Location of a signal to be processed.
-    
+
 public:
     Transmitter();
     virtual ~Transmitter();
-    
+
 	/*!
 	 * \brief Set the location of a signal vector for transmission.
 	 */

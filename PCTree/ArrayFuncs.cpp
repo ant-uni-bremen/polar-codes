@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include "ArrayFuncs.h"
 
 #include <cassert>
@@ -270,13 +278,13 @@ int trackingSorter::partition(int lo, int hi)
 		do{
 			++i;
 		}while(data[i] < piv);
-		
+
 		do{
 			--j;
 		}while(data[j] > piv);
-		
+
 		if(i>=j) return j;
-		
+
 		std::swap(data[i], data[j]);
 		std::swap(permuted[i], permuted[j]);
 	}
@@ -292,13 +300,13 @@ int trackingSorter::partitionDescending(int lo, int hi)
 		do{
 			++i;
 		}while(data[i] > piv);
-		
+
 		do{
 			--j;
 		}while(data[j] < piv);
-		
+
 		if(i>=j) return j;
-		
+
 		std::swap(data[i], data[j]);
 		std::swap(permuted[i], permuted[j]);
 	}
@@ -318,7 +326,7 @@ void trackingSorter::versenke(int i, int n)
 	while(i <= (n>>1)-1)
 	{
 		ki = ((i+1)<<1)-1;
-		
+
 		if(ki+1 <= n-1)
 		{
 			if(data[ki] < data[ki+1])
@@ -326,7 +334,7 @@ void trackingSorter::versenke(int i, int n)
 				ki++;
 			}
 		}
-		
+
 		if(data[i] < data[ki])
 		{
 			std::swap(data[i], data[ki]);
@@ -355,7 +363,7 @@ void Bits2Bytes(unsigned char *bits, unsigned char *bytes, int nBytes)
 		tmp |= *bits++;
 		*bytes = tmp;
 		++bytes;
-	}	
+	}
 }
 
 void Bits2Bytes(QVector<float> &fbits, unsigned char *bytes, int nBytes)
@@ -411,6 +419,5 @@ void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes)
 		*bits++ = ((*bytes)>>1)&1;
 		*bits++ = ( *bytes    )&1;
 		++bytes;
-	}	
+	}
 }
-

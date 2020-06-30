@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018, 2020 Florian Lotze, Johannes Demel
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include <polarcode/errordetection/errordetector.h>
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/crc8.h>
