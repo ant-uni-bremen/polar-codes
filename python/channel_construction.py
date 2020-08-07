@@ -4,6 +4,10 @@ from scipy import special as sps
 import warnings
 
 
+def db2lin(snr_db):
+    return 10. ** (snr_db / 10.)
+
+
 class ChannelConstructor:
     """docstring for ChannelConstructor"""
 
@@ -11,14 +15,15 @@ class ChannelConstructor:
         self._block_power = int(np.log2(N))
         self._block_size = int(2 ** self._block_power)
         self._eta = self._design_snr2eta(design_snr)
-        self._sigma_sq = 4. * 10. ** (design_snr / 10.)
+        self._sigma_sq = 1. * 10. ** (design_snr / 10.)
         self._sortedChannels = np.arange(self._block_size)
         self._capacities = np.zeros(self._block_size, dtype=np.float64)
 
     def _design_snr2eta(self, design_snr, coderate=1.0):
         # minimum design snr = -1.5917 corresponds to BER = 0.5
-        s = 10. ** (design_snr / 10.)
-        s *= 2. * coderate
+        s = db2lin(design_snr)
+        # s = 10. ** (design_snr / 10.)
+        # s *= 2. * coderate
         return np.exp(-s)
 
     def sortedChannels(self, capacities):
@@ -52,6 +57,7 @@ class ChannelConstructorBhattacharyyaBounds(ChannelConstructor):
         v1 = self._cc_log.getCapacities()
         uv0 = np.unique(v0).size
         uv1 = np.unique(v1).size
+        print('unique elements lin: {}'.format(uv0))
         # print(np.size(np.where(uv0 == 1.0)))
         # print('unique elements lin: {} vs ln: {}'.format(uv0, uv1))
         if uv0 > uv1:
@@ -78,6 +84,8 @@ class ChannelConstructorBhattacharyyaBoundsLog(ChannelConstructor):
         l2 = np.log(2.)
         # print(vals, l2, vals - l2)
         return vals + l2 + np.log(1 - np.exp(vals - l2))
+        # return vals + l2 + np.logaddexp(np.log(1.), 1. / (vals - l2))
+        # return vals + np.logaddexp(-vals, l2)
 
     def _calculate_channels_ln(self, vals):
         res = np.empty(2 * len(vals), dtype=vals.dtype)
@@ -91,7 +99,10 @@ class ChannelConstructorBhattacharyyaBoundsLog(ChannelConstructor):
             # print(vals)
             vals = self._calculate_channels_ln(vals)
         # print('ln unique {}'.format(np.unique(vals).size))
+        uv0 = np.unique(vals).size
+        print('unique elements ln: {}'.format(uv0))
         r = 1. - np.exp(vals)
+        r = np.maximum(r, np.zeros_like(r))
         return r[::-1]
 
 
@@ -143,9 +154,6 @@ class ChannelConstructorGaussianApproximation(ChannelConstructor):
 
     def calculate_capacities(self):
         v0 = self._calculate_capacities_llr()
-        uv0 = np.unique(v0).size
-
-        # print('unique elements llr: {}'.format(uv0))
         self._capacities = sps.erf(np.sqrt(v0.astype(np.float64) / 2.))
         return v0
 
@@ -172,19 +180,6 @@ class ChannelConstructorGaussianApproximation(ChannelConstructor):
                 print('{} ** {}'.format(t, self._gamma))
                 t = np.array([t, ], dtype=np.float128)
                 t = t[0]
-                # t2 = np.power(t, self._gamma)
-                # print(t2)
-                # ex = self._alpha * t2 + self._beta
-                # print(ex)
-                # res = np.exp(ex)
-                # print(res)
-                # return res
-            #     print(e.args)
-            #     print('stupid val: {}'.format(t))
-            #     print(t2)
-            #     print(ex)
-            #     print(res)
-            #     raise e
             finally:
                 t2 = np.power(t, self._gamma)
                 # print(t2)
@@ -247,30 +242,129 @@ class ChannelConstructorGaussianApproximation(ChannelConstructor):
         return z
 
 
+class ChannelConstructorGaussianApproximationDai(ChannelConstructor):
+    """docstring for ChannelConstructorBhattacharyyaBounds"""
+
+    def __init__(self, N, snr):
+        ChannelConstructor.__init__(self, N, snr)
+
+        self._alpha = -0.4527
+        self._beta = 0.0218
+        self._gamma = 0.8600
+
+        self._a = 1.0 / self._alpha
+        self._b = -self._beta / self._alpha
+        self._c = 1.0 / self._gamma
+
+        self.evaluate()
+
+    def calculate_capacities(self):
+        v0 = self._calculate_capacities_llr()
+        uv0 = np.unique(v0).size
+        print('unique elements llr: {}'.format(uv0))
+        self._capacities = sps.erf(np.sqrt(v0.astype(np.float64) / 2.))
+        return v0
+
+    def _phi4inv(self, t):
+        assert t >= 0.0
+        ainv = 0.9125360939445893
+        binv = 0.7200545321883631
+        cinv = 0.047929057387273905
+        if t >= 1.0:
+            return 0.0
+        elif t > ainv:
+            return self._inverse_quadratic_exponential(t, a=0.1047, b=0.4992, r=1.0)
+        elif t > binv:
+            return self._inverse_quadratic_exponential(t, a=0.05315, b=0.4795, r=0.9981)
+        elif t > cinv:
+            return ((0.0218 - np.log(t)) / 0.4527) ** (1. / 0.86)
+        else:
+            return -1. * (np.log(t) + 0.4254) / 0.2832
+
+    def _phi4(self, t):
+        assert t >= 0.0
+        a = 0.1910
+        b = 0.7420
+        c = 9.2254
+        if t <= a:
+            return np.exp(0.1047 * (t ** 2) - 0.4992 * t)
+        elif t <= b:
+            return 0.9981 * np.exp(0.05315 * (t ** 2) - 0.4795 * t)
+        elif t <= c:
+            return np.exp(-0.4527 * (t ** 0.86) + 0.0218)
+        else:
+            return np.exp(-0.2832 * t - 0.4254)
+
+    def _fc(self, t):
+        assert t >= 0.0
+        tau = 11.673
+        if t > tau:
+            return t - 2.4476
+        else:
+            return self._phi4inv(1 - (1 - self._phi4(t)) ** 2)
+
+    def _fv(self, t):
+        return 2 * t
+
+    def _inverse_quadratic_exponential(self, y, a=0.05315, b=0.4795, r=0.9981):
+        return (b - np.sqrt(4 * a * np.log(y / r) + b ** 2)) / (2. * a)
+
+    def _calculate_capacities_llr(self):
+        m = self._block_power
+        initial_val = 2. * self._sigma_sq
+        z = np.full(self._block_size, initial_val, dtype=np.float128)
+        assert z.dtype == np.float128
+
+        for l in range(1, m + 1):
+            o1 = 2 ** (m - l + 1)
+            o2 = 2 ** (m - l)
+            for t in range(2 ** (l - 1)):
+                T = z[t * o1]
+                z[t * o1] = self._fc(T)
+                z[t * o1 + o2] = self._fv(T)
+        return z
+
+
 def plot_capacity_approx(N, snr):
     import matplotlib.pyplot as plt
     bb = ChannelConstructorBhattacharyyaBounds(N, snr)
     ga = ChannelConstructorGaussianApproximation(N, snr)
-    # return
+    plt.figure(figsize=(4, 2))
+    for snr in (-1.5917, ):
+        bb = ChannelConstructorBhattacharyyaBoundsLog(N, snr)
+        ga = ChannelConstructorGaussianApproximation(N, snr)
+        ga4 = ChannelConstructorGaussianApproximationDai(N, snr)
+        print(f'BB snr={snr}, capacity={np.sum(bb.getCapacities())}')
+        print(f'GA snr={snr}, capacity={np.sum(ga4.getCapacities())}')
+        plt.plot(bb.getCapacities(), label=f'BB')
+        # plt.plot(ga.getCapacities(), label=f'GA, dSNR={snr}')
+        plt.plot(ga4.getCapacities(), label=f'GA')
 
-    for n in range(6, 9):
-        nn = 2 ** n
-        for tr in range(1000):
-            gat = ChannelConstructorGaussianApproximation(nn, snr)
+    # for n in range(6, 9):
+    #     nn = 2 ** n
+    #     for tr in range(1000):
+    #         gat = ChannelConstructorGaussianApproximation(nn, snr)
 
-    bb_caps = bb.getCapacities()
-    ga_caps = ga.getCapacities()
+    # bb_caps = bb.getCapacities()
+    # ga_caps = ga.getCapacities()
 
-    plt.plot(bb_caps)
-    plt.plot(ga_caps)
+    # plt.plot(bb_caps)
+    # plt.plot(ga_caps)
+    plt.xlabel('virtual bit channel')
+    plt.ylabel('capacity')
+    plt.legend(loc='lower right')
+    plt.xlim((0, N))
+    plt.tight_layout()
+    plt.savefig(f'polar_channel_capacity_graph_dSNR-1.5917_N{N}.pgf')
     plt.show()
 
 
 def main():
-    n = 6
+    n = 10
     N = int(2 ** n)
-    snr = -1.
+    snr = 1.
     plot_capacity_approx(N, snr)
+    # plot_dai_functions(N, snr)
 
 
 if __name__ == '__main__':
