@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018, 2019, 2020 Florian Lotze, Johannes Demel
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef PC_DEC_DECODER_H
 #define PC_DEC_DECODER_H
 

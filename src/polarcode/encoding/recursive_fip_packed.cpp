@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include <polarcode/encoding/recursive_fip_packed.h>
 #include <polarcode/encoding/butterfly_fip.h>
 #include <polarcode/polarcode.h>

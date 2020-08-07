@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include <polarcode/errordetection/crc8.h>
 
 //#define GP  0x107   /* x^8 + x^2 + x + 1 */

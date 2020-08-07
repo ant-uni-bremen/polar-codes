@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include <polarcode/bitcontainer.h>
 #include <polarcode/avxconvenience.h>
 #include <immintrin.h>

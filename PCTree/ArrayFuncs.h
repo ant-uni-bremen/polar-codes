@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef ARRAYFUNCS_H
 #define ARRAYFUNCS_H
 
@@ -31,10 +39,9 @@ public:
 	void stableSortDescending();
 	void partialSort(int n);
 	void partialSortDescending(int n);
-	
+
 	void simplePartialSort(float *data, int size, int n);
 	void simplePartialSortDescending(float *data, int size, int n);
 };
 
 #endif
-

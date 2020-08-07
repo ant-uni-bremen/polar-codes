@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include <polarcode/decoding/errorlocator.h>
 #include <polarcode/decoding/avx_float.h>
 #include <polarcode/polarcode.h>

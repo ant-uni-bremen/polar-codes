@@ -51,3 +51,7 @@ Their respective base classes are purely virtual, so every algorithm
 implementation can be called via the base object's functions. This allows for
 easy testing as you can throw any algorithm at a general performance tester
 without having to modify the testers code in any way.
+
+
+## License and Referencing
+This program is licensed under the GPLv3 license.

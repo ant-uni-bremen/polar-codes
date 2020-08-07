@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright 2020 Johannes Demel.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
 import sys, os
 my_dir = os.path.dirname(os.path.realpath(__file__))
 # print(my_dir)
@@ -11,7 +18,7 @@ import time
 import subprocess
 
 SHARE_RESULT_DIR = os.path.join(my_dir, 'results/')
-RESULTS_DIR = '/lhome/records/polar_simulation_results/'
+RESULTS_DIR = '~/polar_simulation_results/'
 print('NETWORK result folder: ', SHARE_RESULT_DIR)
 print('LOCAL   result folder: ', RESULTS_DIR)
 subt = time.time()

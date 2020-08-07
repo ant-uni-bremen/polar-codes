@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef ARRAYFUNCS_H
 #define ARRAYFUNCS_H
 
@@ -229,4 +237,3 @@ void Bits2Bytes(unsigned char *bits, unsigned char *bytes, int nBytes);
 void Bytes2Bits(unsigned char *bytes, unsigned char *bits, int nBytes);
 
 #endif
-

@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2020 Johannes Demel
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef PC_TEST_BITCONTAINER_H
 #define PC_TEST_BITCONTAINER_H
 

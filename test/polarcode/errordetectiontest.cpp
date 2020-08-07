@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include "errordetectiontest.h"
 
 #include <cstring>
@@ -95,4 +103,3 @@ void ErrorDetectionTest::testCmac() {
 //	mTestInput[0] ^= 0xFF;
 //	CPPUNIT_ASSERT_EQUAL(false, mCrc32->check(mTestInput, mDataLength));
 }
-

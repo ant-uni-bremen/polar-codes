@@ -1,3 +1,10 @@
+# Copyright 2019, 2020 Johannes Demel
+#
+# This file is part of PolarCodes
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
 INCLUDE(FindPkgConfig)
 PKG_CHECK_MODULES(PC_POLARCODE PolarCode)
 

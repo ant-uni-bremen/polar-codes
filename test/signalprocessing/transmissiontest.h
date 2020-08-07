@@ -1,3 +1,10 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
 #ifndef PC_TEST_TRANSMISSION_H
 #define PC_TEST_TRANSMISSION_H
 
@@ -14,5 +21,3 @@ public:
 };
 
 #endif //PC_TEST_TRANSMISSION_H
-
-

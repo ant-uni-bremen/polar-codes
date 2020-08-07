@@ -1,3 +1,10 @@
+# Copyright 2018, 2019, 2020 Florian Lotze, Johannes Demel
+#
+# This file is part of PolarCodes
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
 ########################################################################
 # Project setup
 ########################################################################

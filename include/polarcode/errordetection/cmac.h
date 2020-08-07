@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2020 Johannes Demel
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef POLAR_CODING_SIMULATION_CMAC_H
 #define POLAR_CODING_SIMULATION_CMAC_H
 

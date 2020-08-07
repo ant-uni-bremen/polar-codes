@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include <signalprocessing/transmission/awgn.h>
 #include <cmath>
 #include <cstddef>
@@ -98,4 +106,3 @@ void Awgn::transmit_vectorized() {
 
 }//namespace Transmission
 }//namespace SignalProcessing
-

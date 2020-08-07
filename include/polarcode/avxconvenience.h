@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef AVXCONVENIENCE_H
 #define AVXCONVENIENCE_H
 
@@ -325,4 +333,3 @@ inline static void memFloatFill(float *dst, float value, const size_t blockLengt
 
 
 #endif //AVXCONVENIENCE
-

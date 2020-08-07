@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #ifndef PCDSP_TRANSMITTER_RAYLEIGH_H
 #define PCDSP_TRANSMITTER_RAYLEIGH_H
 
@@ -25,7 +33,7 @@ public:
 	 */
 	Rayleigh(float EsN0_dB);
 	~Rayleigh();
-	
+
 	/*!
 	 * \brief Set a new SNR given in dB.
 	 */
@@ -43,9 +51,9 @@ public:
 	float EsNo();
 
 	void transmit();
-	
+
 };
-    
+
 }//namespace Transmission
 }//namespace SignalProcessing
 

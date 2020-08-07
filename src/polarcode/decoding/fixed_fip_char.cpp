@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include <polarcode/decoding/fixed_fip_char.h>
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/encoding/butterfly_fip_packed.h>
@@ -53,4 +61,3 @@ bool FixedChar::decode() {
 
 }// namespace Decoding
 }// namespace PolarCode
-

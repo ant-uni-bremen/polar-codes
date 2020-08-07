@@ -1,3 +1,8 @@
+# Copyright 2020 Johannes Demel
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
 ########################################################################
 # Python Bindings
 ########################################################################
@@ -17,10 +22,5 @@ target_include_directories(polarcode_python PUBLIC
     ${PYBIND11_INCLUDE_DIR}
 )
 target_link_libraries(polarcode_python PUBLIC ${PYTHON_LIBRARIES} PolarCode)
-
-if(CMAKE_COMPILER_IS_GNUCC AND NOT APPLE)
-    SET_TARGET_PROPERTIES(polarcode_python
-    PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
-endif()
 
 install(TARGETS polarcode_python DESTINATION ${PYTHON_DIR}/pypolar COMPONENT pythonapi)

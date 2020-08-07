@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include "encodingtest.h"
 #include "siformat.h"
 
@@ -171,4 +179,3 @@ void EncodingTest::performanceComparison() {
 	float speed = (testBits/TimeUsed.count());
 	std::cout << "AVX2-Packed Speed: " << siFormat(speed) << "bps (" << siFormat(speed / 8) << "B/s)" << std::endl;
 }
-

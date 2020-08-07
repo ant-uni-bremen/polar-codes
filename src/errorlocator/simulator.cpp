@@ -1,3 +1,11 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2018 Florian Lotze
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ */
+
 #include "simulator.h"
 
 #include <thread>
@@ -36,7 +44,7 @@ void Simulator::run() {
 			Thread.join();
 		}
 	}
-	catch(std::system_error e) {
+	catch(std::system_error& e) {
 		std::cout << "Cannot use multithreaded simulation!\n";
 		std::cout << "what(): " << e.what() << std::endl;
 		SimThread(this, 1);
