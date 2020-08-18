@@ -23,10 +23,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #make sure our local CMake Modules path comes first
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
 
-find_package(CppUnit)
+find_package(CppUnit REQUIRED)
+if(NOT CPPUNIT_FOUND)
+	message(FATAL_ERROR "CppUnit missing! (apt install libcppunit-dev)")
+endif()
 #find_package(Threads)
 find_package(Doxygen)
-find_package(OpenSSL)
+find_package(OpenSSL REQUIRED)
+#find_package(cppunit)
 
 add_subdirectory(pybind11)
 # Probably the preferred way long term:
