@@ -8,7 +8,6 @@
 
 import numpy as np
 from scipy import special as sps
-import warnings
 
 
 def db2lin(snr_db):
@@ -29,15 +28,13 @@ class ChannelConstructor:
     def _design_snr2eta(self, design_snr, coderate=1.0):
         # minimum design snr = -1.5917 corresponds to BER = 0.5
         s = db2lin(design_snr)
-        # s = 10. ** (design_snr / 10.)
-        # s *= 2. * coderate
         return np.exp(-s)
 
     def sortedChannels(self, capacities):
         return np.argsort(capacities)
 
-    def frozenBitPositions(self, capacities, n_frozen):
-        return self.sortedChannels(capacities)[0:n_frozen]
+    def frozenBitPositions(self, n_frozen):
+        return self._sortedChannels[0:n_frozen]
 
     def evaluate(self):
         capacities = self.calculate_capacities()
@@ -64,9 +61,6 @@ class ChannelConstructorBhattacharyyaBounds(ChannelConstructor):
         v1 = self._cc_log.getCapacities()
         uv0 = np.unique(v0).size
         uv1 = np.unique(v1).size
-        print('unique elements lin: {}'.format(uv0))
-        # print(np.size(np.where(uv0 == 1.0)))
-        # print('unique elements lin: {} vs ln: {}'.format(uv0, uv1))
         if uv0 > uv1:
             self._capacities = v0
             return v0
@@ -89,10 +83,8 @@ class ChannelConstructorBhattacharyyaBoundsLog(ChannelConstructor):
 
     def _upgrade_ln(self, vals):
         l2 = np.log(2.)
-        # print(vals, l2, vals - l2)
+        # the last part with log 1-exp(vals - l2) needs a log domain approximation!
         return vals + l2 + np.log(1 - np.exp(vals - l2))
-        # return vals + l2 + np.logaddexp(np.log(1.), 1. / (vals - l2))
-        # return vals + np.logaddexp(-vals, l2)
 
     def _calculate_channels_ln(self, vals):
         res = np.empty(2 * len(vals), dtype=vals.dtype)
@@ -103,11 +95,7 @@ class ChannelConstructorBhattacharyyaBoundsLog(ChannelConstructor):
     def _calculate_capacities_ln(self):
         vals = np.array([np.log(1. - self._eta), ], dtype=np.float128)
         for i in range(self._block_power):
-            # print(vals)
             vals = self._calculate_channels_ln(vals)
-        # print('ln unique {}'.format(np.unique(vals).size))
-        uv0 = np.unique(vals).size
-        print('unique elements ln: {}'.format(uv0))
         r = 1. - np.exp(vals)
         r = np.maximum(r, np.zeros_like(r))
         return r[::-1]
@@ -136,121 +124,18 @@ class ChannelConstructorBhattacharyyaBoundsLinear(ChannelConstructor):
 
     def _calculate_capacities_lin(self):
         vals = np.array([1. - self._eta, ], dtype=np.float128)
-        # print(vals)
         for i in range(self._block_power):
-            # print(vals)
             vals = self._calculate_channels_lin(vals)
         return vals
 
 
-class ChannelConstructorGaussianApproximation(ChannelConstructor):
-    """docstring for ChannelConstructorBhattacharyyaBounds"""
-
-    def __init__(self, N, snr):
-        ChannelConstructor.__init__(self, N, snr)
-
-        self._alpha = -0.4527
-        self._beta = 0.0218
-        self._gamma = 0.8600
-
-        self._a = 1.0 / self._alpha
-        self._b = -self._beta / self._alpha
-        self._c = 1.0 / self._gamma
-
-        self.evaluate()
-
-    def calculate_capacities(self):
-        v0 = self._calculate_capacities_llr()
-        self._capacities = sps.erf(np.sqrt(v0.astype(np.float64) / 2.))
-        return v0
-
-    def _phi(self, t):
-        phi_pivot = 0.867861
-        if t < phi_pivot:
-            # print('phi {} ** 2'.format(t))
-            sq = t ** 2.
-            return np.exp(0.0564 * sq - 0.48560 * t)
-        else:
-            try:
-                # t2 = t ** self._gamma
-                # print('phi {} ** {}'.format(t, self._gamma))
-                t2 = np.power(t, self._gamma)
-                # print(t2)
-                ex = self._alpha * t2 + self._beta
-                # print(ex)
-                res = np.exp(ex)
-                # print(res)
-                return res
-                # res = np.exp(self._alpha * (t ** self._gamma) + self._beta)
-            except FloatingPointError as e:
-                print('FloatingPointError: {}'.format(e.args[0]))
-                print('{} ** {}'.format(t, self._gamma))
-                t = np.array([t, ], dtype=np.float128)
-                t = t[0]
-            finally:
-                t2 = np.power(t, self._gamma)
-                # print(t2)
-                ex = self._alpha * t2 + self._beta
-                # print(ex)
-                res = np.exp(ex)
-                # print(res)
-                return res
-
-    def _inv_phi(self, t):
-        phi_inv_pivot = 0.6845772418
-        if t > phi_inv_pivot:
-            return 4.304964539 * (1 - np.sqrt(1 + 0.9567131408 * np.log(t)))
-        else:
-            if t == 0.0:
-                t += np.finfo(t.dtype).resolution
-                # print('log div {} -> {}'.format(t, np.log(t)))
-            tt = np.log(t)
-            # if np.isinf(tt):
-            #     print('log div {} -> {}'.format(t, tt))
-            #     # tt = np.sign(tt) * 1e15
-            #     e = np.finfo(t.dtype).resolution
-            #     tt = np.log(t + e)
-            #     print('log div {} -> {}'.format(t, tt))
-            return (self._a * tt + self._b) ** self._c
-
-    def _calculate_capacities_llr(self):
-        m = self._block_power
-        initial_val = 2.0 / self._sigma_sq
-        # print('ChannelConstructor {}, {}'.format(self._sigma_sq, initial_val))
-        z = np.full(self._block_size, initial_val, dtype=np.float128)
-        assert z.dtype == np.float128
-        # print('GA vector datatype: ', type(z))
-
-        if np.any(np.isnan(z)):
-            raise ValueError('Fuck the system!')
-            print('Reassign correct value')
-            z[:] = initial_val
-            z = z.astype(np.float128)
-        if np.any(np.isnan(z)):
-            print('Reinstantiate vector')
-            z = np.ones(self._block_size)
-            z *= initial_val
-            z = z.astype(np.float128)
-        if np.any(np.isnan(z)):
-            raise ValueError('Moronic NumPy tries to fuck the system!')
-        # print(z)
-        for l in range(1, m + 1):
-            # print(l)
-            o1 = 2 ** (m - l + 1)
-            o2 = 2 ** (m - l)
-            for t in range(2 ** (l - 1)):
-                T = z[t * o1]
-                # print(l, t, T, type(T))
-                z[t * o1] = self._inv_phi(1. - (1. - self._phi(T)) ** 2)
-                if np.isinf(z[t * o1]):
-                    print('HUGE_VAL: {}'.format(z[t * o1]))
-                    z[t * o1] = T + np.log(2.) / (self._alpha * self._gamma)
-                z[t * o1 + o2] = 2. * T
-        return z
-
-
 class ChannelConstructorGaussianApproximationDai(ChannelConstructor):
-    """docstring for ChannelConstructorBhattacharyyaBounds"""
+    """ChannelConstructorGaussianApproximationDai
+
+    Perform channel polarization via Gaussian Approximation.
+    This algorithm is form:
+    Dai et al. 'Does Gaussian Approximation Work Well for the Long-Length Polar Code Construction?'
+    """
 
     def __init__(self, N, snr):
         ChannelConstructor.__init__(self, N, snr)
@@ -267,8 +152,6 @@ class ChannelConstructorGaussianApproximationDai(ChannelConstructor):
 
     def calculate_capacities(self):
         v0 = self._calculate_capacities_llr()
-        uv0 = np.unique(v0).size
-        print('unique elements llr: {}'.format(uv0))
         self._capacities = sps.erf(np.sqrt(v0.astype(np.float64) / 2.))
         return v0
 
@@ -335,11 +218,9 @@ class ChannelConstructorGaussianApproximationDai(ChannelConstructor):
 def plot_capacity_approx(N, snr):
     import matplotlib.pyplot as plt
     bb = ChannelConstructorBhattacharyyaBounds(N, snr)
-    ga = ChannelConstructorGaussianApproximation(N, snr)
     plt.figure(figsize=(4, 2))
     for snr in (-1.5917, ):
         bb = ChannelConstructorBhattacharyyaBoundsLog(N, snr)
-        ga = ChannelConstructorGaussianApproximation(N, snr)
         ga4 = ChannelConstructorGaussianApproximationDai(N, snr)
         print(f'BB snr={snr}, capacity={np.sum(bb.getCapacities())}')
         print(f'GA snr={snr}, capacity={np.sum(ga4.getCapacities())}')

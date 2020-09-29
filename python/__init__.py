@@ -18,4 +18,4 @@ from .polarcode_python import *
 
 
 # import any pure python here
-#
+from .frozen_bit_positions import get_frozen_bit_generator
