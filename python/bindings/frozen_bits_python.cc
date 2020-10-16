@@ -17,12 +17,10 @@
 
 #include <polarcode/construction/constructor.h>
 
-
 namespace py = pybind11;
 
-
-void bind_constructor(py::module& m)
+void bind_constructor(py::module &m)
 {
-    m.def("frozen_bits", &PolarCode::Construction::frozen_bits);
+    m.def("frozen_bits", &PolarCode::Construction::frozen_bits,
+          py::arg("blockLength"), py::arg("infoLength"), py::arg("designSNR"));
 }
-

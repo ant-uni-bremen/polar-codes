@@ -18,16 +18,17 @@
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/errordetection/errordetector.h>
 
-
 namespace py = pybind11;
 
-
-void bind_decoder(py::module& m)
+void bind_decoder(py::module &m)
 {
     using namespace PolarCode::Decoding;
     using namespace PolarCode::ErrorDetection;
     py::class_<Decoder>(m, "PolarDecoder")
-        .def(py::init(&PolarCode::Decoding::create))
+        .def(py::init(&PolarCode::Decoding::create),
+             py::arg("blockLength"), py::arg("listSize"),
+             py::arg("frozenBitPositions"),
+             py::arg("decoderType"))
         .def("blockLength", &Decoder::blockLength)
         .def("infoLength", &Decoder::infoLength)
         .def("listSize", &Decoder::getListSize)
@@ -35,44 +36,41 @@ void bind_decoder(py::module& m)
         .def("isSystematic", &Decoder::isSystematic)
         .def("frozenBits", &Decoder::frozenBits)
         .def("getErrorDetectionMode", &Decoder::getErrorDetectionMode)
-        .def("setErrorDetection", [](Decoder& self, unsigned size, std::string type){
-            self.setErrorDetection(PolarCode::ErrorDetection::create(size, type));
-        },
-        py::arg("size") = 0,
-        py::arg("type") = "crc")
-        .def("decode_vector",
-             [](Decoder& self,
-                const py::array_t<float, py::array::c_style |
-                                         py::array::forcecast> array) {
+        .def(
+            "setErrorDetection", [](Decoder &self, unsigned size, std::string type) {
+                self.setErrorDetection(PolarCode::ErrorDetection::create(size, type));
+            },
+            py::arg("size") = 0, py::arg("type") = "crc")
+        .def("decode_vector", [](Decoder &self, const py::array_t<float, py::array::c_style | py::array::forcecast> array) {
             py::buffer_info inb = array.request();
-            if(inb.ndim != 1){
+            if (inb.ndim != 1)
+            {
                 throw std::runtime_error("Only ONE-dimensional vectors allowed!");
             }
-            if((size_t)inb.size != self.blockLength()){
+            if ((size_t)inb.size != self.blockLength())
+            {
                 throw std::runtime_error("Input vector size != blockSize // 8!");
             }
-            auto result =py::array_t<uint8_t>(self.infoLength() / 8);
+            auto result = py::array_t<uint8_t>(self.infoLength() / 8);
             py::buffer_info resb = result.request();
 
-            self.decode_vector((float*)inb.ptr, (void*)resb.ptr);
+            self.decode_vector((float *)inb.ptr, (void *)resb.ptr);
             return result;
         })
-        .def("decode_vector",
-             [](Decoder& self,
-                const py::array_t<int8_t, py::array::c_style |
-                                         py::array::forcecast> array) {
+        .def("decode_vector", [](Decoder &self, const py::array_t<int8_t, py::array::c_style | py::array::forcecast> array) {
             py::buffer_info inb = array.request();
-            if(inb.ndim != 1){
+            if (inb.ndim != 1)
+            {
                 throw std::runtime_error("Only ONE-dimensional vectors allowed!");
             }
-            if((size_t)inb.size != self.blockLength()){
+            if ((size_t)inb.size != self.blockLength())
+            {
                 throw std::runtime_error("Input vector size != blockSize // 8!");
             }
-            auto result =py::array_t<uint8_t>(self.infoLength() / 8);
+            auto result = py::array_t<uint8_t>(self.infoLength() / 8);
             py::buffer_info resb = result.request();
 
-            self.decode_vector((char*)inb.ptr, (void*)resb.ptr);
+            self.decode_vector((char *)inb.ptr, (void *)resb.ptr);
             return result;
-        })
-        ;
+        });
 }
