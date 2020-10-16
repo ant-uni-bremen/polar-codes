@@ -19,6 +19,6 @@ jobs:
     - name: build
       run: cmake --build build
     - name: install
-      run: cd build && make install
+      run: cd build && sudo make install
     - name: test
       run: cd build && ctest -V
