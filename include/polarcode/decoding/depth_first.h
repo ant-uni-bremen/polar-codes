@@ -58,7 +58,7 @@ class Manager
     std::vector<Node*> mNodeList;
     Node* xmRootNode;
     //	std::priority_queue<Configuration, std::vector<Configuration>,
-    //compareConfigMetrics> mConfigList;
+    // compareConfigMetrics> mConfigList;
     std::queue<Configuration> mConfigList;
     std::vector<unsigned> mNodeRanking;
     int mTrialLimit;

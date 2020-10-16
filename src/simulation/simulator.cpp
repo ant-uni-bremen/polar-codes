@@ -692,9 +692,9 @@ void SimulationWorker::selectFrozenBits()
     } else {
         mConstructor = nullptr;
         //		std::vector<PolarCode::Decoding::CodingScheme> &registry =
-        //PolarCode::Decoding::codeRegistry; 		std::vector<unsigned> &frozenBits =
-        //registry[mJob->codingScheme].frozenBits; 		mFrozenBits.assign(frozenBits.begin(),
-        //frozenBits.end());
+        // PolarCode::Decoding::codeRegistry; 		std::vector<unsigned> &frozenBits
+        // = registry[mJob->codingScheme].frozenBits;
+        // mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
         mFrozenBits.assign(fixed1024FrozenIdx.begin(), fixed1024FrozenIdx.end());
     }
 }
@@ -783,7 +783,9 @@ void SimulationWorker::setErrorDetector()
     } else if (mJob->errorDetectionType == "cmac") {
         //		const unsigned char e_key[] = {0x2b, 0x7e, 0x15, 0x16,
         //																	 0x28,
-        //0xae, 0xd2, 0xa6, 																	 0xab, 0xf7, 0x15, 0x88, 																	 0x09, 0xcf, 0x4f, 0x3c};
+        // 0xae, 0xd2, 0xa6,
+        // 0xab, 0xf7, 0x15, 0x88,
+        // 0x09, 0xcf, 0x4f, 0x3c};
 
         const unsigned char e_key[] = { 0x8e, 0x73, 0xb0, 0xf7, 0xda, 0x0e, 0x64, 0x52,
                                         0xc8, 0x10, 0xf3, 0x2b, 0x80, 0x90, 0x79, 0xe5 };

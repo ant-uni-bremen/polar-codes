@@ -36,7 +36,8 @@ void EncodingTest::fipPackedTest()
 
     for (size_t testBytes = 1; testBytes <= maxBytes; testBytes <<= 1) {
         size_t testBits = testBytes * 8;
-        //		std::cout << "Test length: " << testBytes << " Bytes, " << testBits
+        //		std::cout << "Test length: " << testBytes << " Bytes, " <<
+        // testBits
         //<< " Bits" << std::endl;
 
         frozenBits.resize(testBits - 1);
