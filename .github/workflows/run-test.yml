@@ -1,0 +1,20 @@
+name: Run CI tests
+
+on: [push, pull_request]
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: dependencies
+      run: sudo apt install doxygen python3-pybind11 libcppunit-dev libtclap-dev libssl-dev
+    - name: configure
+      run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Werror" ..
+    - name: build
+      run: cmake --build build
+    - name: install
+      run: cd build && make install
+    - name: test
+      run: cd build && ctest -V

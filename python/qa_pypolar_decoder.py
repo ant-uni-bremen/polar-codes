@@ -10,7 +10,7 @@ import numpy as np
 import unittest
 from polar_code_tools import design_snr_to_bec_eta, calculate_bec_channel_capacities, get_frozenBitMap, get_frozenBitPositions, get_polar_generator_matrix, get_polar_encoder_matrix_systematic, frozen_indices_to_map
 from polar_code_tools import get_info_indices, get_expanding_matrix, calculate_ga
-from channel_construction import ChannelConstructorBhattacharyyaBounds, ChannelConstructorGaussianApproximation
+from channel_construction import ChannelConstructorBhattacharyyaBounds, ChannelConstructorGaussianApproximationDai
 import pypolar
 
 
@@ -53,8 +53,8 @@ class PolarDecoderTests(unittest.TestCase):
     def initialize_encoder(self, N, K, snr):
         try:
             np.seterr(invalid='raise')
-            cc = ChannelConstructorGaussianApproximation(N, snr)
-        except ValueError:
+            cc = ChannelConstructorBhattacharyyaBounds(N, snr)
+        except FloatingPointError:
             np.seterr(invalid='warn')
             cc = ChannelConstructorBhattacharyyaBounds(N, snr)
 
