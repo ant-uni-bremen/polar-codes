@@ -18,6 +18,8 @@ on your system:
 - libcppunit-dev
 - libtclap-dev
 - libssl-dev
+- python3-numpy
+- python3-scipy
 
 ### The install commands
 ```
