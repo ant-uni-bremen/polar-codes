@@ -22,9 +22,11 @@ jobs:
       run: cd build && sudo make install
     - name: environment
       run: |
-          echo "/usr/local/bin" >> $PATH
-          echo "/usr/local/lib/python3/dist-packages/" >> $PYTHONPATH
-          echo "/usr/local/lib/" >> $LD_LIBRARY_PATH
-          echo "/usr/local/lib/" >> $LIBRARY_PATH
+        echo "export PATH=/usr/local/bin:$PATH" > setup_env.sh
+        echo "export PYTHONPATH=/usr/local/lib/python3/dist-packages:$PYTHONPATH" >> setup_env.sh
+        echo "export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH"  >> setup_env.sh
+        echo "export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH" >> setup_env.sh
     - name: test
-      run: cd build && ctest -V
+      run: |
+        source setup_env.sh
+        cd build && ctest -V
