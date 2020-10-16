@@ -23,39 +23,42 @@ namespace Decoding {
  * by Ubaid U. Fayyaz and John R. Barry
  *
  */
-class Scan : public Decoder {
-	std::vector<float> mLlr, mEven, mOdd;
-	std::vector<float> mSystematicOutput;
-	std::vector<bool> mBooleanFrozen;
-	unsigned int mLevelCount, mN, mIterationLimit;
+class Scan : public Decoder
+{
+    std::vector<float> mLlr, mEven, mOdd;
+    std::vector<float> mSystematicOutput;
+    std::vector<bool> mBooleanFrozen;
+    unsigned int mLevelCount, mN, mIterationLimit;
 
-	unsigned int addressToIndex(unsigned level, unsigned group, unsigned bit);
+    unsigned int addressToIndex(unsigned level, unsigned group, unsigned bit);
 
-	void updatellrmap(unsigned level, unsigned group);
-	void updatebitmap(unsigned level, unsigned group);
+    void updatellrmap(unsigned level, unsigned group);
+    void updatebitmap(unsigned level, unsigned group);
 
 
 public:
-	Scan(size_t blockLength, unsigned iterationLimit, const std::vector<unsigned> &frozenBits);
-	~Scan();
+    Scan(size_t blockLength,
+         unsigned iterationLimit,
+         const std::vector<unsigned>& frozenBits);
+    ~Scan();
 
-	bool decode();
-	void initialize(size_t blockLength, unsigned iterationLimit, const std::vector<unsigned> &frozenBits);
-	void setIterationLimit(unsigned iterationLimit);
+    bool decode();
+    void initialize(size_t blockLength,
+                    unsigned iterationLimit,
+                    const std::vector<unsigned>& frozenBits);
+    void setIterationLimit(unsigned iterationLimit);
 
-	void getExtrinsicChannelInformation(float *);
+    void getExtrinsicChannelInformation(float*);
 
-	/*!
-	 * \brief Get decoder list size
-	 * \return size_t with Decoder List size.
-	 */
-	size_t getListSize(){
-		return mIterationLimit;
-	}
+    /*!
+     * \brief Get decoder list size
+     * \return size_t with Decoder List size.
+     */
+    size_t getListSize() { return mIterationLimit; }
 };
 
 
-}// namespace Decoding
-}// namespace PolarCode
+} // namespace Decoding
+} // namespace PolarCode
 
 #endif

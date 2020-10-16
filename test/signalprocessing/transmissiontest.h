@@ -10,14 +10,15 @@
 
 #include <cppunit/extensions/HelperMacros.h>
 
-class TransmissionTest : public CppUnit::TestFixture {
-	CPPUNIT_TEST_SUITE(TransmissionTest);
-//	CPPUNIT_TEST(test);
-	CPPUNIT_TEST_SUITE_END();
+class TransmissionTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(TransmissionTest);
+    //	CPPUNIT_TEST(test);
+    CPPUNIT_TEST_SUITE_END();
 
 public:
-	void setUp();
-	void tearDown();
+    void setUp();
+    void tearDown();
 };
 
-#endif //PC_TEST_TRANSMISSION_H
+#endif // PC_TEST_TRANSMISSION_H

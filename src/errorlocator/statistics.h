@@ -9,35 +9,36 @@
 #ifndef PCERL_STATISTICS_H
 #define PCERL_STATISTICS_H
 
-#include <vector>
 #include <map>
 #include <mutex>
+#include <vector>
 
 namespace SimulationErrorLocator {
 
 struct StatisticsOutput {
-	float min, max;
-	float mean, dev;
-	float sum;
+    float min, max;
+    float mean, dev;
+    float sum;
 };
 
-class Statistics {
-	std::vector<float> mContainer;
+class Statistics
+{
+    std::vector<float> mContainer;
 
 public:
-	Statistics();
-	~Statistics();
+    Statistics();
+    ~Statistics();
 
-	void insert(float value);
-	void clear();
+    void insert(float value);
+    void clear();
 
-	StatisticsOutput evaluate();
+    StatisticsOutput evaluate();
 
-	void printContents();
+    void printContents();
 
-	std::vector<float> valueList(){ return mContainer;}
+    std::vector<float> valueList() { return mContainer; }
 };
 
-}
+} // namespace SimulationErrorLocator
 
 #endif

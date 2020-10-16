@@ -6,8 +6,8 @@
  *
  */
 
-#include <pybind11/pybind11.h>
 #include <pybind11/complex.h>
+#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 
@@ -21,7 +21,8 @@ void bind_detector(py::module& m);
 void bind_constructor(py::module& m);
 
 
-PYBIND11_MODULE(polarcode_python, m) {
+PYBIND11_MODULE(polarcode_python, m)
+{
     bind_puncturer(m);
     bind_encoder(m);
     bind_decoder(m);
@@ -33,6 +34,4 @@ PYBIND11_MODULE(polarcode_python, m) {
 #else
     m.attr("__version__") = "dev";
 #endif
-
 }
-

@@ -12,56 +12,59 @@ namespace PolarCode {
 namespace Decoding {
 
 
-AdaptiveFloat::AdaptiveFloat
-	( size_t blockLength
-	, size_t listSize
-	, const std::vector<unsigned> &frozenBits)
-	: mListSize(listSize)
+AdaptiveFloat::AdaptiveFloat(size_t blockLength,
+                             size_t listSize,
+                             const std::vector<unsigned>& frozenBits)
+    : mListSize(listSize)
 {
-	mBlockLength = blockLength;
-	mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
-	mExternalContainers = true;
+    mBlockLength = blockLength;
+    mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
+    mExternalContainers = true;
 
-	mFastDecoder = new FastSscAvxFloat(mBlockLength, mFrozenBits);
-	mListDecoder = new SclAvxFloat(mBlockLength, mListSize, mFrozenBits);
+    mFastDecoder = new FastSscAvxFloat(mBlockLength, mFrozenBits);
+    mListDecoder = new SclAvxFloat(mBlockLength, mListSize, mFrozenBits);
 }
 
-AdaptiveFloat::~AdaptiveFloat() {
-	delete mFastDecoder;
-	delete mListDecoder;
-	mOutputContainer = nullptr;
-	mBitContainer = nullptr;
+AdaptiveFloat::~AdaptiveFloat()
+{
+    delete mFastDecoder;
+    delete mListDecoder;
+    mOutputContainer = nullptr;
+    mBitContainer = nullptr;
 }
 
-bool AdaptiveFloat::decode() {
-	bool success = mFastDecoder->decode();
-	mOutputContainer = mFastDecoder->packedOutput();
-	mBitContainer = mFastDecoder->outputContainer();
+bool AdaptiveFloat::decode()
+{
+    bool success = mFastDecoder->decode();
+    mOutputContainer = mFastDecoder->packedOutput();
+    mBitContainer = mFastDecoder->outputContainer();
 
-	if(!success && mListSize > 1) {
-		success = mListDecoder->decode();
-		mOutputContainer = mListDecoder->packedOutput();
-		mBitContainer = mListDecoder->outputContainer();
-	}
-	return success;
+    if (!success && mListSize > 1) {
+        success = mListDecoder->decode();
+        mOutputContainer = mListDecoder->packedOutput();
+        mBitContainer = mListDecoder->outputContainer();
+    }
+    return success;
 }
 
-void AdaptiveFloat::setSystematic(bool sys) {
-	mFastDecoder->setSystematic(sys);
-	mListDecoder->setSystematic(sys);
+void AdaptiveFloat::setSystematic(bool sys)
+{
+    mFastDecoder->setSystematic(sys);
+    mListDecoder->setSystematic(sys);
 }
 
-void AdaptiveFloat::setErrorDetection(ErrorDetection::Detector* pDetector) {
-	mFastDecoder->setErrorDetection(pDetector);
-	mListDecoder->setErrorDetection(pDetector);
+void AdaptiveFloat::setErrorDetection(ErrorDetection::Detector* pDetector)
+{
+    mFastDecoder->setErrorDetection(pDetector);
+    mListDecoder->setErrorDetection(pDetector);
 }
 
-void AdaptiveFloat::setSignal(const float *pLlr) {
-	mFastDecoder->setSignal(pLlr);
-	mListDecoder->setSignal(pLlr);
+void AdaptiveFloat::setSignal(const float* pLlr)
+{
+    mFastDecoder->setSignal(pLlr);
+    mListDecoder->setSignal(pLlr);
 }
 
 
-
-}// namespace Decoding
-}// namespace PolarCode
+} // namespace Decoding
+} // namespace PolarCode

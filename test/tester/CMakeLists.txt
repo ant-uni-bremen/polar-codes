@@ -16,5 +16,4 @@ ADD_CUSTOM_TARGET(tests "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/pctest"
 
 target_link_libraries(pctest PolarCode SignalProcessing cppunit)
 
-# add_test(NAME "TestPolarCodeCPP" COMMAND ${CMAKE_BINARY_DIR}/bin/pctest)
 add_test(NAME "TestPolarCodeCPP" COMMAND pctest)

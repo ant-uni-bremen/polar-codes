@@ -11,13 +11,13 @@
 
 int main(int argc, char** argv)
 {
-	auto Config = new Simulation::Setup::Configurator(argc, argv);
-	auto Sim    = new Simulation::Simulator(Config);
+    auto Config = new Simulation::Setup::Configurator(argc, argv);
+    auto Sim = new Simulation::Simulator(Config);
 
-	Sim->run();
+    Sim->run();
 
-	delete Sim;
-	delete Config;
+    delete Sim;
+    delete Config;
 
-	return 0;
+    return 0;
 }

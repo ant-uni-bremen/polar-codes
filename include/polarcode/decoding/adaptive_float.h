@@ -23,37 +23,38 @@ namespace Decoding {
  * it tries to decode the given signal and only upon failure, the signal is
  * decoded a second time, using the list decoder.
  */
-class AdaptiveFloat : public Decoder {
-	FastSscAvxFloat *mFastDecoder;
-	SclAvxFloat	*mListDecoder;
-	size_t mListSize;
+class AdaptiveFloat : public Decoder
+{
+    FastSscAvxFloat* mFastDecoder;
+    SclAvxFloat* mListDecoder;
+    size_t mListSize;
 
 public:
-	/*!
-	 * \brief Create an adaptive decoder.
-	 * \param blockLength Block length of the Polar Code.
-	 * \param listSize Path limit of the list decoder.
-	 * \param frozenBits The set of frozen bits.
-	 */
-	AdaptiveFloat(size_t blockLength, size_t listSize, const std::vector<unsigned> &frozenBits);
-	~AdaptiveFloat();
-	bool decode();
+    /*!
+     * \brief Create an adaptive decoder.
+     * \param blockLength Block length of the Polar Code.
+     * \param listSize Path limit of the list decoder.
+     * \param frozenBits The set of frozen bits.
+     */
+    AdaptiveFloat(size_t blockLength,
+                  size_t listSize,
+                  const std::vector<unsigned>& frozenBits);
+    ~AdaptiveFloat();
+    bool decode();
 
-	void setSystematic(bool sys);
-	void setErrorDetection(ErrorDetection::Detector* pDetector);
-	void setSignal(const float *pLlr);
+    void setSystematic(bool sys);
+    void setErrorDetection(ErrorDetection::Detector* pDetector);
+    void setSignal(const float* pLlr);
 
-	/*!
-	 * \brief Get decoder list size
-	 * \return size_t with Decoder List size.
-	 */
-	size_t getListSize(){
-		return mListSize;
-	}
+    /*!
+     * \brief Get decoder list size
+     * \return size_t with Decoder List size.
+     */
+    size_t getListSize() { return mListSize; }
 };
 
 
-}// namespace Decoding
-}// namespace PolarCode
+} // namespace Decoding
+} // namespace PolarCode
 
-#endif// PC_DEC_ADPT_FLOAT_H
+#endif // PC_DEC_ADPT_FLOAT_H

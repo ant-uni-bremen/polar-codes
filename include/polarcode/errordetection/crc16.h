@@ -25,21 +25,22 @@ namespace ErrorDetection {
  *
  *
  */
-class CRC16 : public Detector {
-	uint16_t gen(uint16_t *data, int byteSize);
+class CRC16 : public Detector
+{
+    uint16_t gen(uint16_t* data, int byteSize);
 
 public:
-	CRC16();
-	~CRC16();
+    CRC16();
+    ~CRC16();
 
-	std::string getType(){return std::string("CRC");}
-	unsigned getCheckBitCount(){return 16;}
-	void generate(void *pData, int bytes);
-	bool check(void *pData, int bytes);
-	int multiCheck(void **dataPtr, int nArrays, int nBytes);
+    std::string getType() { return std::string("CRC"); }
+    unsigned getCheckBitCount() { return 16; }
+    void generate(void* pData, int bytes);
+    bool check(void* pData, int bytes);
+    int multiCheck(void** dataPtr, int nArrays, int nBytes);
 };
 
-}//namespace ErrorDetection
-}//namespace PolarCode
+} // namespace ErrorDetection
+} // namespace PolarCode
 
-#endif //PC_ERR_CRC16_H
+#endif // PC_ERR_CRC16_H

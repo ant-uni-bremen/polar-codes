@@ -9,8 +9,8 @@
 #ifndef PCDSP_MODULATION_ASK
 #define PCDSP_MODULATION_ASK
 
-#include <signalprocessing/modulation/modem.h>
 #include <signalprocessing/modulation/bpsk.h>
+#include <signalprocessing/modulation/modem.h>
 
 namespace SignalProcessing {
 namespace Modulation {
@@ -31,37 +31,38 @@ namespace Modulation {
  *
  * Edit: Normalization can now be turned off, for use in QAM.
  */
-class Ask : public Modem {
-	Bpsk *mBpsk;
-	unsigned mBitsPerSymbol;
-	float mPowerNormalizer, mNormalMagnitude;
+class Ask : public Modem
+{
+    Bpsk* mBpsk;
+    unsigned mBitsPerSymbol;
+    float mPowerNormalizer, mNormalMagnitude;
 
 public:
-	Ask();
-	/*!
-	 * \brief Construct an ASK-(de)modulator with the given amount of bits per symbol.
-	 * \param bitsPerSymbol Number of bits per symbol.
-	 * \param normalizeOutput Optional: Set to false, to disable power normalization.
-	 */
-	Ask(unsigned bitsPerSymbol, bool normalizeOutput = true);
-	~Ask();
+    Ask();
+    /*!
+     * \brief Construct an ASK-(de)modulator with the given amount of bits per symbol.
+     * \param bitsPerSymbol Number of bits per symbol.
+     * \param normalizeOutput Optional: Set to false, to disable power normalization.
+     */
+    Ask(unsigned bitsPerSymbol, bool normalizeOutput = true);
+    ~Ask();
 
-	/*!
-	 * \brief Set the new bits-per-symbol value.
-	 */
-	void setBitsPerSymbol(unsigned bps, bool normalizeOutput = true);
+    /*!
+     * \brief Set the new bits-per-symbol value.
+     */
+    void setBitsPerSymbol(unsigned bps, bool normalizeOutput = true);
 
-	/*!
-	 * \brief Get the current bits-per-symbol value.
-	 */
-	unsigned bitsPerSymbol();
+    /*!
+     * \brief Get the current bits-per-symbol value.
+     */
+    unsigned bitsPerSymbol();
 
-	void modulate();
-	void demodulate();
+    void modulate();
+    void demodulate();
 };
 
 
-}//namespace Modulation
-}//namespace SignalProcessing
+} // namespace Modulation
+} // namespace SignalProcessing
 
-#endif //PCDSP_MODULATION_ASK
+#endif // PCDSP_MODULATION_ASK

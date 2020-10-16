@@ -14,28 +14,29 @@
 namespace Simulation {
 
 struct StatisticsOutput {
-	float min, max;
-	float mean, dev;
-	float sum;
+    float min, max;
+    float mean, dev;
+    float sum;
 };
 
-class Statistics {
-	std::vector<float> mContainer;
+class Statistics
+{
+    std::vector<float> mContainer;
 
 public:
-	Statistics();
-	~Statistics();
+    Statistics();
+    ~Statistics();
 
-	void insert(float value);
-	void clear();
+    void insert(float value);
+    void clear();
 
-	StatisticsOutput evaluate();
+    StatisticsOutput evaluate();
 
-	void printContents();
+    void printContents();
 
-		std::vector<float> valueList(){ return mContainer;};
+    std::vector<float> valueList() { return mContainer; };
 };
 
-}
+} // namespace Simulation
 
 #endif

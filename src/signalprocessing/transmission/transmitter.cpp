@@ -11,15 +11,11 @@
 namespace SignalProcessing {
 namespace Transmission {
 
-Transmitter::Transmitter() {
-}
+Transmitter::Transmitter() {}
 
-Transmitter::~Transmitter() {
-}
+Transmitter::~Transmitter() {}
 
-void Transmitter::setSignal(std::vector<float> *sig) {
-	mSignal = sig;
-}
+void Transmitter::setSignal(std::vector<float>* sig) { mSignal = sig; }
 
-}//namespace Transmission
-}//namespace SignalProcessing
+} // namespace Transmission
+} // namespace SignalProcessing

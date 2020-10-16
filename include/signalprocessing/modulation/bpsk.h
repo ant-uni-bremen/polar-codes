@@ -22,23 +22,24 @@ namespace Modulation {
  * The demodulator detects the sign of input symbols and thereby unmaps signal
  * values back to data bits.
  */
-class Bpsk : public Modem {
-	void modulate_vectorized();
-	void modulate_simple();
+class Bpsk : public Modem
+{
+    void modulate_vectorized();
+    void modulate_simple();
 
-	void demodulate_vectorized();
-	void demodulate_simple();
+    void demodulate_vectorized();
+    void demodulate_simple();
 
 public:
-	Bpsk();
-	~Bpsk();
+    Bpsk();
+    ~Bpsk();
 
-	void modulate();
-	void demodulate();
+    void modulate();
+    void demodulate();
 };
 
 
-}//namespace Modulation
-}//namespace SignalProcessing
+} // namespace Modulation
+} // namespace SignalProcessing
 
-#endif //PCDSP_MODULATION_BPSK
+#endif // PCDSP_MODULATION_BPSK

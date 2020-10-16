@@ -12,31 +12,32 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <polarcode/bitcontainer.h>
 
-class BitContainerTest : public CppUnit::TestFixture {
-	CPPUNIT_TEST_SUITE(BitContainerTest);
-	CPPUNIT_TEST(testFloatContainer);
-	CPPUNIT_TEST(testFloatContainerWithFrozenBits);
-	CPPUNIT_TEST(testCharContainer);
-	CPPUNIT_TEST(testCharContainerWithFrozenBits);
-	CPPUNIT_TEST_SUITE_END();
+class BitContainerTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(BitContainerTest);
+    CPPUNIT_TEST(testFloatContainer);
+    CPPUNIT_TEST(testFloatContainerWithFrozenBits);
+    CPPUNIT_TEST(testCharContainer);
+    CPPUNIT_TEST(testCharContainerWithFrozenBits);
+    CPPUNIT_TEST_SUITE_END();
 
-	PolarCode::BitContainer  *floatContainer;
-	PolarCode::BitContainer   *charContainer;
-	PolarCode::BitContainer *packedContainer;
-	unsigned char *control;
-	std::string mTestData;
-	std::vector<unsigned> mFrozenBits;
+    PolarCode::BitContainer* floatContainer;
+    PolarCode::BitContainer* charContainer;
+    PolarCode::BitContainer* packedContainer;
+    unsigned char* control;
+    std::string mTestData;
+    std::vector<unsigned> mFrozenBits;
 
 public:
-	void setUp();
-	void tearDown();
+    void setUp();
+    void tearDown();
 
-	void testFloatContainer();
-	void testFloatContainerWithFrozenBits();
-	void testCharContainer();
-	void testCharContainerWithFrozenBits();
-	void testPackedContainer();
-	void testPackedContainerWithFrozenBits();
+    void testFloatContainer();
+    void testFloatContainerWithFrozenBits();
+    void testCharContainer();
+    void testCharContainerWithFrozenBits();
+    void testPackedContainer();
+    void testPackedContainerWithFrozenBits();
 };
 
-#endif //PC_TEST_BITCONTAINER_H
+#endif // PC_TEST_BITCONTAINER_H

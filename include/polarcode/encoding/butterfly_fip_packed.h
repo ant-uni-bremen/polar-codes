@@ -22,35 +22,34 @@ namespace Encoding {
  * so this encoder can XOR 256 bits per operand at once.
  *
  */
-class ButterflyFipPacked : public Encoder {
-	void transform();
+class ButterflyFipPacked : public Encoder
+{
+    void transform();
 
 public:
-	ButterflyFipPacked();
+    ButterflyFipPacked();
 
-	/*!
-	 * \brief Create the butterfly encoder without frozen bits.
-	 * \param blockLength Number of code bits.
-	 */
-	ButterflyFipPacked(size_t blockLength);
+    /*!
+     * \brief Create the butterfly encoder without frozen bits.
+     * \param blockLength Number of code bits.
+     */
+    ButterflyFipPacked(size_t blockLength);
 
-	/*!
-	 * \brief Create the butterfly encoder and initialize its parameters.
-	 * \param blockLength Number of code bits.
-	 * \param frozenBits Set of frozen channel indices.
-	 */
-	ButterflyFipPacked(size_t blockLength,
-					  const std::vector<unsigned> &frozenBits);
+    /*!
+     * \brief Create the butterfly encoder and initialize its parameters.
+     * \param blockLength Number of code bits.
+     * \param frozenBits Set of frozen channel indices.
+     */
+    ButterflyFipPacked(size_t blockLength, const std::vector<unsigned>& frozenBits);
 
-	~ButterflyFipPacked();
+    ~ButterflyFipPacked();
 
-	void encode();///< Perform the butterfly transformation.
-	void initialize(size_t blockLength,
-					const std::vector<unsigned> &frozenBits);
+    void encode(); ///< Perform the butterfly transformation.
+    void initialize(size_t blockLength, const std::vector<unsigned>& frozenBits);
 };
 
 
-}//namespace Encoding
-}//namespace PolarCode
+} // namespace Encoding
+} // namespace PolarCode
 
 #endif // PC_ENC_BUTTERFLY_FIP_PACKED_H

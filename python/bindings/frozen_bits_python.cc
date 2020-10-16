@@ -5,10 +5,10 @@
  *
  */
 
-#include <pybind11/pybind11.h>
 #include <pybind11/complex.h>
-#include <pybind11/stl.h>
 #include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 // #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 // #include <numpy/arrayobject.h>
@@ -19,8 +19,11 @@
 
 namespace py = pybind11;
 
-void bind_constructor(py::module &m)
+void bind_constructor(py::module& m)
 {
-    m.def("frozen_bits", &PolarCode::Construction::frozen_bits,
-          py::arg("blockLength"), py::arg("infoLength"), py::arg("designSNR"));
+    m.def("frozen_bits",
+          &PolarCode::Construction::frozen_bits,
+          py::arg("blockLength"),
+          py::arg("infoLength"),
+          py::arg("designSNR"));
 }

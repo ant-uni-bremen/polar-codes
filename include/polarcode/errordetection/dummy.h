@@ -23,43 +23,44 @@ namespace ErrorDetection {
  * The dummy does not alter input bytes, nor does it do any kind of error
  * detection. It simply assumes no error has occured or will occur.
  */
-class Dummy : public Detector {
+class Dummy : public Detector
+{
 
 public:
-	Dummy();
-	~Dummy();
+    Dummy();
+    ~Dummy();
 
-	std::string getType();
-	unsigned getCheckBitCount();
+    std::string getType();
+    unsigned getCheckBitCount();
 
-	/*!
-	 * \brief Does not do anything.
-	 * \param dataPtr Memory location that might hold data.
-	 * \param bytes Number of bytes there might be.
-	 */
-	void generate(void *dataPtr, int bytes);
+    /*!
+     * \brief Does not do anything.
+     * \param dataPtr Memory location that might hold data.
+     * \param bytes Number of bytes there might be.
+     */
+    void generate(void* dataPtr, int bytes);
 
-	/*!
-	 * \brief Does not perform any kind of error detection.
-	 * \param dataPtr Memory location not to be checked.
-	 * \param bytes Number of bytes there might be.
-	 * \return True.
-	 */
-	bool check(void *dataPtr, int bytes);
+    /*!
+     * \brief Does not perform any kind of error detection.
+     * \param dataPtr Memory location not to be checked.
+     * \param bytes Number of bytes there might be.
+     * \return True.
+     */
+    bool check(void* dataPtr, int bytes);
 
-	/*!
-	 * \brief Does not check any of the arrays.
-	 * \param dataPtr May point anywhere.
-	 * \param nArrays Number of arrays there might be.
-	 * \param nBytes Number of bytes there might be per array.
-	 * \return 0.
-	 */
-	int multiCheck(void **dataPtr, int nArrays, int nBytes);
+    /*!
+     * \brief Does not check any of the arrays.
+     * \param dataPtr May point anywhere.
+     * \param nArrays Number of arrays there might be.
+     * \param nBytes Number of bytes there might be per array.
+     * \return 0.
+     */
+    int multiCheck(void** dataPtr, int nArrays, int nBytes);
 };
 
 extern Dummy globalDummyDetector;
 
-}//namespace ErrorDetection
-}//namespace PolarCode
+} // namespace ErrorDetection
+} // namespace PolarCode
 
-#endif //PC_ERR_DUMMY_H
+#endif // PC_ERR_DUMMY_H

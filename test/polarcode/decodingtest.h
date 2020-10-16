@@ -12,44 +12,45 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <polarcode/decoding/decoder.h>
 
-class DecodingTest : public CppUnit::TestFixture {
-	CPPUNIT_TEST_SUITE(DecodingTest);
-	CPPUNIT_TEST(testSpecialDecoders);
-	CPPUNIT_TEST(testGeneralDecodingFunctionsAvx);
+class DecodingTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(DecodingTest);
+    CPPUNIT_TEST(testSpecialDecoders);
+    CPPUNIT_TEST(testGeneralDecodingFunctionsAvx);
 #ifdef __AVX2__
-	CPPUNIT_TEST(testGeneralDecodingFunctionsAvx2);
+    CPPUNIT_TEST(testGeneralDecodingFunctionsAvx2);
 #else
-	CPPUNIT_TEST(testGeneralDecodingFunctionsSse);
+    CPPUNIT_TEST(testGeneralDecodingFunctionsSse);
 #endif
-	CPPUNIT_TEST(testFipShort);
-	CPPUNIT_TEST(testPerformance);
-	CPPUNIT_TEST(testListDecoder);
-	CPPUNIT_TEST(testTemplatized);
-	CPPUNIT_TEST(testScan);
+    CPPUNIT_TEST(testFipShort);
+    CPPUNIT_TEST(testPerformance);
+    CPPUNIT_TEST(testListDecoder);
+    CPPUNIT_TEST(testTemplatized);
+    CPPUNIT_TEST(testScan);
 
-	CPPUNIT_TEST_SUITE_END();
+    CPPUNIT_TEST_SUITE_END();
 
-	PolarCode::Decoding::Decoder *mDecoder;
+    PolarCode::Decoding::Decoder* mDecoder;
 
 public:
-	void setUp();
-	void tearDown();
+    void setUp();
+    void tearDown();
 
-	void testSpecialDecoders();
-	void testGeneralDecodingFunctionsAvx();
+    void testSpecialDecoders();
+    void testGeneralDecodingFunctionsAvx();
 #ifdef __AVX2__
-	void testGeneralDecodingFunctionsAvx2();
+    void testGeneralDecodingFunctionsAvx2();
 #else
-	void testGeneralDecodingFunctionsSse();
+    void testGeneralDecodingFunctionsSse();
 #endif
-	void testFipShort();
-	void testPerformance();
-	void testListDecoder();
-	void testTemplatized();
-	void testScan();
+    void testFipShort();
+    void testPerformance();
+    void testListDecoder();
+    void testTemplatized();
+    void testScan();
 
 private:
-	void showScanTestOutput(unsigned, float*);
+    void showScanTestOutput(unsigned, float*);
 };
 
-#endif //PC_TEST_DECODING_H
+#endif // PC_TEST_DECODING_H

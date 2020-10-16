@@ -10,10 +10,6 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TransmissionTest);
 
-void TransmissionTest::setUp() {
+void TransmissionTest::setUp() {}
 
-}
-
-void TransmissionTest::tearDown() {
-
-}
+void TransmissionTest::tearDown() {}

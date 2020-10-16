@@ -13,20 +13,21 @@
 #include <polarcode/polarcode.h>
 #include <string>
 
-class PolarCodeTest : public CppUnit::TestFixture {
-	CPPUNIT_TEST_SUITE(PolarCodeTest);
-	CPPUNIT_TEST(testAvx2);
-	CPPUNIT_TEST(testAvx2List);
-	CPPUNIT_TEST(testAvxConvenience);
-	CPPUNIT_TEST_SUITE_END();
+class PolarCodeTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(PolarCodeTest);
+    CPPUNIT_TEST(testAvx2);
+    CPPUNIT_TEST(testAvx2List);
+    CPPUNIT_TEST(testAvxConvenience);
+    CPPUNIT_TEST_SUITE_END();
 
 public:
-	void setUp();
-	void tearDown();
+    void setUp();
+    void tearDown();
 
-	void testAvx2();
-	void testAvx2List();
-	void testAvxConvenience();
+    void testAvx2();
+    void testAvx2List();
+    void testAvxConvenience();
 };
 
-#endif //PC_TEST_POLARCODE_H
+#endif // PC_TEST_POLARCODE_H

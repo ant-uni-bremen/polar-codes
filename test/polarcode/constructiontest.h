@@ -12,18 +12,19 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <polarcode/construction/constructor.h>
 
-class ConstructionTest : public CppUnit::TestFixture {
-	CPPUNIT_TEST_SUITE(ConstructionTest);
-	CPPUNIT_TEST(testBhattacharrya);
-	CPPUNIT_TEST_SUITE_END();
+class ConstructionTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(ConstructionTest);
+    CPPUNIT_TEST(testBhattacharrya);
+    CPPUNIT_TEST_SUITE_END();
 
-	PolarCode::Construction::Constructor *mConstructor;
+    PolarCode::Construction::Constructor* mConstructor;
 
 public:
-	void setUp();
-	void tearDown();
+    void setUp();
+    void tearDown();
 
-	void testBhattacharrya();
+    void testBhattacharrya();
 };
 
-#endif //PC_TEST_CONSTRUCTION_H
+#endif // PC_TEST_CONSTRUCTION_H

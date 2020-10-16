@@ -9,8 +9,8 @@
 #ifndef PCDSP_TRANSMITTER_AWGN_H
 #define PCDSP_TRANSMITTER_AWGN_H
 
-#include <signalprocessing/transmission/transmitter.h>
 #include <signalprocessing/random.h>
+#include <signalprocessing/transmission/transmitter.h>
 
 namespace SignalProcessing {
 namespace Transmission {
@@ -31,49 +31,50 @@ namespace Transmission {
  * The signal-to-noise power ratio is the single parameter of an AWGN-channel.
  * It leads to the amount of recoverable information per symbol.
  */
-class Awgn : public Transmitter {
-	Random::Generator *mRandGen;
+class Awgn : public Transmitter
+{
+    Random::Generator* mRandGen;
 
-	float mEsNoLog, mEsNoLin, mNoiseMagnitude;
+    float mEsNoLog, mEsNoLin, mNoiseMagnitude;
 
-	void transmit_simple();
-	void transmit_vectorized();
+    void transmit_simple();
+    void transmit_vectorized();
+
 public:
-	Awgn();
-	/*!
-	 * \brief Construct an Awgn channel with given signal-to-noise ratio per symbol.
-	 * \param EsN0_dB Signal-to-noise ratio (symbol energy per noise energy) in dB.
-	 */
-	Awgn(float EsN0_dB);
-	~Awgn();
+    Awgn();
+    /*!
+     * \brief Construct an Awgn channel with given signal-to-noise ratio per symbol.
+     * \param EsN0_dB Signal-to-noise ratio (symbol energy per noise energy) in dB.
+     */
+    Awgn(float EsN0_dB);
+    ~Awgn();
 
-	/*!
-	 * \brief Set a new SNR given in dB.
-	 */
-	void setEsN0(float);
+    /*!
+     * \brief Set a new SNR given in dB.
+     */
+    void setEsN0(float);
 
-	/*!
-	 * \brief Set SNR by linear ratio.
-	 */
-	void setEsN0Linear(float);
+    /*!
+     * \brief Set SNR by linear ratio.
+     */
+    void setEsN0Linear(float);
 
-	/*!
-	 * \brief Get the current SNR-setting.
-	 * \return The current SNR-setting.
-	 */
-	float EsNo();
+    /*!
+     * \brief Get the current SNR-setting.
+     * \return The current SNR-setting.
+     */
+    float EsNo();
 
-	/*!
-	 * \brief Get linear E_S/N_0
-	 * \return Current E_S/N_0 in linear domain
-	 */
-	float EsNoLin();
+    /*!
+     * \brief Get linear E_S/N_0
+     * \return Current E_S/N_0 in linear domain
+     */
+    float EsNoLin();
 
-	void transmit();
-
+    void transmit();
 };
 
-}//namespace Transmission
-}//namespace SignalProcessing
+} // namespace Transmission
+} // namespace SignalProcessing
 
-#endif //PCDSP_TRANSMITTER_AWGN_H
+#endif // PCDSP_TRANSMITTER_AWGN_H

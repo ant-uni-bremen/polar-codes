@@ -23,22 +23,23 @@ namespace ErrorDetection {
  * RefIn: false
  * RefOut: false
  */
-class CRC8 : public Detector {
-	unsigned char table[256];
-	unsigned char gen(unsigned char *data, int bytes);
+class CRC8 : public Detector
+{
+    unsigned char table[256];
+    unsigned char gen(unsigned char* data, int bytes);
 
 public:
-	CRC8();
-	~CRC8();
+    CRC8();
+    ~CRC8();
 
-	std::string getType(){return std::string("CRC");}
-	unsigned getCheckBitCount(){return 8;}
-	void generate(void *pData, int bytes);
-	bool check(void *pData, int bytes);
-	int multiCheck(void **pData, int nArrays, int nBytes);
+    std::string getType() { return std::string("CRC"); }
+    unsigned getCheckBitCount() { return 8; }
+    void generate(void* pData, int bytes);
+    bool check(void* pData, int bytes);
+    int multiCheck(void** pData, int nArrays, int nBytes);
 };
 
-}//namespace ErrorDetection
-}//namespace PolarCode
+} // namespace ErrorDetection
+} // namespace PolarCode
 
-#endif //PC_ERR_CRC8_H
+#endif // PC_ERR_CRC8_H

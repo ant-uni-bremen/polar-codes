@@ -11,18 +11,19 @@
 
 #include <cppunit/extensions/HelperMacros.h>
 
-class ModulationTest : public CppUnit::TestFixture {
-	CPPUNIT_TEST_SUITE(ModulationTest);
-	CPPUNIT_TEST(testBpsk);
-	CPPUNIT_TEST(testAsk);
-	CPPUNIT_TEST_SUITE_END();
+class ModulationTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(ModulationTest);
+    CPPUNIT_TEST(testBpsk);
+    CPPUNIT_TEST(testAsk);
+    CPPUNIT_TEST_SUITE_END();
 
 public:
-	void setUp();
-	void tearDown();
+    void setUp();
+    void tearDown();
 
-	void testBpsk();
-	void testAsk();
+    void testBpsk();
+    void testAsk();
 };
 
-#endif //PC_TEST_MODULATION_H
+#endif // PC_TEST_MODULATION_H
