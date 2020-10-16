@@ -20,5 +20,11 @@ jobs:
       run: cmake --build build
     - name: install
       run: cd build && sudo make install
+    - name: environment
+      run: |
+          echo "/usr/local/bin" >> $PATH
+          echo "/usr/local/lib/python3/dist-packages/" >> $PYTHONPATH
+          echo "/usr/local/lib/" >> $LD_LIBRARY_PATH
+          echo "/usr/local/lib/" >> $LIBRARY_PATH
     - name: test
       run: cd build && ctest -V
