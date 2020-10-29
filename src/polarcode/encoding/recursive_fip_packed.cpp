@@ -9,6 +9,7 @@
 #include <polarcode/encoding/butterfly_fip.h>
 #include <polarcode/encoding/recursive_fip_packed.h>
 #include <polarcode/polarcode.h>
+#include <stdlib.h>
 
 namespace PolarCode {
 namespace Encoding {
@@ -20,8 +21,8 @@ Node::Node() : mBit(nullptr), mBlockLength(0), mVecCount(0) {}
 Node::Node(size_t blockLength)
     : mBlockLength(blockLength), mVecCount(nBit2vecCount(blockLength))
 {
-    mBit =
-        reinterpret_cast<fipv*>(_mm_malloc(mVecCount * BYTESPERVECTOR, BYTESPERVECTOR));
+    mBit = reinterpret_cast<fipv*>(
+        aligned_alloc(BYTESPERVECTOR, mVecCount * BYTESPERVECTOR));
 }
 
 Node::~Node() { clearBlock(); }
@@ -31,7 +32,7 @@ void Node::encode(fipv* Bits) { throw "This should not be called."; }
 void Node::clearBlock()
 {
     if (mBit != nullptr) {
-        _mm_free(mBit);
+        free(mBit);
         mBit = nullptr;
         mBlockLength = 0;
         mVecCount = 0;
