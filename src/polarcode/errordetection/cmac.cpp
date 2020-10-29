@@ -10,6 +10,7 @@
 #include <openssl/cmac.h>
 #include <openssl/evp.h>
 #include <polarcode/avxconvenience.h>
+#include <stdlib.h>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
@@ -30,16 +31,16 @@ cmac::cmac(std::vector<unsigned char> initKey, unsigned int bitCount)
     std::cout << std::endl;
 }
 
-cmac::~cmac() { _mm_free(mMacKey); }
+cmac::~cmac() { free(mMacKey); }
 
 void cmac::setKey(std::vector<unsigned char> key)
 {
     if (key.size() != 16) {
         throw std::invalid_argument("MAC key length must be equal to 16bytes!");
     }
-    _mm_free(mMacKey);
-    mMacKey = static_cast<unsigned char*>(_mm_malloc(16, BYTESPERVECTOR));
-    memcpy(mMacKey, &key[0], 16);
+    free(mMacKey);
+    mMacKey = static_cast<unsigned char*>(aligned_alloc(16, BYTESPERVECTOR));
+    memcpy(mMacKey, key.data(), 16);
 }
 
 size_t cmac::calculate_cmac_len(unsigned char* cmac,
