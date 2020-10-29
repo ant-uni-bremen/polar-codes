@@ -21,13 +21,8 @@ Node::Node() : mBit(nullptr), mBlockLength(0), mVecCount(0) {}
 Node::Node(size_t blockLength)
     : mBlockLength(blockLength), mVecCount(nBit2vecCount(blockLength))
 {
-<<<<<<< HEAD
     mBit = reinterpret_cast<fipv*>(
         aligned_alloc(BYTESPERVECTOR, mVecCount * BYTESPERVECTOR));
-=======
-    mBit =
-        reinterpret_cast<fipv*>(aligned_alloc(BYTESPERVECTOR, mVecCount * BYTESPERVECTOR));
->>>>>>> b62149fa768fbfd54a1abeef435ecf7946b8791d
 }
 
 Node::~Node() { clearBlock(); }
