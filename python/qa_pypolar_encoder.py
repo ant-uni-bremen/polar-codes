@@ -61,6 +61,17 @@ def polar_encode_systematic_algorithm_A(y, x, N, frozenBitMap):
     return X[:, 0], X[:, -1]
 
 
+def encode_polar_reversed(u, N, frozenBitMap):
+    n = int(np.log2(N))
+    G = get_polar_generator_matrix(n)
+    x = np.copy(frozenBitMap)
+    x[np.where(frozenBitMap == -1)] = u
+    # print(u, x, np.where(frozenBitMap == -1))
+    # print(frozenBitMap[np.where(frozenBitMap > -1)])
+    x = x.dot(G) % 2
+    return x
+
+
 def encode_systematic_matrix(u, N, frozenBitMap):
     n = int(np.log2(N))
     G = get_polar_generator_matrix(n)
@@ -211,7 +222,6 @@ class PolarEncoderTests(unittest.TestCase):
         self.check_matrix_domination_contiguity(N, p.frozenBits())
 
     def test_005_cpp_encoder_impls(self):
-        return
         snr = -1.
         test_size = np.array([4, 5, 6, 9, 10, 11])
         test_size = np.array([4, 5, 6, 7, 9, 10, 11])
@@ -222,6 +232,18 @@ class PolarEncoderTests(unittest.TestCase):
             self.validate_encoder(N, N // 2, snr)
             self.validate_encoder(N, N // 4, snr)
             self.validate_encoder(N, N // 8, snr)
+
+    def test_006_cpp_encoder_nonsystematic(self):
+        snr = -1.
+        test_size = np.array([4, 5, 6, 9, 10, 11])
+        test_size = np.array([4, 5, 6, 7, 9, 10, 11])
+        test_size = np.arange(8, 11)
+        for i in test_size:
+            N = 2 ** i
+            self.validate_encoder_nonsystematic(N, int(N * .75), snr)
+            # self.validate_encoder(N, N // 2, snr)
+            # self.validate_encoder(N, N // 4, snr)
+            # self.validate_encoder(N, N // 8, snr)
 
     def initialize_encoder(self, N, K, snr):
         try:
@@ -241,6 +263,7 @@ class PolarEncoderTests(unittest.TestCase):
     def validate_encoder(self, N, K, snr):
         print("Encoder CPP test ({}, {}) -> {}dB".format(N, K, snr))
         p = self.initialize_encoder(N, K, snr)
+        self.assertTrue(p.isSystematic())
         frozenBitMap = frozen_indices_to_map(p.frozenBits(), N)
         info_pos = get_info_indices(np.array(p.frozenBits()), N)
         if not self.check_matrix_domination_contiguity(N, p.frozenBits()):
@@ -275,6 +298,40 @@ class PolarEncoderTests(unittest.TestCase):
         if err_ctr > 0:
             print('Miserable failure! {}'.format(err_ctr))
 
+    def validate_encoder_nonsystematic(self, N, K, snr):
+        print("Non-systematic Encoder CPP test ({}, {}) -> {}dB".format(N, K, snr))
+        p = self.initialize_encoder(N, K, snr)
+        p.setSystematic(False)
+        self.assertFalse(p.isSystematic())
+        frozenBitMap = frozen_indices_to_map(p.frozenBits(), N)
+        info_pos = get_info_indices(np.array(p.frozenBits()), N)
+        if not self.check_matrix_domination_contiguity(N, p.frozenBits()):
+            print('invalid code parameters!')
+            return
+
+        err_ctr = 0
+        for i in np.arange(10):
+            u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
+            d = np.packbits(u)
+            dref = np.copy(d)
+
+            # The pythonic method
+            cw_pack = p.encode_vector(d)
+
+            # assert input did not change!
+            self.assertTrue(np.all(d == dref))
+
+            xm = encode_polar_reversed(u, N, frozenBitMap)
+            xmp = np.packbits(xm)
+
+            # assert equal results!
+            if not np.all(xmp == cw_pack):
+                err_ctr += 1
+            self.assertTrue(np.all(xmp == cw_pack))
+            self.assertTrue(np.all(xm == np.unpackbits(cw_pack)))
+
+        if err_ctr > 0:
+            print('Miserable failure! {}'.format(err_ctr))
 
 # import aff3ct
 # class ComparePolarEncoderTests(unittest.TestCase):
