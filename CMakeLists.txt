@@ -89,6 +89,15 @@ add_subdirectory(python)
 
 
 ########################################################################
+# Include benchmark folder if Google benchmark is available
+########################################################################
+find_package(benchmark)
+if(benchmark_FOUND)
+    add_subdirectory(benchmark)
+endif(benchmark_FOUND)
+
+
+########################################################################
 # Create uninstall target
 ########################################################################
 configure_file(

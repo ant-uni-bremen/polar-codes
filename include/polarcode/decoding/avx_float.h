@@ -33,22 +33,45 @@ inline float hardDecode(float llr)
     return (llr < 0) ? -0.0f : 0.0f;
 }
 
+static const __m256 SIGN_MASK = _mm256_set1_ps(-0.0f);
+
+inline __m256 _mm256_abs_ps(const __m256 values)
+{
+    return _mm256_andnot_ps(SIGN_MASK, values);
+}
+
+inline __m256 _mm256_polarf_ps(const __m256 llrs0, const __m256 llrs1)
+{
+    __m256 sgnV = _mm256_and_ps(SIGN_MASK, _mm256_xor_ps(llrs0, llrs1));
+
+    __m256 abs0 = _mm256_abs_ps(llrs0);
+    __m256 abs1 = _mm256_abs_ps(llrs1);
+    __m256 minV = _mm256_min_ps(abs0, abs1);
+    return _mm256_or_ps(sgnV, minV);
+}
+
 inline void F_function_calc(__m256& Left, __m256& Right, float* Out)
 {
-    const __m256 sgnMask = _mm256_set1_ps(-0.0f);
-    __m256 absL = _mm256_andnot_ps(sgnMask, Left);
-    __m256 absR = _mm256_andnot_ps(sgnMask, Right);
-    __m256 minV = _mm256_min_ps(absL, absR);
+    const __m256 result = _mm256_polarf_ps(Left, Right);
+    _mm256_store_ps(Out, result);
+}
 
-    __m256 sgnV = _mm256_and_ps(sgnMask, _mm256_xor_ps(Left, Right));
-    _mm256_store_ps(Out, _mm256_or_ps(sgnV, minV));
+inline __m256 _mm256_polarg_ps(const __m256 llrs0, const __m256 llrs1, const __m256 bits)
+{
+    // It would be great to scrap the next line. Require bits \in {-0.0, 0.0}!!
+    const __m256 signbits = _mm256_and_ps(SIGN_MASK, bits);
+    const __m256 signvalues = _mm256_xor_ps(signbits, llrs0);
+    return _mm256_add_ps(signvalues, llrs1);
+    // Benchmarks do not reveal any advantage for either yet.
+    // const __m256 sum = _mm256_add_ps(llrs1, llrs0);
+    // const __m256 dif = _mm256_sub_ps(llrs1, llrs0);
+    // return _mm256_blendv_ps(sum, dif, bits);
 }
 
 inline void G_function_calc(__m256& Left, __m256& Right, __m256& Bits, float* Out)
 {
-    const __m256 sum = _mm256_add_ps(Right, Left);
-    const __m256 dif = _mm256_sub_ps(Right, Left);
-    _mm256_store_ps(Out, _mm256_blendv_ps(sum, dif, Bits));
+    const __m256 result = _mm256_polarg_ps(Left, Right, Bits);
+    _mm256_store_ps(Out, result);
 }
 
 

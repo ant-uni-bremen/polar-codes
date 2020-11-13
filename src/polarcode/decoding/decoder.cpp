@@ -154,15 +154,15 @@ void Decoder::getSoftInformation(void* pData)
 bool Decoder::decode_vector(const float* pLlr, void* pData)
 {
     //	std::cout << "float decoder CPP\n";
-    std::chrono::high_resolution_clock::time_point start =
-        std::chrono::high_resolution_clock::now();
+    // std::chrono::high_resolution_clock::time_point start =
+    //     std::chrono::high_resolution_clock::now();
     setSignal(pLlr);
     bool res = decode();
     getDecodedInformationBits(pData);
-    std::chrono::high_resolution_clock::time_point end =
-        std::chrono::high_resolution_clock::now();
-    mDecoderDuration =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    // std::chrono::high_resolution_clock::time_point end =
+    //     std::chrono::high_resolution_clock::now();
+    // mDecoderDuration =
+    //     std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     return res;
 }
 

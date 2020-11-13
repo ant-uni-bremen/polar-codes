@@ -156,6 +156,10 @@ static inline float reduce_add_ps(__m256 x)
             // Conversion to float is a no-op on x86-64
             return _mm_cvtss_f32(x32);*/
     return x[0] + x[1] + x[2] + x[3] + x[4] + x[5] + x[6] + x[7];
+    // __m256 first = _mm256_hadd_ps(x, _mm256_permute2f128_ps(x, x, 1));
+    // first = _mm256_hadd_ps(first, first);
+    // first = _mm256_hadd_ps(first, first);
+    // return first[0];
 }
 
 #ifndef __AVX2__
