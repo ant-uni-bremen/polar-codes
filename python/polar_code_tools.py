@@ -294,7 +294,67 @@ def plot_phi():
     plt.show()
 
 
+VALID_2BIT_FROZEN_BIT_POSITION_PATTERN = [
+    [0, 0],
+    [0, 1],
+    [1, 1],
+]
+
+def get_valid_frozen_bit_position_patterns(block_power):
+    '''
+    2bit: 3 valid
+    4bit: 6 valid
+    8bit: 21 valid (corresponds to maximum AVX float patterns to implement)
+    16bit: 230 valid (corresponds to maximum AVX512 float patterns to implement)
+    32bit: 26795 valid ((corresponds to maximum AVX2 int8_t patterns to implement))
+    '''
+    print(f'power={block_power} -> size={2 ** block_power}')
+    if block_power == 0:
+        return [[0, ], [1, ]]
+    elif block_power == 1:
+        return VALID_2BIT_FROZEN_BIT_POSITION_PATTERN
+    else:
+        pattern = np.copy(VALID_2BIT_FROZEN_BIT_POSITION_PATTERN)
+        for n in range(1, block_power):
+            nextpattern = []
+            for i, p in enumerate(pattern):
+                for fp in pattern[i:]:
+                    nextpattern.append(np.concatenate((p, fp)))
+            pattern = np.array(nextpattern)
+        return pattern
+
+## There's a total of 16 theoretical options. But domination contiguity restricts mosts.
+VALID_4BIT_FROZEN_BIT_POSITION_PATTERN = [
+    [0, 0, 0, 0], # Rate-0
+    [0, 0, 0, 1], # Repetition
+    [0, 0, 1, 1], # ZeroOne (DoubleRep)
+    [0, 1, 0, 1], #
+    [0, 1, 1, 1], # SPC
+    [1, 1, 1, 1], # Rate-1
+]
+
+def test_domination_contiguity(block_power):
+    N = int(2 ** block_power)
+    G = get_polar_generator_matrix(block_power)
+    print(G)
+
+
+
+
 def main():
+    pattern4 = get_valid_frozen_bit_position_patterns(2)
+    for i, p in enumerate(pattern4):
+        print(i, p)
+    pattern8 = get_valid_frozen_bit_position_patterns(3)
+    for i, p in enumerate(pattern8):
+        print(i, p)
+    pattern16 = get_valid_frozen_bit_position_patterns(4)
+    for i, p in enumerate(pattern16):
+        print(i, p)
+    # pattern32 = get_valid_frozen_bit_position_patterns(5)
+    # for i, p in enumerate(pattern32):
+    #     print(i, p)
+    return
     n = 10
     N = int(2 ** n)
     G = get_polar_generator_matrix(n)

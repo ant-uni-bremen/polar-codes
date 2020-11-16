@@ -19,6 +19,7 @@
 #include <polarcode/decoding/scl_fip_char.h>
 #include <polarcode/decoding/templatized_float.h>
 #include <chrono>
+#include <cstdlib>
 #include <random>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DecodingTest);
@@ -69,6 +70,90 @@ bool testBitVectors(const __m256& one, const __m256& two)
     const __m256 test = _mm256_xor_ps(sone, stwo);
 
     return testShortVectors(zero, test, 8);
+}
+
+void DecodingTest::runRepetitionCodeFloat(const size_t block_length)
+{
+    std::vector<unsigned> frozen_bit_positions(block_length - 1);
+    std::iota(frozen_bit_positions.begin(), frozen_bit_positions.end(), 0);
+    auto decoder = std::make_unique<PolarCode::Decoding::FastSscAvxFloat>(
+        block_length, frozen_bit_positions);
+    decoder->setSystematic(false);
+
+    float* signal = (float*)std::aligned_alloc(32, block_length * sizeof(float));
+    float* output = (float*)std::aligned_alloc(32, block_length * sizeof(float));
+    std::iota(signal, signal + block_length, 0);
+    decoder->setSignal(signal);
+    decoder->decode();
+    decoder->getSoftCodeword(output);
+
+    const float result = std::accumulate(signal, signal + block_length, 0.0f);
+    std::cout << "testRepetitionCode: block_length=" << block_length << std::endl;
+    for (unsigned i = 0; i < block_length; i++) {
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(result, output[i], 1e-7);
+    }
+
+    free(signal);
+    free(output);
+}
+
+void DecodingTest::testRepetitionCodeFloat()
+{
+    size_t block_length = 2;
+    runRepetitionCodeFloat(block_length);
+    runRepetitionCodeFloat(block_length * 2);
+    runRepetitionCodeFloat(block_length * 4);
+    runRepetitionCodeFloat(block_length * 8);
+    runRepetitionCodeFloat(block_length * 16);
+    runRepetitionCodeFloat(block_length * 32);
+    runRepetitionCodeFloat(block_length * 64);
+}
+
+
+void DecodingTest::runDoubleRepetitionCodeFloat(const size_t block_length)
+{
+    std::vector<unsigned> frozen_bit_positions(block_length - 2);
+    std::iota(frozen_bit_positions.begin(), frozen_bit_positions.end(), 0);
+
+    auto decoder = std::make_unique<PolarCode::Decoding::FastSscAvxFloat>(
+        block_length, frozen_bit_positions);
+    decoder->setSystematic(false);
+
+    float* signal = (float*)std::aligned_alloc(32, block_length * sizeof(float));
+    float* output = (float*)std::aligned_alloc(32, block_length * sizeof(float));
+    std::iota(signal, signal + block_length, 0);
+    decoder->setSignal(signal);
+    decoder->decode();
+    decoder->getSoftCodeword(output);
+
+    float result0 = 0.0f;
+    float result1 = 0.0f;
+    for (unsigned i = 0; i < block_length; i += 2) {
+        result0 += signal[i];
+        result1 += signal[i + 1];
+    }
+    std::cout << "testDoubleRepetitionCode: block_length=" << block_length
+              << "\teven=" << result0 << "\todd=" << result1 << std::endl;
+
+    for (unsigned i = 0; i < block_length; i += 2) {
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(result0, output[i], 1e-7);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(result1, output[i + 1], 1e-7);
+    }
+
+    free(signal);
+    free(output);
+}
+
+void DecodingTest::testDoubleRepetitionCodeFloat()
+{
+    size_t block_length = 4;
+    runDoubleRepetitionCodeFloat(block_length);
+    runDoubleRepetitionCodeFloat(block_length * 2);
+    runDoubleRepetitionCodeFloat(block_length * 4);
+    runDoubleRepetitionCodeFloat(block_length * 8);
+    runDoubleRepetitionCodeFloat(block_length * 16);
+    runDoubleRepetitionCodeFloat(block_length * 32);
+    runDoubleRepetitionCodeFloat(block_length * 64);
 }
 
 void DecodingTest::testSpecialDecoders()

@@ -75,6 +75,17 @@ inline void G_function_calc(__m256& Left, __m256& Right, __m256& Bits, float* Ou
 }
 
 
+template <unsigned subblock_length>
+inline void calculate_polar_f(float* out_llrs, const float* in_llrs)
+{
+    for (unsigned i = 0; i < subblock_length; i += 8) {
+        __m256 Left = _mm256_load_ps(in_llrs + i);
+        __m256 Right = _mm256_load_ps(in_llrs + subblock_length + i);
+        const __m256 result = _mm256_polarf_ps(Left, Right);
+        _mm256_store_ps(out_llrs + i, result);
+    }
+}
+
 inline void F_function(float* LLRin, float* LLRout, unsigned subBlockLength)
 {
     __m256 Left, Right;
@@ -82,6 +93,18 @@ inline void F_function(float* LLRin, float* LLRout, unsigned subBlockLength)
         Left = _mm256_load_ps(LLRin);
         Right = _mm256_subVectorShift_ps(Left, subBlockLength);
         F_function_calc(Left, Right, LLRout);
+    } else if (subBlockLength == 8) {
+        calculate_polar_f<8>(LLRout, LLRin);
+    } else if (subBlockLength == 16) {
+        calculate_polar_f<16>(LLRout, LLRin);
+    } else if (subBlockLength == 32) {
+        calculate_polar_f<32>(LLRout, LLRin);
+    } else if (subBlockLength == 64) {
+        calculate_polar_f<64>(LLRout, LLRin);
+    } else if (subBlockLength == 128) {
+        calculate_polar_f<128>(LLRout, LLRin);
+    } else if (subBlockLength == 256) {
+        calculate_polar_f<256>(LLRout, LLRin);
     } else {
         for (unsigned i = 0; i < subBlockLength; i += 8) {
             Left = _mm256_load_ps(LLRin + i);

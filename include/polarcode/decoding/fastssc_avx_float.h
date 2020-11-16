@@ -146,6 +146,14 @@ public:
     void decode();
 };
 
+class DoubleRepetitionDecoder : public Node
+{
+public:
+    DoubleRepetitionDecoder(Node* parent);
+    ~DoubleRepetitionDecoder();
+    void decode();
+};
+
 class SpcDecoder : public Node
 {
     unsigned* mFlipIndices;

@@ -11,7 +11,7 @@
 cmake_minimum_required(VERSION 3.8)
 project ("Polar Coding Simulation" CXX)
 
-#set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 #select the release build type by default to get optimization flags
 if(NOT CMAKE_BUILD_TYPE)
@@ -51,7 +51,7 @@ ENDIF()
 
 
 add_definitions(-Wall -Wno-ignored-attributes)
-add_definitions(-march=native -fPIC)
+add_definitions(-march=native -fPIC -mavx2)
 #add_definitions(-funroll-loops)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")

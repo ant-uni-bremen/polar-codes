@@ -27,6 +27,8 @@ class DecodingTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testListDecoder);
     CPPUNIT_TEST(testTemplatized);
     CPPUNIT_TEST(testScan);
+    CPPUNIT_TEST(testRepetitionCodeFloat);
+    CPPUNIT_TEST(testDoubleRepetitionCodeFloat);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -48,6 +50,10 @@ public:
     void testListDecoder();
     void testTemplatized();
     void testScan();
+    void testRepetitionCodeFloat();
+    void runRepetitionCodeFloat(const size_t block_length);
+    void testDoubleRepetitionCodeFloat();
+    void runDoubleRepetitionCodeFloat(const size_t block_length);
 
 private:
     void showScanTestOutput(unsigned, float*);

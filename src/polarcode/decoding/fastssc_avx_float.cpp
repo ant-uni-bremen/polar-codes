@@ -279,6 +279,51 @@ void RepetitionDecoder::decode()
 }
 
 /*************
+ * DoubleRepetitionDecoder
+ * ***********/
+
+DoubleRepetitionDecoder::DoubleRepetitionDecoder(Node* parent) : Node(parent)
+{
+    if (mBlockLength < 4) {
+        throw std::invalid_argument(
+            "Minimum block length for double Repetition code is 4!");
+    }
+}
+
+DoubleRepetitionDecoder::~DoubleRepetitionDecoder() {}
+
+void DoubleRepetitionDecoder::decode()
+{
+    __m256 llr_sum = _mm256_setzero_ps();
+
+    RepetitionPrepare(mInput, mBlockLength);
+
+    // Accumulate vectors
+    for (unsigned i = 0; i < mBlockLength; i += 8) {
+        llr_sum = _mm256_add_ps(llr_sum, _mm256_load_ps(mInput + i));
+    }
+
+    if (mBlockLength >= 8) {
+        llr_sum = _mm256_add_ps(llr_sum, _mm256_permute2f128_ps(llr_sum, llr_sum, 1));
+
+        llr_sum = _mm256_add_ps(llr_sum, _mm256_shuffle_ps(llr_sum, llr_sum, 0x4E));
+
+        for (unsigned i = 0; i < mBlockLength; i += 8) {
+            _mm256_store_ps(mOutput + i, llr_sum);
+        }
+    } else {
+        float even_llr_sum = llr_sum[0] + llr_sum[2] + llr_sum[4] + llr_sum[6];
+
+        float odd_llr_sum = llr_sum[1] + llr_sum[3] + llr_sum[5] + llr_sum[7];
+
+        for (unsigned i = 0; i < mBlockLength; i += 2) {
+            mOutput[i] = even_llr_sum;
+            mOutput[i + 1] = odd_llr_sum;
+        }
+    }
+}
+
+/*************
  * SpcDecoder
  * ***********/
 
@@ -401,6 +446,10 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
     }
     if (frozenBitCount == 1) {
         return new SpcDecoder(parent);
+    }
+
+    if (frozenBitCount == blockLength - 2) {
+        return new DoubleRepetitionDecoder(parent);
     }
 
     // Fallback: No special code available, split into smaller subcodes
