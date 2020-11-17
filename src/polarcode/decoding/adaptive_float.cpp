@@ -20,15 +20,12 @@ AdaptiveFloat::AdaptiveFloat(size_t blockLength,
     mBlockLength = blockLength;
     mFrozenBits.assign(frozenBits.begin(), frozenBits.end());
     mExternalContainers = true;
-
-    mFastDecoder = new FastSscAvxFloat(mBlockLength, mFrozenBits);
-    mListDecoder = new SclAvxFloat(mBlockLength, mListSize, mFrozenBits);
+    mFastDecoder = std::make_unique<FastSscAvxFloat>(mBlockLength, mFrozenBits);
+    mListDecoder = std::make_unique<SclAvxFloat>(mBlockLength, mListSize, mFrozenBits);
 }
 
 AdaptiveFloat::~AdaptiveFloat()
 {
-    delete mFastDecoder;
-    delete mListDecoder;
     mOutputContainer = nullptr;
     mBitContainer = nullptr;
 }

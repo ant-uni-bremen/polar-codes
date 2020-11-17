@@ -11,6 +11,7 @@
 
 #include <polarcode/decoding/fastssc_avx_float.h>
 #include <polarcode/decoding/scl_avx_float.h>
+#include <memory>
 
 namespace PolarCode {
 namespace Decoding {
@@ -25,8 +26,8 @@ namespace Decoding {
  */
 class AdaptiveFloat : public Decoder
 {
-    FastSscAvxFloat* mFastDecoder;
-    SclAvxFloat* mListDecoder;
+    std::unique_ptr<FastSscAvxFloat> mFastDecoder;
+    std::unique_ptr<SclAvxFloat> mListDecoder;
     size_t mListSize;
 
 public:

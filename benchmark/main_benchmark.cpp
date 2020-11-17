@@ -489,7 +489,6 @@ BM_polar_decoder_float_1024_256_l1_nonsystematic_dummy0(benchmark::State& state)
 BENCHMARK(BM_polar_decoder_float_1024_256_l1_nonsystematic_dummy0);
 
 
-
 static void
 BM_polar_decoder_float_1024_512_l1_nonsystematic_dummy0(benchmark::State& state)
 {
@@ -592,7 +591,6 @@ BM_polar_decoder_float_8192_1024_l1_nonsystematic_dummy0(benchmark::State& state
 }
 
 BENCHMARK(BM_polar_decoder_float_8192_1024_l1_nonsystematic_dummy0);
-
 
 
 static void
