@@ -182,10 +182,132 @@ static void benchmark_polar_encoder(benchmark::State& state,
     std::vector<uint8_t> result(block_length / 8);
 
     for (auto _ : state) {
+        benchmark::DoNotOptimize(vec);
+        benchmark::DoNotOptimize(result);
         encoder->encode_vector((void*)vec.data(), (void*)result.data());
+        benchmark::DoNotOptimize(vec);
+        benchmark::DoNotOptimize(result);
     }
+
+    // state.SetBytesProcessed(block_length * state.iterations());
+
+    state.counters["CodeThr"] =
+        benchmark::Counter(block_length * state.iterations(),
+                           benchmark::Counter::kIsRate,
+                           benchmark::Counter::OneK::kIs1024);
+    state.counters["InfoThr"] =
+        benchmark::Counter(info_length * state.iterations(),
+                           benchmark::Counter::kIsRate,
+                           benchmark::Counter::OneK::kIs1024);
 }
 
+static void BM_polar_encode(benchmark::State& state,
+                            const float dsnr,
+                            const unsigned parity_size,
+                            const std::string& detector_type,
+                            const bool is_systematic)
+{
+    const size_t block_length = static_cast<size_t>(state.range(0));
+    const size_t info_length = static_cast<size_t>(state.range(1));
+    if (not(block_length > info_length)) {
+        std::string msg("Invalid code (" + std::to_string(block_length) + ", " +
+                        std::to_string(info_length) + ")");
+        state.SkipWithError(msg.c_str());
+        return;
+    }
+
+    benchmark_polar_encoder(state,
+                            block_length,
+                            info_length,
+                            dsnr,
+                            parity_size,
+                            detector_type,
+                            is_systematic);
+}
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_nonsystematic, 1.0, 8, "crc", false)
+    ->ArgsProduct({ {
+                        64,
+                    },
+                    { 16, 24, 32, 40, 48 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_nonsystematic, 1.0, 8, "crc", false)
+    ->ArgsProduct({ {
+                        128,
+                    },
+                    { 16, 24, 32, 40, 48, 64, 92 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_nonsystematic, 1.0, 8, "crc", false)
+    ->ArgsProduct({ {
+                        256,
+                    },
+                    { 16, 24, 32, 40, 48, 64, 92, 128, 192 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_nonsystematic, 1.0, 8, "crc", false)
+    ->ArgsProduct({ {
+                        512,
+                    },
+                    { 32, 64, 128, 256, 384 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dm1d0_CRC8_nonsystematic, -1.0, 8, "crc", false)
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 32, 64, 128, 256, 512, 786 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp0d0_CRC8_nonsystematic, 0.0, 8, "crc", false)
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 32, 64, 128, 256, 512, 786 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_nonsystematic, 1.0, 8, "crc", false)
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 32, 64, 128, 256, 512, 786 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC16_nonsystematic, 1.0, 16, "crc", false)
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 32, 64, 128, 256, 512, 786 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC32_nonsystematic, 1.0, 32, "crc", false)
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 64, 128, 256, 512, 786 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CMAC8_nonsystematic, 1.0, 8, "cmac", false)
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 32, 64, 128, 256, 512, 786 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CMAC16_nonsystematic, 1.0, 16, "cmac", false)
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 32, 64, 128, 256, 512, 786 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CMAC32_nonsystematic, 1.0, 32, "cmac", false)
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 64, 128, 256, 512, 786 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CMAC64_nonsystematic, 1.0, 64, "cmac", false)
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 128, 256, 512, 786 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_systematic, 1.0, 8, "crc", true)
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 32, 64, 128, 256, 512, 786 } });
 
 static void
 BM_polar_encoder_fip_packed_1024_512_nonsystematic_crc8(benchmark::State& state)

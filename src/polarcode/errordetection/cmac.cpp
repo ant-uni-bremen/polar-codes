@@ -25,10 +25,14 @@ cmac::cmac(std::vector<unsigned char> initKey, unsigned int bitCount)
 {
     setKey(initKey);
 
-    for (int i = 0; i < 16; i++) {
-        printf("%.2X ", mMacKey[i]);
+    // This is a NOP at the moment. But we might want to make it an optional parameter.
+    bool print_key = false;
+    if (print_key) {
+        for (int i = 0; i < 16; i++) {
+            printf("%.2X ", mMacKey[i]);
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
 }
 
 cmac::~cmac() { free(mMacKey); }
@@ -39,7 +43,7 @@ void cmac::setKey(std::vector<unsigned char> key)
         throw std::invalid_argument("MAC key length must be equal to 16bytes!");
     }
     free(mMacKey);
-    mMacKey = static_cast<unsigned char*>(aligned_alloc(16, BYTESPERVECTOR));
+    mMacKey = static_cast<unsigned char*>(aligned_alloc(BYTESPERVECTOR, 16));
     memcpy(mMacKey, key.data(), 16);
 }
 

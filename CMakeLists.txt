@@ -9,7 +9,7 @@
 # Project setup
 ########################################################################
 cmake_minimum_required(VERSION 3.8)
-project ("Polar Coding Simulation" CXX)
+project ("polar-codes" VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
