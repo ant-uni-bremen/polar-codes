@@ -191,14 +191,12 @@ static void benchmark_polar_encoder(benchmark::State& state,
 
     // state.SetBytesProcessed(block_length * state.iterations());
 
-    state.counters["CodeThr"] =
-        benchmark::Counter(block_length * state.iterations(),
-                           benchmark::Counter::kIsRate,
-                           benchmark::Counter::OneK::kIs1024);
-    state.counters["InfoThr"] =
-        benchmark::Counter(info_length * state.iterations(),
-                           benchmark::Counter::kIsRate,
-                           benchmark::Counter::OneK::kIs1024);
+    state.counters["CodeThr"] = benchmark::Counter(block_length * state.iterations(),
+                                                   benchmark::Counter::kIsRate,
+                                                   benchmark::Counter::OneK::kIs1024);
+    state.counters["InfoThr"] = benchmark::Counter(info_length * state.iterations(),
+                                                   benchmark::Counter::kIsRate,
+                                                   benchmark::Counter::OneK::kIs1024);
 }
 
 static void BM_polar_encode(benchmark::State& state,
