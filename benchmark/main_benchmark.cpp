@@ -199,334 +199,6 @@ static void benchmark_polar_encoder(benchmark::State& state,
                                                    benchmark::Counter::OneK::kIs1024);
 }
 
-static void BM_polar_encode(benchmark::State& state,
-                            const float dsnr,
-                            const unsigned parity_size,
-                            const std::string& detector_type,
-                            const bool is_systematic)
-{
-    const size_t block_length = static_cast<size_t>(state.range(0));
-    const size_t info_length = static_cast<size_t>(state.range(1));
-    if (not(block_length > info_length)) {
-        std::string msg("Invalid code (" + std::to_string(block_length) + ", " +
-                        std::to_string(info_length) + ")");
-        state.SkipWithError(msg.c_str());
-        return;
-    }
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_nonsystematic, 1.0, 8, "crc", false)
-    ->ArgsProduct({ {
-                        64,
-                    },
-                    { 16, 24, 32, 40, 48 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_nonsystematic, 1.0, 8, "crc", false)
-    ->ArgsProduct({ {
-                        128,
-                    },
-                    { 16, 24, 32, 40, 48, 64, 92 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_nonsystematic, 1.0, 8, "crc", false)
-    ->ArgsProduct({ {
-                        256,
-                    },
-                    { 16, 24, 32, 40, 48, 64, 92, 128, 192 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_nonsystematic, 1.0, 8, "crc", false)
-    ->ArgsProduct({ {
-                        512,
-                    },
-                    { 32, 64, 128, 256, 384 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dm1d0_CRC8_nonsystematic, -1.0, 8, "crc", false)
-    ->ArgsProduct({ {
-                        1024,
-                    },
-                    { 32, 64, 128, 256, 512, 786 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp0d0_CRC8_nonsystematic, 0.0, 8, "crc", false)
-    ->ArgsProduct({ {
-                        1024,
-                    },
-                    { 32, 64, 128, 256, 512, 786 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_nonsystematic, 1.0, 8, "crc", false)
-    ->ArgsProduct({ {
-                        1024,
-                    },
-                    { 32, 64, 128, 256, 512, 786 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC16_nonsystematic, 1.0, 16, "crc", false)
-    ->ArgsProduct({ {
-                        1024,
-                    },
-                    { 32, 64, 128, 256, 512, 786 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC32_nonsystematic, 1.0, 32, "crc", false)
-    ->ArgsProduct({ {
-                        1024,
-                    },
-                    { 64, 128, 256, 512, 786 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CMAC8_nonsystematic, 1.0, 8, "cmac", false)
-    ->ArgsProduct({ {
-                        1024,
-                    },
-                    { 32, 64, 128, 256, 512, 786 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CMAC16_nonsystematic, 1.0, 16, "cmac", false)
-    ->ArgsProduct({ {
-                        1024,
-                    },
-                    { 32, 64, 128, 256, 512, 786 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CMAC32_nonsystematic, 1.0, 32, "cmac", false)
-    ->ArgsProduct({ {
-                        1024,
-                    },
-                    { 64, 128, 256, 512, 786 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CMAC64_nonsystematic, 1.0, 64, "cmac", false)
-    ->ArgsProduct({ {
-                        1024,
-                    },
-                    { 128, 256, 512, 786 } });
-
-BENCHMARK_CAPTURE(BM_polar_encode, Dp1d0_CRC8_systematic, 1.0, 8, "crc", true)
-    ->ArgsProduct({ {
-                        1024,
-                    },
-                    { 32, 64, 128, 256, 512, 786 } });
-
-static void
-BM_polar_encoder_fip_packed_1024_512_nonsystematic_crc8(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const float dsnr = 1.0;
-    const unsigned parity_size = 8;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_encoder_fip_packed_1024_512_nonsystematic_crc8);
-
-
-static void
-BM_polar_encoder_fip_packed_1024_512_nonsystematic_crc16(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const float dsnr = 1.0;
-    const unsigned parity_size = 16;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_encoder_fip_packed_1024_512_nonsystematic_crc16);
-
-
-static void
-BM_polar_encoder_fip_packed_1024_512_nonsystematic_crc32(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const float dsnr = 1.0;
-    const unsigned parity_size = 32;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_encoder_fip_packed_1024_512_nonsystematic_crc32);
-
-
-static void
-BM_polar_encoder_fip_packed_1024_512_nonsystematic_cmac32(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const float dsnr = 1.0;
-    const unsigned parity_size = 32;
-    const auto detector_type = std::string("cmac");
-    const bool is_systematic = false;
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_encoder_fip_packed_1024_512_nonsystematic_cmac32);
-
-
-static void
-BM_polar_encoder_fip_packed_1024_512_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const float dsnr = 1.0;
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_encoder_fip_packed_1024_512_nonsystematic_dummy0);
-
-
-static void
-BM_polar_encoder_fip_packed_1024_512_systematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const float dsnr = 1.0;
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = true;
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_encoder_fip_packed_1024_512_systematic_dummy0);
-
-
-static void
-BM_polar_encoder_fip_packed_512_256_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 512;
-    const size_t info_length = 256;
-    const float dsnr = 1.0;
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_encoder_fip_packed_512_256_nonsystematic_dummy0);
-
-
-static void
-BM_polar_encoder_fip_packed_2048_1024_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 2048;
-    const size_t info_length = 1024;
-    const float dsnr = 1.0;
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_encoder_fip_packed_2048_1024_nonsystematic_dummy0);
-
-
-static void
-BM_polar_encoder_fip_packed_32768_16384_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 32768;
-    const size_t info_length = 16384;
-    const float dsnr = 1.0;
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_encoder_fip_packed_32768_16384_nonsystematic_dummy0);
-
-
-static void
-BM_polar_encoder_fip_packed_131072_65536_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 131072;
-    const size_t info_length = 65536;
-    const float dsnr = 1.0;
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_encoder(state,
-                            block_length,
-                            info_length,
-                            dsnr,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_encoder_fip_packed_131072_65536_nonsystematic_dummy0);
-
-
 static void benchmark_polar_decoder(benchmark::State& state,
                                     const size_t block_length,
                                     const size_t info_length,
@@ -552,22 +224,163 @@ static void benchmark_polar_decoder(benchmark::State& state,
     std::vector<uint8_t> result(info_length / 8);
 
     for (auto _ : state) {
+        benchmark::DoNotOptimize(vec);
+        benchmark::DoNotOptimize(result);
         decoder->decode_vector(vec.data(), (void*)result.data());
+        benchmark::DoNotOptimize(vec);
+        benchmark::DoNotOptimize(result);
     }
+
+    state.counters["CodeThr"] = benchmark::Counter(block_length * state.iterations(),
+                                                   benchmark::Counter::kIsRate,
+                                                   benchmark::Counter::OneK::kIs1024);
+    state.counters["InfoThr"] = benchmark::Counter(info_length * state.iterations(),
+                                                   benchmark::Counter::kIsRate,
+                                                   benchmark::Counter::OneK::kIs1024);
+}
+
+static void BM_polar_encode(benchmark::State& state, const std::string& detector_type)
+{
+    const size_t block_length = static_cast<size_t>(state.range(0));
+    const size_t info_length = static_cast<size_t>(state.range(1));
+    const unsigned parity_size = static_cast<unsigned>(state.range(2));
+    const bool is_systematic = static_cast<size_t>(state.range(3)) > 0;
+    const float dsnr = static_cast<float>(state.range(4)) / 100.0f;
+    // std::cout << block_length << "\t" << info_length << "\t" << detector_type
+    //           << parity_size << "\t" << dsnr << "\t" << is_systematic << std::endl;
+    if (not(block_length > info_length)) {
+        std::string msg("Invalid code (" + std::to_string(block_length) + ", " +
+                        std::to_string(info_length) + ")");
+        state.SkipWithError(msg.c_str());
+        return;
+    }
+
+    benchmark_polar_encoder(state,
+                            block_length,
+                            info_length,
+                            dsnr,
+                            parity_size,
+                            detector_type,
+                            is_systematic);
 }
 
 
-static void
-BM_polar_decoder_float_512_256_l1_nonsystematic_dummy0(benchmark::State& state)
+BENCHMARK_CAPTURE(BM_polar_encode, CRC, "crc")
+    ->ArgsProduct({ {
+                        64,
+                    },
+                    { 16, 24, 32, 40, 48, 56 },
+                    {
+                        0,
+                        8,
+                    },
+                    {
+                        0,
+                        1,
+                    },
+                    { 100, 400 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, CRC, "crc")
+    ->ArgsProduct({ {
+                        128,
+                    },
+                    { 16, 32, 48, 64, 80, 96, 112 },
+                    {
+                        0,
+                        8,
+                        16,
+                    },
+                    { 0, 1 },
+                    { -100, 0, 100, 400 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, CRC, "crc")
+    ->ArgsProduct({ {
+                        256,
+                    },
+                    { 32, 64, 96, 128, 160, 192, 224 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 400 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, CRC, "crc")
+    ->ArgsProduct({ {
+                        512,
+                    },
+                    { 64, 128, 192, 256, 320, 384, 448 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 400 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, CRC, "crc")
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 128, 256, 384, 512, 640, 768, 896 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
+
+BENCHMARK_CAPTURE(BM_polar_encode, CMAC, "cmac")
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 128, 256, 384, 512, 640, 768, 896 },
+                    { 8, 16, 32, 64 },
+                    { 0, 1 },
+                    {
+                        100,
+                    } });
+
+
+BENCHMARK_CAPTURE(BM_polar_encode, CRC, "crc")
+    ->ArgsProduct({ {
+                        2048,
+                    },
+                    { 256, 384, 512, 768, 1024, 1280, 1536, 1792 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
+
+
+BENCHMARK_CAPTURE(BM_polar_encode, CRC, "crc")
+    ->ArgsProduct({ {
+                        32768,
+                    },
+                    { 4096, 8192, 12288, 16384, 20480, 24576, 28672 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
+
+
+BENCHMARK_CAPTURE(BM_polar_encode, CRC, "crc")
+    ->ArgsProduct({ {
+                        131072,
+                    },
+                    { 16384, 32768, 49152, 65536, 81920, 98304, 114688 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
+
+
+static void BM_polar_decode(benchmark::State& state,
+                            const std::string& detector_type,
+                            const std::string& decoder_type)
 {
-    const size_t block_length = 512;
-    const size_t info_length = 256;
-    const size_t list_size = 1;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("float");
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
+    const size_t block_length = static_cast<size_t>(state.range(0));
+    const size_t info_length = static_cast<size_t>(state.range(1));
+    const size_t list_size = static_cast<size_t>(state.range(2));
+    const unsigned parity_size = static_cast<unsigned>(state.range(3));
+    const bool is_systematic = static_cast<size_t>(state.range(4)) > 0;
+    const float dsnr = static_cast<float>(state.range(5)) / 100.0f;
+    // std::cout << block_length << "\t" << info_length << "\t" << list_size << "\t"
+    //           << detector_type << parity_size << "\t" << dsnr << "\t" << is_systematic
+    //           << std::endl;
+    if (not(block_length > info_length)) {
+        std::string msg("Invalid code (" + std::to_string(block_length) + ", " +
+                        std::to_string(info_length) + ")");
+        state.SkipWithError(msg.c_str());
+        return;
+    }
 
     benchmark_polar_decoder(state,
                             block_length,
@@ -580,287 +393,91 @@ BM_polar_decoder_float_512_256_l1_nonsystematic_dummy0(benchmark::State& state)
                             is_systematic);
 }
 
-BENCHMARK(BM_polar_decoder_float_512_256_l1_nonsystematic_dummy0);
+
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+    ->ArgsProduct({ {
+                        64,
+                    },
+                    { 16, 24, 32, 40, 48, 56 },
+                    { 1, 2, 4, 8, 16, 32 },
+                    {
+                        0,
+                        8,
+                    },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
+
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+    ->ArgsProduct({ {
+                        128,
+                    },
+                    { 16, 32, 48, 64, 80, 96, 112 },
+                    { 1, 2, 4, 8, 16, 32 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
 
 
-static void
-BM_polar_decoder_float_1024_256_l1_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 256;
-    const size_t list_size = 1;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("float");
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+    ->ArgsProduct({ {
+                        256,
+                    },
+                    { 32, 64, 96, 128, 160, 192, 224 },
+                    { 1, 2, 4, 8, 16, 32 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
 
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_decoder_float_1024_256_l1_nonsystematic_dummy0);
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+    ->ArgsProduct({ {
+                        512,
+                    },
+                    { 64, 128, 192, 256, 320, 384, 448 },
+                    { 1, 2, 4, 8, 16, 32 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
 
 
-static void
-BM_polar_decoder_float_1024_512_l1_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const size_t list_size = 1;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("float");
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 128, 256, 384, 512, 640, 768, 896 },
+                    { 1, 2, 4, 8, 16, 32 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
 
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_char, "crc", "char")
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 128, 256, 384, 512, 640, 768, 896 },
+                    { 1, 2, 4, 8, 16, 32 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
 
-BENCHMARK(BM_polar_decoder_float_1024_512_l1_nonsystematic_dummy0);
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+    ->ArgsProduct({ {
+                        2048,
+                    },
+                    { 256, 512, 768, 1024, 1280, 1536, 1792 },
+                    { 1, 2, 4, 8, 16, 32 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
 
-
-static void
-BM_polar_decoder_float_2048_1024_l1_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 2048;
-    const size_t info_length = 1024;
-    const size_t list_size = 1;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("float");
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_decoder_float_2048_1024_l1_nonsystematic_dummy0);
-
-
-static void
-BM_polar_decoder_float_8192_4096_l1_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 8192;
-    const size_t info_length = 4096;
-    const size_t list_size = 1;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("float");
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_decoder_float_8192_4096_l1_nonsystematic_dummy0);
-
-
-static void
-BM_polar_decoder_float_8192_1024_l1_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 8192;
-    const size_t info_length = 1024;
-    const size_t list_size = 1;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("float");
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_decoder_float_8192_1024_l1_nonsystematic_dummy0);
-
-
-static void
-BM_polar_decoder_char_1024_512_l1_nonsystematic_dummy0(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const size_t list_size = 1;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("char");
-    const unsigned parity_size = 0;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_decoder_char_1024_512_l1_nonsystematic_dummy0);
-
-
-static void BM_polar_decoder_float_1024_512_l2_nonsystematic_crc8(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const size_t list_size = 2;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("float");
-    const unsigned parity_size = 8;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_decoder_float_1024_512_l2_nonsystematic_crc8);
-
-
-static void
-BM_polar_decoder_float_1024_512_l32_nonsystematic_crc8(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const size_t list_size = 32;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("float");
-    const unsigned parity_size = 8;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_decoder_float_1024_512_l32_nonsystematic_crc8);
-
-static void BM_polar_decoder_char_1024_512_l32_nonsystematic_crc8(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const size_t list_size = 32;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("char");
-    const unsigned parity_size = 8;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_decoder_char_1024_512_l32_nonsystematic_crc8);
-
-
-static void BM_polar_decoder_float_1024_512_l8_nonsystematic_crc8(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const size_t list_size = 8;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("float");
-    const unsigned parity_size = 8;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_decoder_float_1024_512_l8_nonsystematic_crc8);
-
-static void BM_polar_decoder_char_1024_512_l8_nonsystematic_crc8(benchmark::State& state)
-{
-    const size_t block_length = 1024;
-    const size_t info_length = 512;
-    const size_t list_size = 8;
-    const float dsnr = 1.0;
-    const auto decoder_type = std::string("char");
-    const unsigned parity_size = 8;
-    const auto detector_type = std::string("crc");
-    const bool is_systematic = false;
-
-    benchmark_polar_decoder(state,
-                            block_length,
-                            info_length,
-                            list_size,
-                            dsnr,
-                            decoder_type,
-                            parity_size,
-                            detector_type,
-                            is_systematic);
-}
-
-BENCHMARK(BM_polar_decoder_char_1024_512_l8_nonsystematic_crc8);
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+    ->ArgsProduct({ {
+                        8192,
+                    },
+                    { 1024, 2048, 3072, 4096, 5120, 6144, 7168 },
+                    { 1, 2, 4, 8, 16, 32 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    { -100, 0, 100, 200, 300, 400 } });
 
 
 BENCHMARK_MAIN();

@@ -8,7 +8,7 @@
 ########################################################################
 # Project setup
 ########################################################################
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.12)
 project ("polar-codes" VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -31,6 +31,14 @@ endif()
 find_package(Doxygen)
 find_package(OpenSSL REQUIRED)
 #find_package(cppunit)
+find_package(Python3 REQUIRED)
+
+## Check for TCLAP!
+include(CheckIncludeFileCXX)
+CHECK_INCLUDE_FILE_CXX("tclap/CmdLine.h" HAVE_TCLAP)
+IF(NOT HAVE_TCLAP)
+  message( FATAL_ERROR "TCLAP is not found (apt install libtclap-dev)" )
+ENDIF()
 
 add_subdirectory(pybind11)
 # Probably the preferred way long term:
@@ -42,12 +50,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include_directories(${CMAKE_SOURCE_DIR}/include)
-include(CheckIncludeFileCXX)
-CHECK_INCLUDE_FILE_CXX("tclap/CmdLine.h" HAVE_TCLAP)
-IF(NOT HAVE_TCLAP)
-  message( FATAL_ERROR "TCLAP is not found (apt install libtclap-dev)" )
-ENDIF()
-
 
 
 add_definitions(-Wall -Wno-ignored-attributes)
@@ -66,10 +68,39 @@ enable_testing()
 
 
 ########################################################################
+# Set library install dir!
+########################################################################
+# See:https://gitlab.kitware.com/cmake/cmake/blob/18365587c86396f988e256b5acf4d2312f3be2bb/Modules/GNUInstallDirs.cmake#L210-212
+
+include(GNUInstallDirs)
+
+set(INSTALL_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+set(IS_DEBIANOID_SYSTEM False)
+if (EXISTS "/etc/debian_version")
+    set(IS_DEBIANOID_SYSTEM True)
+    if("${CMAKE_INSTALL_PREFIX}" MATCHES "^/usr/local/?$")
+        set(INSTALL_LIBDIR "lib/${CMAKE_LIBRARY_ARCHITECTURE}")
+    endif()
+endif()
+set(INSTALL_FULL_LIBDIR "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIBDIR}")
+
+
+########################################################################
 # Sets the python installation directory PYTHON_DIR
 ########################################################################
+message(STATUS "Py3k Executable: ${Python3_EXECUTABLE}")
+message(STATUS "Py3k STDLIB: ${Python3_STDLIB}")
+message(STATUS "Py3k STDARCH: ${Python3_STDARCH}")
+message(STATUS "Py3k SITELIB: ${Python3_SITELIB}")
+message(STATUS "Py3k SITEARCH: ${Python3_SITEARCH}")
+
+message(STATUS "Py3k NumPy FOUND: ${Python3_NumPy_FOUND}")
+message(STATUS "Py3k NumPy VERSION: ${Python3_NumPy_VERSION}")
+
+message(STATUS "NumPy: ${PYTHON_NUMPY_INCLUDE_DIR}")
+
 if(NOT DEFINED PYTHON_DIR)
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "
 from distutils import sysconfig
 print(sysconfig.get_python_lib(plat_specific=True, prefix=''))
 " OUTPUT_VARIABLE PYTHON_DIR OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -115,7 +146,7 @@ add_custom_target(uninstall
 #set variables found in the pc.in file
 set(prefix ${CMAKE_INSTALL_PREFIX})
 set(exec_prefix "\${prefix}")
-set(libdir "\${exec_prefix}/lib${LIB_SUFFIX}")
+set(libdir "\${exec_prefix}/${INSTALL_LIBDIR}")
 set(includedir "\${prefix}/include")
 
 configure_file(
@@ -142,3 +173,4 @@ install(FILES cmake/Modules/PolarCodeConfig.cmake
 
 message(STATUS "CMake Build Type:     ${CMAKE_BUILD_TYPE}")
 message(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "Using install libdir: ${INSTALL_FULL_LIBDIR}")
