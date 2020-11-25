@@ -215,6 +215,35 @@ class ChannelConstructorGaussianApproximationDai(ChannelConstructor):
         return z
 
 
+class ChannelConstructorBetaExpansion(ChannelConstructor):
+    """ChannelConstructorBetaExpansion
+    cf. He et al. "beta-expansion: A theoretical framework for fast and recursive construction of polar codes"
+    DOI: 10.1109/TSP.2014.2371781
+    https://doi.org/10.1109/GLOCOM.2017.8254146
+    """
+    beta_value = 2.0 ** (1.0 / 4.0)
+
+    def __init__(self, N, snr):
+        ChannelConstructor.__init__(self, N, snr)
+        self.evaluate()
+
+    def calculate_capacities(self):
+        channels = np.arange(self._block_size, dtype=np.uint64)
+        betas = np.zeros(self._block_size, dtype=np.float64)
+        beta_weights = self.beta_value ** np.arange(
+            self._block_power - 1, -1, -1)
+        for i, idx in enumerate(channels):
+            bin_digits = [int(b)
+                          for b in np.binary_repr(idx, self._block_power)]
+            # print(bin_digits)
+            weight = np.sum(beta_weights * bin_digits)
+            # print(beta_weights * bin_digits, weight)
+            betas[i] = weight
+        # This is incorrect strictly speaking. But let's keep this value.
+        self._capacities = betas
+        return betas
+
+
 def plot_capacity_approx(N, snr):
     import matplotlib.pyplot as plt
     bb = ChannelConstructorBhattacharyyaBounds(N, snr)
@@ -248,9 +277,12 @@ def plot_capacity_approx(N, snr):
 
 
 def main():
-    n = 10
+    n = 9
     N = int(2 ** n)
     snr = 1.
+    cc = ChannelConstructorBetaExpansion(N, 0.0)
+    print(cc.beta_value)
+    print(cc.getSortedChannels())
     plot_capacity_approx(N, snr)
     # plot_dai_functions(N, snr)
 

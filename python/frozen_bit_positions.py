@@ -15,9 +15,9 @@ except ImportError:
 import pprint
 
 try:
-    from channel_construction import ChannelConstructorGaussianApproximationDai
+    from channel_construction import ChannelConstructorGaussianApproximationDai, ChannelConstructorBetaExpansion
 except ImportError:
-    from .channel_construction import ChannelConstructorGaussianApproximationDai
+    from .channel_construction import ChannelConstructorGaussianApproximationDai, ChannelConstructorBetaExpansion
 
 
 class FrozenBitPositions:
@@ -43,6 +43,7 @@ class FrozenBitPositionsBB(FrozenBitPositions):
     Basically the method proposed by Arikan and somwhat refined in
     Vangala et al. "A Comparative Study of Polar Code Constructions for the AWGN Channel"
     '''
+
     def __init__(self, block_length, info_length, dSNR=0.0):
         super().__init__(block_length, info_length)
         self._dSNR = dSNR
@@ -57,6 +58,7 @@ class FrozenBitPositionsGA(FrozenBitPositions):
     This specific version is based on
     Dai et al. "Does Gaussian Approximation Work Well for the Long-Length Polar Code Construction?"
     '''
+
     def __init__(self, block_length, info_length, dSNR=0.0):
         super().__init__(block_length, info_length)
         self._dSNR = dSNR
@@ -64,6 +66,24 @@ class FrozenBitPositionsGA(FrozenBitPositions):
     def _generate_frozen_bit_positions(self):
         fbp = ChannelConstructorGaussianApproximationDai(
             self._block_length, self._dSNR).frozenBitPositions(self._block_length - self._info_length)
+        return np.sort(fbp)
+
+
+class FrozenBitPositionsPW(FrozenBitPositions):
+    '''
+    Frozen Bit positions based on Polarization Weights or beta-expansion
+    '''
+
+    def __init__(self, block_length, info_length, dSNR=0.0):
+        super().__init__(block_length, info_length)
+        self._reliabilities = None
+
+    def _generate_frozen_bit_positions(self):
+        if self._reliabilities is None:
+            self._reliabilities = ChannelConstructorBetaExpansion(
+                self._block_length, 0.).getSortedChannels()
+        fbp = ChannelConstructorBetaExpansion(
+            self._block_length, 0.).frozenBitPositions(self._block_length - self._info_length)
         return np.sort(fbp)
 
 
@@ -182,20 +202,48 @@ def get_frozen_bit_generator(frozen_bit_generator, block_length, info_length, dS
     generators = {'DE': FrozenBitPositionsDE,
                   'BB': FrozenBitPositionsBB,
                   '5G': FrozenBitPositions5G,
-                  'GA': FrozenBitPositionsGA}
+                  'GA': FrozenBitPositionsGA,
+                  'BE': FrozenBitPositionsPW,
+                  'PW': FrozenBitPositionsPW}
     assert frozen_bit_generator in generators.keys()
     return generators[frozen_bit_generator](block_length, info_length, dSNR)
 
 
 def main():
-    fbp = FrozenBitPositions5G(512, 256, 3.)
+    fbp = FrozenBitPositions5G(1024, 512, 3.)
     # print(fbp._file)
     # fbp._load_reliabilities()
     # p = fbp._load_frozen_bit_positions()
     frozen_bit_positions = fbp.frozen_bit_positions()
-    print(frozen_bit_positions)
+    # print(frozen_bit_positions)
 
-    for g in ('DE', 'GA', 'BB', '5G'):
+    sorted_channels = fbp._reliabilities
+
+    fbp_be = FrozenBitPositionsPW(1024, 512, 0.)
+    frozen_bit_positions_be = fbp_be.frozen_bit_positions()
+    # print(frozen_bit_positions_be)
+    # sorted_channels_be = fbp_be._reliabilities
+    # print(sorted_channels)
+    # print(sorted_channels_be)
+    # print(frozen_bit_positions == frozen_bit_positions_be)
+    # print(np.all(sorted_channels == sorted_channels_be))
+
+    for i in (32, 64, 128, ):
+        print(i)
+        ref = sorted_channels[np.where(sorted_channels < i)]
+        print(ref)
+
+        fbp_be = FrozenBitPositionsPW(i, 0, 0.)
+        _ = fbp_be.frozen_bit_positions()
+        res = fbp_be._reliabilities
+        print(res)
+
+        print(res == ref)
+        print(np.all(res == ref))
+
+    return
+
+    for g in ('DE', 'GA', 'BB', '5G', 'BE'):
         fbp = get_frozen_bit_generator(g, 512, 256, 3.)
         # print(fbp._file)
         # fbp._load_reliabilities()
