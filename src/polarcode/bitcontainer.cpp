@@ -445,6 +445,7 @@ void CharContainer::insertCharBits(const void* pData)
     memcpy(mData, pData, mElementCount);
 }
 
+
 void vectorizedFtoC(char* cPtr, const float* fPtr, const unsigned size)
 {
     const __m256 maximum = _mm256_set1_ps(127.0);
@@ -464,9 +465,48 @@ void vectorizedFtoC(char* cPtr, const float* fPtr, const unsigned size)
     }
 }
 
+void convert_f32_to_int8_large(char* cPtr, const float* fPtr, const unsigned size)
+{
+    /*
+     * Careful! This function makes a few assumptions!
+     * 1. we expect at multiple of 32 elements!
+     * 2. float input stays within int32 bounds otherwise we do not care about overflows!
+     * 3. Beware of overflows!
+    */
+    const unsigned thirty_two_points = size / 32;
+    for (unsigned i = 0; i < thirty_two_points; ++i) {
+        const __m256 in0 = _mm256_loadu_ps(fPtr);
+        fPtr += 8;
+        const __m256 in1 = _mm256_loadu_ps(fPtr);
+        fPtr += 8;
+        const __m256 in2 = _mm256_loadu_ps(fPtr);
+        fPtr += 8;
+        const __m256 in3 = _mm256_loadu_ps(fPtr);
+        fPtr += 8;
+
+        __m256i in0_int32 = _mm256_cvtps_epi32(in0);
+        __m256i in1_int32 = _mm256_cvtps_epi32(in1);
+        __m256i in2_int32 = _mm256_cvtps_epi32(in2);
+        __m256i in3_int32 = _mm256_cvtps_epi32(in3);
+
+        __m256i in0_int16 = _mm256_packs_epi32(in0_int32, in1_int32);
+        in0_int16 = _mm256_permute4x64_epi64(in0_int16, 0b11011000);
+        __m256i in1_int16 = _mm256_packs_epi32(in2_int32, in3_int32);
+        in1_int16 = _mm256_permute4x64_epi64(in1_int16, 0b11011000);
+
+        __m256i out0_int8 = _mm256_packs_epi16(in0_int16, in1_int16);
+        out0_int8 = _mm256_permute4x64_epi64(out0_int8, 0b11011000);
+
+        _mm256_storeu_si256((__m256i*)cPtr, out0_int8);
+        cPtr += 32;
+    }
+}
+
 void CharContainer::insertLlr(const float* pLlr)
 {
-    if (mElementCount >= 8) {
+    if (mElementCount >= 32) {
+        convert_f32_to_int8_large(mData, pLlr, mElementCount);
+    } else if (mElementCount >= 8) {
         vectorizedFtoC(mData, pLlr, mElementCount);
     } else {
         for (unsigned int bit = 0; bit < mElementCount; ++bit) {

@@ -19,6 +19,7 @@ class BitContainerTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testFloatContainerWithFrozenBits);
     CPPUNIT_TEST(testCharContainer);
     CPPUNIT_TEST(testCharContainerWithFrozenBits);
+    CPPUNIT_TEST(testCharContainerWithFloatInputLarge);
     CPPUNIT_TEST_SUITE_END();
 
     PolarCode::BitContainer* floatContainer;
@@ -36,6 +37,7 @@ public:
     void testFloatContainerWithFrozenBits();
     void testCharContainer();
     void testCharContainerWithFrozenBits();
+    void testCharContainerWithFloatInputLarge();
     void testPackedContainer();
     void testPackedContainerWithFrozenBits();
 };
