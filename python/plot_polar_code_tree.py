@@ -17,6 +17,8 @@ from pprint import pprint
 
 from frozen_bit_positions import get_frozen_bit_generator
 
+from latex_plot_magic import set_size
+
 
 def create_polar_tree_graph(N, frozen_bit_positions):
     n = int(np.log2(N))
@@ -101,13 +103,13 @@ def find_node_type(frozen_pattern):
         return 'rate1'
     elif frozen_pattern.size > 2 and np.all(frozen_pattern[0:-2] == 1) and np.all(frozen_pattern[-2:] == 0):
         return 'type1'
-    elif frozen_pattern.size > 2 and  np.all(frozen_pattern[0:-3] == 1) and np.all(frozen_pattern[-3:] == 0):
+    elif frozen_pattern.size > 2 and np.all(frozen_pattern[0:-3] == 1) and np.all(frozen_pattern[-3:] == 0):
         return 'type2'
-    elif frozen_pattern.size > 2 and  np.all(frozen_pattern[0:2] == 1) and np.all(frozen_pattern[2:] == 0):
+    elif frozen_pattern.size > 2 and np.all(frozen_pattern[0:2] == 1) and np.all(frozen_pattern[2:] == 0):
         return 'type3'
-    elif frozen_pattern.size > 2 and  np.all(frozen_pattern[0:3] == 1) and np.all(frozen_pattern[3:] == 0):
+    elif frozen_pattern.size > 2 and np.all(frozen_pattern[0:3] == 1) and np.all(frozen_pattern[3:] == 0):
         return 'type4'
-    elif frozen_pattern.size > 4 and  np.all(frozen_pattern[0:-5] == 1) and np.all(frozen_pattern[-5:] == np.array([0, 1, 0, 0 ,0])):
+    elif frozen_pattern.size > 4 and np.all(frozen_pattern[0:-5] == 1) and np.all(frozen_pattern[-5:] == np.array([0, 1, 0, 0, 0])):
         return 'type5'
     else:
         return 'rateR'
@@ -209,7 +211,7 @@ def find_polar_codes():
             N = 2 ** n
             print(f'({N}, {K}), rate={K / N}')
             maxrate = np.maximum(maxrate, K / N)
-            minrate = np.minimum(minrate, K/ N)
+            minrate = np.minimum(minrate, K / N)
 
     print(f'min={minrate},\tmax={maxrate}')
     # minrate code (512, 36)
@@ -217,32 +219,32 @@ def find_polar_codes():
 
 
 def main():
-    n = 9
+    n = 8
     N = int(2 ** n)
-    K = 56
+    K = N // 2
     snr = 1.
-    generator = '5G'
+    generator = 'BE'
     # find_polar_codes()
     # return
 
     frozen_bit_positions = get_frozen_bit_generator(
         generator, N, K, snr).frozen_bit_positions()
     print(frozen_bit_positions)
-    result = analyze_graph_structure(N, frozen_bit_positions)
-    patterns = extract_patterns(result)
-    # pprint(patterns)
-    all_patterns = find_all_patterns(9, nmin=7, Kmin=12)
-    # print('results!')
-    # pprint(all_patterns)
-    print('num unique patterns: ', len(all_patterns))
-    for nn in range(9):
-        cN = int(2 ** nn)
-        for k, v in all_patterns.items():
-            N = len(k)
-            if cN == N:
-                t = find_node_type(np.array(k))
-                print(f'{t}-{N}: {v} occurences')
-    return
+    # result = analyze_graph_structure(N, frozen_bit_positions)
+    # patterns = extract_patterns(result)
+    # # pprint(patterns)
+    # all_patterns = find_all_patterns(9, nmin=7, Kmin=12)
+    # # print('results!')
+    # # pprint(all_patterns)
+    # print('num unique patterns: ', len(all_patterns))
+    # for nn in range(9):
+    #     cN = int(2 ** nn)
+    #     for k, v in all_patterns.items():
+    #         N = len(k)
+    #         if cN == N:
+    #             t = find_node_type(np.array(k))
+    #             print(f'{t}-{N}: {v} occurences')
+    # return
 
     G = create_polar_tree_graph(N, frozen_bit_positions)
     rootnode = [n for n, d in G.in_degree() if d == 0][0]
@@ -252,8 +254,11 @@ def main():
     labels = {}
     colors = {}
 
-    colormap = {'rate0': 'black', 'rate1': 'red',
-                'REP': 'gray', 'SPC': 'cyan', 'rateR': 'blue'}
+    colormap = {'rate0': 'white', 'rate1': 'black',
+                'REP': 'green', 'SPC': 'orange', 'rateR': 'gray'}
+
+    # colormap = {'rate0': 'black', 'rate1': 'red',
+    #             'REP': 'gray', 'SPC': 'cyan', 'rateR': 'blue'}
 
     for node in list(G.nodes):
         print(node, G.nodes[node])
@@ -269,14 +274,16 @@ def main():
                                       markersize=10, linewidth=0))
 
     nodes = nx.draw_networkx_nodes(G, nx.get_node_attributes(
-        G, 'pos'), node_size=50, node_color=colors.values())
+        G, 'pos'), node_size=50, node_color=colors.values(), edgecolors='black')
     edges = nx.draw_networkx_edges(
         G, nx.get_node_attributes(G, 'pos'), arrows=False)
-    plt.legend(handles=legend_elements)
+    # plt.legend(handles=legend_elements)
     ax = plt.gca()
     ax.set_axis_off()
     plt.tight_layout()
 
+    fig = plt.gcf()
+    fig.set_size_inches(set_size())
     plt.savefig(f'polar_code_tree_N{N}_{generator}SNR{snr:.0f}.pgf')
     plt.show()
 
