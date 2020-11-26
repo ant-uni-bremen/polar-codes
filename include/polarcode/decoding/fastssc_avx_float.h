@@ -167,6 +167,18 @@ public:
     void decode();
 };
 
+class DoubleSpcDecoder : public Node
+{
+    unsigned* mFlipIndices;
+    block_t* mTempBlock;
+    float* mTempBlockPtr;
+
+public:
+    DoubleSpcDecoder(Node* parent);
+    ~DoubleSpcDecoder();
+    void decode();
+};
+
 class ZeroSpcDecoder : public Node
 {
     unsigned* mFlipIndices;

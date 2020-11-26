@@ -235,6 +235,87 @@ void DecodingTest::testDoubleRepetitionCodeFloat()
     runDoubleRepetitionCodeFloat(block_length * 64);
 }
 
+
+
+void DecodingTest::runSPCCodeFloat(const size_t block_length)
+{
+    std::vector<unsigned> frozen_bit_positions(1);
+    std::iota(frozen_bit_positions.begin(), frozen_bit_positions.end(), 0);
+    auto decoder = std::make_unique<PolarCode::Decoding::FastSscAvxFloat>(
+        block_length, frozen_bit_positions);
+    decoder->setSystematic(false);
+
+    float* signal = (float*)std::aligned_alloc(32, block_length * sizeof(float));
+    float* output = (float*)std::aligned_alloc(32, block_length * sizeof(float));
+
+    std::iota(signal, signal + block_length, -2.9);
+    std::vector<float> expected(signal, signal + block_length);
+    expected[3] *= -1.0;
+    decoder->setSignal(signal);
+    decoder->decode();
+    decoder->getSoftCodeword(output);
+
+    std::cout << "testSPCCodeFloat: block_length=" << block_length << std::endl;
+    for (unsigned i = 0; i < block_length; i++) {
+        // std::cout << signal[i] << "\t" << output[i] << "\t" << expected[i] << std::endl;
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(expected[i], output[i], 1e-7);
+    }
+
+    free(signal);
+    free(output);
+}
+
+void DecodingTest::testSPCCodeFloat()
+{
+    size_t block_length = 4;
+    runSPCCodeFloat(block_length);
+    runSPCCodeFloat(block_length * 2);
+    runSPCCodeFloat(block_length * 4);
+    runSPCCodeFloat(block_length * 8);
+    runSPCCodeFloat(block_length * 16);
+    runSPCCodeFloat(block_length * 32);
+    runSPCCodeFloat(block_length * 64);
+}
+
+void DecodingTest::runDoubleSPCCodeFloat(const size_t block_length)
+{
+    std::vector<unsigned> frozen_bit_positions(2);
+    std::iota(frozen_bit_positions.begin(), frozen_bit_positions.end(), 0);
+    auto decoder = std::make_unique<PolarCode::Decoding::FastSscAvxFloat>(
+        block_length, frozen_bit_positions);
+    decoder->setSystematic(false);
+
+    float* signal = (float*)std::aligned_alloc(32, block_length * sizeof(float));
+    float* output = (float*)std::aligned_alloc(32, block_length * sizeof(float));
+
+    std::iota(signal, signal + block_length, -5.9);
+    std::vector<float> expected(signal, signal + block_length);
+    expected[5] *= -1.0;
+    expected[6] *= -1.0;
+    decoder->setSignal(signal);
+    decoder->decode();
+    decoder->getSoftCodeword(output);
+
+    std::cout << "testDoubleSPCCodeFloat: block_length=" << block_length << std::endl;
+    for (unsigned i = 0; i < block_length; i++) {
+        // std::cout << signal[i] << "\t" << output[i] << "\t" << expected[i] << std::endl;
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(expected[i], output[i], 1e-7);
+    }
+
+    free(signal);
+    free(output);
+}
+
+void DecodingTest::testDoubleSPCCodeFloat()
+{
+    size_t block_length = 4;
+    runDoubleSPCCodeFloat(block_length * 2);
+    runDoubleSPCCodeFloat(block_length * 4);
+    runDoubleSPCCodeFloat(block_length * 8);
+    runDoubleSPCCodeFloat(block_length * 16);
+}
+
+
 void DecodingTest::testSpecialDecoders()
 {
 /*	__m256i llr, bits, expectedResult;

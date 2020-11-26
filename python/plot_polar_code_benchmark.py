@@ -215,7 +215,7 @@ def main():
     # plt.savefig('polar_encoder_N1024_dSNRs.pgf')
     # plt.savefig('polar_encoder_N1024_CRCvsCMAC.pgf')
     # plt.savefig('polar_decoder_N1024_dSNRs.pgf')
-    plt.savefig('polar_decoder_N1024_systematic.pgf')
+    # plt.savefig('polar_decoder_N1024_systematic.pgf')
 
 
 if __name__ == '__main__':

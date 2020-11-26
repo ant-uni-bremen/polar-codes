@@ -368,6 +368,64 @@ void SpcDecoder::decode()
     reinterpret_cast<unsigned int*>(mOutput)[minIdx] ^= iParity;
 }
 
+
+/*************
+ * DoubleSpcDecoder
+ * ***********/
+
+DoubleSpcDecoder::DoubleSpcDecoder(Node* parent) : Node(parent)
+{
+    mTempBlock = xmDataPool->allocate(mBlockLength);
+    mTempBlockPtr = mTempBlock->data;
+}
+
+DoubleSpcDecoder::~DoubleSpcDecoder() { xmDataPool->release(mTempBlock); }
+
+void DoubleSpcDecoder::decode()
+{
+    SpcPrepare(mInput, mBlockLength);
+    const float* llrs = mInput;
+    __m256 parity = _mm256_setzero_ps();
+    __m256 minvalues = _mm256_set1_ps(std::numeric_limits<float>::max());
+    __m256 minindices = _mm256_setzero_ps();
+    __m256 indices = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
+    const __m256 step = _mm256_set1_ps(8.0);
+    for (unsigned i = 0; i < mBlockLength; i += 8) {
+        __m256 part = _mm256_loadu_ps(llrs + i);
+        _mm256_storeu_ps(mOutput + i, part);
+        parity = _mm256_xor_ps(parity, part);
+        minvalues = _mm256_argabsmin_ps(minindices, indices, minvalues, part);
+        indices = _mm256_add_ps(indices, step);
+    }
+
+    const __m256 fourMin = _mm256_min4_ps(minvalues);
+    const __m256 twoMin = _mm256_min2_ps(fourMin);
+    const __m256 mask = _mm256_cmp_ps(minvalues, twoMin, _CMP_EQ_OQ);
+
+    unsigned even_idx = 0;
+    unsigned odd_idx = 1;
+    for(unsigned i = 0; i < 4; ++i){
+        if(mask[2* i]){
+            even_idx = minindices[2 * i];
+        }
+        if(mask[2 * i + 1]){
+            odd_idx = minindices[2 * i + 1];
+        }
+    }
+
+    const __m128 x128 =
+        _mm_xor_ps(_mm256_extractf128_ps(parity, 1), _mm256_castps256_ps128(parity));
+    /* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */
+    const __m128 x64 = _mm_xor_ps(x128, _mm_movehl_ps(x128, x128));
+
+    const unsigned int even_parity = x64[0] > 0 ? 0x00000000 : 0x80000000;
+    reinterpret_cast<unsigned int*>(mOutput)[even_idx] ^= even_parity;
+
+    const unsigned int odd_parity = x64[1] > 0 ? 0x00000000 : 0x80000000;
+    reinterpret_cast<unsigned int*>(mOutput)[odd_idx] ^= odd_parity;
+}
+
+
 /*************
  * ZeroSpcDecoder
  * ***********/
@@ -445,11 +503,18 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
         return new RepetitionDecoder(parent);
     }
     if (frozenBitCount == 1) {
+        // std::cout << "SPC: " << blockLength << std::endl;
         return new SpcDecoder(parent);
     }
 
+    // Following are "interleaved one bit unlike the others" codes:
     if (frozenBitCount == blockLength - 2) {
         return new DoubleRepetitionDecoder(parent);
+    }
+
+    if (frozenBitCount == 2) {
+        // std::cout << "DoubleSPC: " << blockLength << std::endl;
+        return new DoubleSpcDecoder(parent);
     }
 
     // Fallback: No special code available, split into smaller subcodes

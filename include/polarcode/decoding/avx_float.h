@@ -237,6 +237,41 @@ inline void SpcPrepare(float* x, const unsigned codeLength)
     }
 }
 
+inline __m256 _mm256_cmplt_ps(const __m256 a, const __m256 b)
+{
+    return _mm256_cmp_ps(a, b, _CMP_GT_OQ);
+}
+
+inline __m256 _mm256_argabsmin_ps(__m256& minindices,
+                           const __m256 indices,
+                           const __m256 minvalues,
+                           const __m256 values)
+{
+    const __m256 abs = _mm256_abs_ps(values);
+    const __m256 mask = _mm256_cmplt_ps(abs, minvalues);
+    minindices = _mm256_blendv_ps(indices, minindices, mask);
+    return _mm256_blendv_ps(abs, minvalues, mask);
+}
+
+inline __m256 _mm256_min4_ps(const __m256 x){
+    return _mm256_min_ps(x, _mm256_permute2f128_ps(x, x, 0b00000001));
+}
+
+inline __m256 _mm256_min2_ps(const __m256 fourMin){
+    return _mm256_min_ps(fourMin, _mm256_permute_ps(fourMin, 0b01001110));
+}
+
+inline unsigned _mm256_argmin_ps(const __m256 x)
+{
+    const __m256 fourMin = _mm256_min4_ps(x);
+    const __m256 twoMin = _mm256_min2_ps(fourMin);
+    const __m256 oneMin = _mm256_min_ps(twoMin, _mm256_permute_ps(twoMin, 0b10110001));
+    const __m256 mask = _mm256_cmp_ps(x, oneMin, _CMP_EQ_OQ);
+    const int movmsk = _mm256_movemask_ps(mask);
+    const unsigned idx = __tzcnt_u32(movmsk);
+    return idx & 0x7;
+}
+
 } // namespace FastSscAvx
 
 /*!
