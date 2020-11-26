@@ -472,7 +472,7 @@ void convert_f32_to_int8_large(char* cPtr, const float* fPtr, const unsigned siz
      * 1. we expect at multiple of 32 elements!
      * 2. float input stays within int32 bounds otherwise we do not care about overflows!
      * 3. Beware of overflows!
-    */
+     */
     const unsigned thirty_two_points = size / 32;
     for (unsigned i = 0; i < thirty_two_points; ++i) {
         const __m256 in0 = _mm256_loadu_ps(fPtr);
