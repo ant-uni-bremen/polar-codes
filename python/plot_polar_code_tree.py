@@ -61,34 +61,43 @@ def create_polar_tree_graph(N, frozen_bit_positions):
 
 
 def update_node_type(G, node):
-    print('update node:', node)
+    print('update node:', node, G.nodes[node])
     edges = list(G.out_edges(nbunch=[node, ]))
+    if not edges:
+        G.nodes[node]['ctsize'] = 1
+        if G.nodes[node]['nodetype'] == 'rate0':
+            G.nodes[node]['pattern'] = [1, ]
+        else:
+            G.nodes[node]['pattern'] = [0, ]
+        return G
+
     n0 = edges[0][1]
     n1 = edges[1][1]
-    # print(edges)
-    # print(edges[0])
-    # print(n0, n1)
-    # print(G.nodes[n0]['nodetype'])
-    if G.nodes[n0]['nodetype'] == 'NA':
-        update_node_type(G, n0)
-    if G.nodes[n1]['nodetype'] == 'NA':
-        update_node_type(G, n1)
-    n0t = G.nodes[n0]['nodetype']
-    n1t = G.nodes[n1]['nodetype']
-    if n0t == 'rate0' and n1t == 'rate0':
-        G.nodes[node]['nodetype'] = 'rate0'
-    elif n0t == 'rate1' and n1t == 'rate1':
-        G.nodes[node]['nodetype'] = 'rate1'
-    elif n0t == 'rate0' and n1t == 'rate1' and len(list(G.out_edges(nbunch=[n0, ]))) == 0:
-        G.nodes[node]['nodetype'] = 'REP'
-    elif n0t == 'rate0' and n1t == 'REP':
-        G.nodes[node]['nodetype'] = 'REP'
-    elif n0t == 'REP' and n1t == 'rate1':
-        G.nodes[node]['nodetype'] = 'SPC'
-    elif n0t == 'SPC' and n1t == 'rate1':
-        G.nodes[node]['nodetype'] = 'SPC'
-    else:
-        G.nodes[node]['nodetype'] = 'rateR'
+    update_node_type(G, n0)
+    update_node_type(G, n1)
+
+    # print('update node:', node, G.nodes[n0])
+    # print('update node:', node, G.nodes[n1])
+    G.nodes[node]['ctsize'] = G.nodes[n0]['ctsize'] + G.nodes[n1]['ctsize']
+    G.nodes[node]['pattern'] = pattern = G.nodes[n0]['pattern'] + G.nodes[n1]['pattern']
+    pattern = np.array(pattern, dtype=int)
+    ntype = find_node_type(pattern)
+    if ntype == 'type1':
+        ntype = 'DREP'
+    if ntype == 'type2':
+        ntype = 'TREP'
+    if ntype == 'type3':
+        ntype = 'DSPC'
+    if ntype == 'type4':
+        ntype = 'TSPC'
+    if not ntype in ('rate0', 'rate1', 'REP', 'DREP', 'TREP', 'SPC', 'DSPC', 'rateR'):
+        ntype = 'rateR'
+
+    # if not ntype in ('rate0', 'rate1', 'REP', 'DREP', 'TREP', 'SPC', 'DSPC', 'TSPC', 'rateR'):
+    #     ntype = 'rateR'
+    G.nodes[node]['nodetype'] = ntype
+
+    # print('finish node:', node, ntype, G.nodes[node])
     return G
 
 
@@ -218,8 +227,25 @@ def find_polar_codes():
     # maxrate code (128, 108)
 
 
+def prune_nodes(G, node, remove=False):
+    edges = list(G.out_edges(nbunch=[node, ]))
+    if edges:
+        remove_leafs = False
+        if G.nodes[node]['nodetype'] != 'rateR':
+            remove_leafs = True
+
+        n0 = edges[0][1]
+        n1 = edges[1][1]
+        prune_nodes(G, n0, remove_leafs)
+        prune_nodes(G, n1, remove_leafs)
+
+    if remove:
+        G.remove_node(node)
+    return G
+
+
 def main():
-    n = 8
+    n = 10
     N = int(2 ** n)
     K = N // 2
     snr = 1.
@@ -250,18 +276,21 @@ def main():
     rootnode = [n for n, d in G.in_degree() if d == 0][0]
     print(rootnode)
     G = update_node_type(G, rootnode)
+    G = prune_nodes(G, rootnode, remove=False)
 
     labels = {}
     colors = {}
 
     colormap = {'rate0': 'white', 'rate1': 'black',
-                'REP': 'green', 'SPC': 'orange', 'rateR': 'gray'}
+                'REP': 'green', 'DREP': 'cyan', 'TREP': 'blue',
+                'SPC': 'orange', 'DSPC': 'yellow', 'TSPC': 'brown',
+                'type5': 'red', 'rateR': 'gray'}
 
     # colormap = {'rate0': 'black', 'rate1': 'red',
     #             'REP': 'gray', 'SPC': 'cyan', 'rateR': 'blue'}
 
     for node in list(G.nodes):
-        print(node, G.nodes[node])
+        # print(node, G.nodes[node])
         G.nodes[node]['label'] = G.nodes[node]['nodetype']
         colors[node] = colormap[G.nodes[node]['nodetype']]
         labels[G.nodes[node]['nodetype']] = labels.get(
@@ -284,7 +313,7 @@ def main():
 
     fig = plt.gcf()
     fig.set_size_inches(set_size())
-    plt.savefig(f'polar_code_tree_N{N}_{generator}SNR{snr:.0f}.pgf')
+    # plt.savefig(f'polar_code_tree_N{N}_{generator}SNR{snr:.0f}.pgf')
     plt.show()
 
 
