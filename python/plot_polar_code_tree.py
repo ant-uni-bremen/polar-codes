@@ -90,8 +90,11 @@ def update_node_type(G, node):
         ntype = 'DSPC'
     if ntype == 'type4':
         ntype = 'TSPC'
-    if not ntype in ('rate0', 'rate1', 'REP', 'DREP', 'TREP', 'SPC', 'DSPC', 'rateR'):
+
+    if not ntype in ('rate0', 'rate1', 'REP', 'DREP', 'SPC', 'DSPC', 'rateR'):
         ntype = 'rateR'
+    # if not ntype in ('rate0', 'rate1', 'REP', 'DREP', 'TREP', 'SPC', 'DSPC', 'rateR'):
+    #     ntype = 'rateR'
 
     # if not ntype in ('rate0', 'rate1', 'REP', 'DREP', 'TREP', 'SPC', 'DSPC', 'TSPC', 'rateR'):
     #     ntype = 'rateR'
@@ -249,7 +252,7 @@ def main():
     N = int(2 ** n)
     K = N // 2
     snr = 1.
-    generator = 'BE'
+    generator = 'BB'
     # find_polar_codes()
     # return
 
@@ -306,7 +309,7 @@ def main():
         G, 'pos'), node_size=50, node_color=colors.values(), edgecolors='black')
     edges = nx.draw_networkx_edges(
         G, nx.get_node_attributes(G, 'pos'), arrows=False)
-    # plt.legend(handles=legend_elements)
+    plt.legend(handles=legend_elements)
     ax = plt.gca()
     ax.set_axis_off()
     plt.tight_layout()
