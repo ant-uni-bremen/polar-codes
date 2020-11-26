@@ -126,6 +126,8 @@ RateOneDecoder::RateOneDecoder(Node* parent) : Node(parent) {}
 
 RepetitionDecoder::RepetitionDecoder(Node* parent) : Node(parent) {}
 
+DoubleRepetitionDecoder::DoubleRepetitionDecoder(Node* parent) : Node(parent) {}
+
 ShortRepetitionDecoder::ShortRepetitionDecoder(Node* parent) : ShortNode(parent) {}
 
 SpcDecoder::SpcDecoder(Node* parent) : Node(parent) {}
@@ -180,6 +182,8 @@ RateOneDecoder::~RateOneDecoder() {}
 
 RepetitionDecoder::~RepetitionDecoder() {}
 
+DoubleRepetitionDecoder::~DoubleRepetitionDecoder() {}
+
 ShortRepetitionDecoder::~ShortRepetitionDecoder() {}
 
 SpcDecoder::~SpcDecoder() {}
@@ -232,6 +236,29 @@ void RepetitionDecoder::decode(fipv* LlrIn, fipv* BitsOut)
     LlrSum = fi_set1_epi8(Bits);
     for (unsigned i = 0; i < mVecCount; ++i) {
         fi_store(BitsOut + i, LlrSum);
+    }
+}
+
+/* WARNING: Saturation can lead to wrong results!
+
+        127 + 127 + 127 + 127 + -128 results in -1 and thus wrong sign
+        after step-by-step saturated addition.
+
+        Conversion to epi16 will reduce throughput but circumvents that problem.
+*/
+void DoubleRepetitionDecoder::decode(fipv* LlrIn, fipv* BitsOut)
+{
+    fipv LlrSum = fi_setzero();
+
+    // Accumulate vectors
+    for (unsigned i = 0; i < mVecCount; ++i) {
+        LlrSum = fi_adds_epi8(LlrSum, fi_load(LlrIn + i));
+    }
+
+    fipv result = half_reduce_adds_epi8(LlrSum);
+
+    for (unsigned i = 0; i < mVecCount; ++i) {
+        fi_store(BitsOut + i, result);
     }
 }
 
@@ -493,6 +520,10 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
         } else {
             return new SpcDecoder(parent);
         }
+    }
+
+    if (frozenBitCount == blockLength - 2 and blockLength >= BYTESPERVECTOR) {
+        return new DoubleRepetitionDecoder(parent);
     }
 
     // Precalculate subcodes to find special child node combinations

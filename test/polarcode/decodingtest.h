@@ -29,6 +29,8 @@ class DecodingTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testScan);
     CPPUNIT_TEST(testRepetitionCodeFloat);
     CPPUNIT_TEST(testDoubleRepetitionCodeFloat);
+    CPPUNIT_TEST(testRepetitionCodeFipLong);
+    CPPUNIT_TEST(testDoubleRepetitionCodeFipLong);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -54,6 +56,11 @@ public:
     void runRepetitionCodeFloat(const size_t block_length);
     void testDoubleRepetitionCodeFloat();
     void runDoubleRepetitionCodeFloat(const size_t block_length);
+
+    void testRepetitionCodeFipLong();
+    void runRepetitionCodeFipLong(const size_t block_length);
+    void testDoubleRepetitionCodeFipLong();
+    void runDoubleRepetitionCodeFipLong(const size_t block_length);
 
 private:
     void showScanTestOutput(unsigned, float*);

@@ -72,6 +72,85 @@ bool testBitVectors(const __m256& one, const __m256& two)
     return testShortVectors(zero, test, 8);
 }
 
+void DecodingTest::testRepetitionCodeFipLong()
+{
+    runRepetitionCodeFipLong(32);
+    runRepetitionCodeFipLong(64);
+}
+
+void DecodingTest::runRepetitionCodeFipLong(const size_t block_length)
+{
+    std::vector<unsigned> frozen_bit_positions(block_length - 1);
+    std::iota(frozen_bit_positions.begin(), frozen_bit_positions.end(), 0);
+    auto decoder = std::make_unique<PolarCode::Decoding::FastSscFipChar>(
+        block_length, frozen_bit_positions);
+    decoder->setSystematic(false);
+
+    char* signal = (char*)std::aligned_alloc(32, block_length * sizeof(char));
+    char* output = (char*)std::aligned_alloc(32, block_length * sizeof(char));
+    std::iota(signal, signal + block_length, (-1 * block_length / 2) - 1);
+    decoder->setSignal(signal);
+    decoder->decode();
+    decoder->getSoftCodeword(output);
+
+    int iresult = 0;
+    for (unsigned i = 0; i < block_length; i++) {
+        iresult += int(signal[i]);
+    }
+
+    const char result = char(std::min(127, std::max(-128, iresult)));
+    std::cout << "testRepetitionCodeFipChar: block_length=" << block_length << std::endl;
+    for (unsigned i = 0; i < block_length; i++) {
+        CPPUNIT_ASSERT_EQUAL(result, output[i]);
+    }
+
+    free(signal);
+    free(output);
+}
+
+void DecodingTest::testDoubleRepetitionCodeFipLong()
+{
+    runDoubleRepetitionCodeFipLong(32);
+    runDoubleRepetitionCodeFipLong(64);
+}
+void DecodingTest::runDoubleRepetitionCodeFipLong(const size_t block_length)
+{
+
+    std::vector<unsigned> frozen_bit_positions(block_length - 2);
+    std::iota(frozen_bit_positions.begin(), frozen_bit_positions.end(), 0);
+    auto decoder = std::make_unique<PolarCode::Decoding::FastSscFipChar>(
+        block_length, frozen_bit_positions);
+    decoder->setSystematic(false);
+
+    char* signal = (char*)std::aligned_alloc(32, block_length * sizeof(char));
+    char* output = (char*)std::aligned_alloc(32, block_length * sizeof(char));
+    std::iota(signal, signal + block_length, (-1 * block_length / 2) - 1);
+    decoder->setSignal(signal);
+    decoder->decode();
+    decoder->getSoftCodeword(output);
+
+    int iresult0 = 0;
+    int iresult1 = 0;
+    for (unsigned i = 0; i < block_length; i += 2) {
+        iresult0 += int(signal[i]);
+        iresult1 += int(signal[i + 1]);
+    }
+    const char result0 = char(std::min(127, std::max(-128, iresult0)));
+    const char result1 = char(std::min(127, std::max(-128, iresult1)));
+
+    std::cout << "testDoubleRepetitionCodeFipChar: block_length=" << block_length << "\t"
+              << "r0=" << int(result0) << "\tr1=" << int(result1) << std::endl;
+
+    for (unsigned i = 0; i < block_length; i += 2) {
+        CPPUNIT_ASSERT_EQUAL(result0, output[i]);
+        CPPUNIT_ASSERT_EQUAL(result1, output[i + 1]);
+    }
+
+    free(signal);
+    free(output);
+}
+
+
 void DecodingTest::runRepetitionCodeFloat(const size_t block_length)
 {
     std::vector<unsigned> frozen_bit_positions(block_length - 1);

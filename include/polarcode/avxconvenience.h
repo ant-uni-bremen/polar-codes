@@ -100,6 +100,115 @@ static inline char reduce_adds_epi8(__m256i x)
     return ((char*)&x8)[0];
 }
 
+static const __m256i SHUFFLE_MASK_X8 = _mm256_setr_epi8(8,
+                                                        9,
+                                                        10,
+                                                        11,
+                                                        12,
+                                                        13,
+                                                        14,
+                                                        15,
+                                                        0,
+                                                        1,
+                                                        2,
+                                                        3,
+                                                        4,
+                                                        5,
+                                                        6,
+                                                        7,
+                                                        8,
+                                                        9,
+                                                        10,
+                                                        11,
+                                                        12,
+                                                        13,
+                                                        14,
+                                                        15,
+                                                        0,
+                                                        1,
+                                                        2,
+                                                        3,
+                                                        4,
+                                                        5,
+                                                        6,
+                                                        7);
+
+static const __m256i SHUFFLE_MASK_X4 = _mm256_setr_epi8(4,
+                                                        5,
+                                                        6,
+                                                        7,
+                                                        0,
+                                                        1,
+                                                        2,
+                                                        3,
+                                                        12,
+                                                        13,
+                                                        14,
+                                                        15,
+                                                        8,
+                                                        9,
+                                                        10,
+                                                        11,
+                                                        4,
+                                                        5,
+                                                        6,
+                                                        7,
+                                                        0,
+                                                        1,
+                                                        2,
+                                                        3,
+                                                        12,
+                                                        13,
+                                                        14,
+                                                        15,
+                                                        8,
+                                                        9,
+                                                        10,
+                                                        11);
+
+static const __m256i SHUFFLE_MASK_X2 = _mm256_setr_epi8(2,
+                                                        3,
+                                                        0,
+                                                        1,
+                                                        6,
+                                                        7,
+                                                        4,
+                                                        5,
+                                                        10,
+                                                        11,
+                                                        8,
+                                                        9,
+                                                        14,
+                                                        15,
+                                                        12,
+                                                        13,
+                                                        2,
+                                                        3,
+                                                        0,
+                                                        1,
+                                                        6,
+                                                        7,
+                                                        4,
+                                                        5,
+                                                        10,
+                                                        11,
+                                                        8,
+                                                        9,
+                                                        14,
+                                                        15,
+                                                        12,
+                                                        13);
+
+static inline __m256i half_reduce_adds_epi8(__m256i x)
+{
+    const __m256i swapped = _mm256_permute2x128_si256(x, x, 1);
+    const __m256i x16 = _mm256_adds_epi8(x, swapped);
+    const __m256i x8 = _mm256_adds_epi8(x16, _mm256_shuffle_epi8(x16, SHUFFLE_MASK_X8));
+    const __m256i x4 = _mm256_adds_epi8(x8, _mm256_shuffle_epi8(x8, SHUFFLE_MASK_X4));
+    const __m256i x2 = _mm256_adds_epi8(x4, _mm256_shuffle_epi8(x4, SHUFFLE_MASK_X2));
+    return x2;
+}
+
 static inline int reduce_or_epi32(__m256i x)
 {
     const __m128i x128 =

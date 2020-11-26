@@ -219,6 +219,14 @@ public:
     void decode(fipv* LlrIn, fipv* BitsOut);
 };
 
+class DoubleRepetitionDecoder : public Node
+{
+public:
+    DoubleRepetitionDecoder(Node* parent);
+    ~DoubleRepetitionDecoder();
+    void decode(fipv* LlrIn, fipv* BitsOut);
+};
+
 class ShortRepetitionDecoder : public ShortNode
 {
 public:
