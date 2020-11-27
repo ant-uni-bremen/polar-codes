@@ -236,7 +236,6 @@ void DecodingTest::testDoubleRepetitionCodeFloat()
 }
 
 
-
 void DecodingTest::runSPCCodeFloat(const size_t block_length)
 {
     std::vector<unsigned> frozen_bit_positions(1);
@@ -257,7 +256,6 @@ void DecodingTest::runSPCCodeFloat(const size_t block_length)
 
     std::cout << "testSPCCodeFloat: block_length=" << block_length << std::endl;
     for (unsigned i = 0; i < block_length; i++) {
-        // std::cout << signal[i] << "\t" << output[i] << "\t" << expected[i] << std::endl;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(expected[i], output[i], 1e-7);
     }
 
@@ -298,7 +296,6 @@ void DecodingTest::runDoubleSPCCodeFloat(const size_t block_length)
 
     std::cout << "testDoubleSPCCodeFloat: block_length=" << block_length << std::endl;
     for (unsigned i = 0; i < block_length; i++) {
-        // std::cout << signal[i] << "\t" << output[i] << "\t" << expected[i] << std::endl;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(expected[i], output[i], 1e-7);
     }
 

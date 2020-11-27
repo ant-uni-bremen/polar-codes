@@ -404,11 +404,11 @@ void DoubleSpcDecoder::decode()
 
     unsigned even_idx = 0;
     unsigned odd_idx = 1;
-    for(unsigned i = 0; i < 4; ++i){
-        if(mask[2* i]){
+    for (unsigned i = 0; i < 4; ++i) {
+        if (mask[2 * i]) {
             even_idx = minindices[2 * i];
         }
-        if(mask[2 * i + 1]){
+        if (mask[2 * i + 1]) {
             odd_idx = minindices[2 * i + 1];
         }
     }

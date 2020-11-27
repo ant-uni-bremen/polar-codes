@@ -243,9 +243,9 @@ inline __m256 _mm256_cmplt_ps(const __m256 a, const __m256 b)
 }
 
 inline __m256 _mm256_argabsmin_ps(__m256& minindices,
-                           const __m256 indices,
-                           const __m256 minvalues,
-                           const __m256 values)
+                                  const __m256 indices,
+                                  const __m256 minvalues,
+                                  const __m256 values)
 {
     const __m256 abs = _mm256_abs_ps(values);
     const __m256 mask = _mm256_cmplt_ps(abs, minvalues);
@@ -253,11 +253,13 @@ inline __m256 _mm256_argabsmin_ps(__m256& minindices,
     return _mm256_blendv_ps(abs, minvalues, mask);
 }
 
-inline __m256 _mm256_min4_ps(const __m256 x){
+inline __m256 _mm256_min4_ps(const __m256 x)
+{
     return _mm256_min_ps(x, _mm256_permute2f128_ps(x, x, 0b00000001));
 }
 
-inline __m256 _mm256_min2_ps(const __m256 fourMin){
+inline __m256 _mm256_min2_ps(const __m256 fourMin)
+{
     return _mm256_min_ps(fourMin, _mm256_permute_ps(fourMin, 0b01001110));
 }
 
