@@ -130,19 +130,19 @@ class FrozenBitPositionsDE(FrozenBitPositions):
         bestsigma = 10. ** 10
         sigma = 10. ** (-1. * self._dSNR / 10.)
         for f in self._path.iterdir():
-            print(f)
+            # print(f)
             candidates[f] = self._load_file(f)
             cs = candidates[f]['sigma']
             if np.abs(bestsigma - sigma) > np.abs(cs - sigma):
                 bestsigma = cs
                 bestfile = f
-            print(cs)
-        print(sigma, bestsigma)
-        return candidates[f]['positions']
+            # print(cs)
+        # print(sigma, bestsigma)
+        return candidates[bestfile]['positions']
 
     def _generate_frozen_bit_positions(self):
         positions = self._load_files()
-        return np.sort(positions[-self._info_length:])
+        return np.sort(positions[self._info_length:])
 
 
 class FrozenBitPositions5G(FrozenBitPositions):
