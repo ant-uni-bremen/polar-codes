@@ -9,6 +9,7 @@
 #include "decodingtest.h"
 #include "siformat.h"
 
+#include <fmt/core.h>
 #include <polarcode/construction/bhattacharrya.h>
 #include <polarcode/decoding/fastssc_avx_float.h>
 #include <polarcode/decoding/fastssc_fip_char.h>
@@ -21,7 +22,6 @@
 #include <chrono>
 #include <cstdlib>
 #include <random>
-#include <fmt/core.h>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DecodingTest);
 

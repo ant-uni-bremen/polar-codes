@@ -509,23 +509,23 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
 
     // Following are "interleaved one bit unlike the others" codes:
     if (frozenBitCount == blockLength - 2) {
-        std::cout << "DoubleREP: " << blockLength << std::endl;
-        for(auto fb : frozenBits){
-            std::cout << fb << "\t";
-        }
-        std::cout << std::endl;
+        // std::cout << "DoubleREP: " << blockLength << std::endl;
+        // for(auto fb : frozenBits){
+        //     std::cout << fb << "\t";
+        // }
+        // std::cout << std::endl;
         return new DoubleRepetitionDecoder(parent);
     }
-/*
-    if (frozenBitCount == 2) {
-        std::cout << "DoubleSPC: " << blockLength << std::endl;
-        for(auto fb : frozenBits){
-            std::cout << fb << "\t";
+    /*
+        if (frozenBitCount == 2) {
+            std::cout << "DoubleSPC: " << blockLength << std::endl;
+            for(auto fb : frozenBits){
+                std::cout << fb << "\t";
+            }
+            std::cout << std::endl;
+            return new DoubleSpcDecoder(parent);
         }
-        std::cout << std::endl;
-        return new DoubleSpcDecoder(parent);
-    }
-*/
+    */
     // Fallback: No special code available, split into smaller subcodes
     if (blockLength <= 8) {
         return new ShortRateRNode(frozenBits, parent);
