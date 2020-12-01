@@ -14,6 +14,6 @@ ADD_CUSTOM_TARGET(tests "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/pctest"
     DEPENDS pctest PolarCode SignalProcessing PolarTest
     COMMENT "Running CPPUNIT tests...")
 
-target_link_libraries(pctest PolarCode SignalProcessing cppunit)
+target_link_libraries(pctest PolarCode SignalProcessing cppunit fmt::fmt)
 
 add_test(NAME "TestPolarCodeCPP" COMMAND pctest)

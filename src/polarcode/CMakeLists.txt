@@ -101,14 +101,11 @@ add_library(PolarCode
 
 target_link_libraries(PolarCode ssl crypto)
 
-target_compile_features(PolarCode PRIVATE cxx_std_14)
-
 message(STATUS "in src/polarcode: INSTALL_LIBDIR: ${INSTALL_LIBDIR}")
 message(STATUS "in src/polarcode: CMAKE_INSTALL_LIBDIR: ${CMAKE_INSTALL_LIBDIR}")
 # include(GNUInstallDirs)
 install(TARGETS PolarCode
         EXPORT polarcode-targets
-#        RUNTIME DESTINATION bin
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 #        ARCHIVE DESTINATION lib/static)
 )

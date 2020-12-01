@@ -21,6 +21,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <random>
+#include <fmt/core.h>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DecodingTest);
 
@@ -100,6 +101,7 @@ void DecodingTest::runRepetitionCodeFipLong(const size_t block_length)
 
     const char result = char(std::min(127, std::max(-128, iresult)));
     std::cout << "testRepetitionCodeFipChar: block_length=" << block_length << std::endl;
+    fmt::print("Hello {}", "World");
     for (unsigned i = 0; i < block_length; i++) {
         CPPUNIT_ASSERT_EQUAL(result, output[i]);
     }

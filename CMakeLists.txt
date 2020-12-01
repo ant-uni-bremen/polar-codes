@@ -32,6 +32,7 @@ find_package(Doxygen)
 find_package(OpenSSL REQUIRED)
 #find_package(cppunit)
 find_package(Python3 REQUIRED)
+find_package(fmt REQUIRED)
 
 ## Check for TCLAP!
 include(CheckIncludeFileCXX)
