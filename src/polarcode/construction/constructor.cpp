@@ -6,9 +6,12 @@
  *
  */
 
+#include <polarcode/construction/betaexpansion.h>
 #include <polarcode/construction/bhattacharrya.h>
 #include <polarcode/construction/constructor.h>
+#include <algorithm>
 #include <cmath>
+#include <memory>
 #include <stdexcept>
 
 namespace PolarCode {
@@ -34,14 +37,25 @@ void Constructor::setInformationLength(size_t newInformationLength)
 
 void Constructor::setDesignSnr(float designSnr) { mDesignSnr = designSnr; }
 
-std::vector<unsigned>
-frozen_bits(const int blockLength, const int infoLength, const float designSnr)
+std::vector<unsigned> frozen_bits(const int blockLength,
+                                  const int infoLength,
+                                  const float designSnr,
+                                  const std::string& constructor_type)
 {
-    auto constructor =
-        new PolarCode::Construction::Bhattacharrya(blockLength, infoLength, designSnr);
-    auto indices = constructor->construct();
-    delete constructor;
-    return indices;
+    auto ctype(constructor_type);
+    std::transform(ctype.begin(), ctype.end(), ctype.begin(), [](unsigned char c) {
+        return std::tolower(c);
+    });
+    std::unique_ptr<PolarCode::Construction::Constructor> constructor;
+    if (ctype.find("be") != std::string::npos) {
+        constructor = std::make_unique<PolarCode::Construction::BetaExpansion>(
+            blockLength, infoLength, designSnr);
+    } else {
+        constructor = std::make_unique<PolarCode::Construction::Bhattacharrya>(
+            blockLength, infoLength, designSnr);
+    }
+
+    return constructor->construct();
 }
 
 } // namespace Construction

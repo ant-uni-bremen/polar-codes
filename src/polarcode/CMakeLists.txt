@@ -28,10 +28,12 @@ add_library(PolarEncoder OBJECT
         ${CMAKE_SOURCE_DIR}/include/polarcode/encoding/recursive_fip_packed.h)
 
 add_library(PolarConstructor OBJECT
-            construction/constructor
-            construction/bhattacharrya
-            ${CMAKE_SOURCE_DIR}/include/polarcode/construction/constructor.h
-            ${CMAKE_SOURCE_DIR}/include/polarcode/construction/bhattacharrya.h)
+        construction/constructor
+        construction/bhattacharrya
+        construction/betaexpansion
+        ${CMAKE_SOURCE_DIR}/include/polarcode/construction/constructor.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/construction/bhattacharrya.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/construction/betaexpansion.h)
 
 
 #add_executable(pcfactory
@@ -99,7 +101,7 @@ add_library(PolarCode
         ${CMAKE_SOURCE_DIR}/include/polarcode/polarcode.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/puncturer.h)
 
-target_link_libraries(PolarCode ssl crypto)
+target_link_libraries(PolarCode ssl crypto fmt::fmt)
 
 message(STATUS "in src/polarcode: INSTALL_LIBDIR: ${INSTALL_LIBDIR}")
 message(STATUS "in src/polarcode: CMAKE_INSTALL_LIBDIR: ${CMAKE_INSTALL_LIBDIR}")

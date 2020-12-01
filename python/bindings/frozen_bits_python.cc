@@ -25,5 +25,6 @@ void bind_constructor(py::module& m)
           &PolarCode::Construction::frozen_bits,
           py::arg("blockLength"),
           py::arg("infoLength"),
-          py::arg("designSNR"));
+          py::arg("designSNR"),
+          py::arg("constructorType") = std::string("BB"));
 }

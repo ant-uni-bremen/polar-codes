@@ -10,6 +10,7 @@
 #define PC_CON_CONSTRUCTOR_H
 
 #include <cstddef>
+#include <string>
 #include <vector>
 
 namespace PolarCode {
@@ -55,7 +56,10 @@ public:
 };
 
 std::vector<unsigned>
-frozen_bits(const int blockLength, const int infoLength, const float designSNR);
+frozen_bits(const int blockLength,
+            const int infoLength,
+            const float designSNR,
+            const std::string& constructor_type = std::string("BB"));
 
 } // namespace Construction
 } // namespace PolarCode
