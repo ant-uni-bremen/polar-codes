@@ -207,10 +207,11 @@ static void benchmark_polar_decoder(benchmark::State& state,
                                     const std::string& decoder_type,
                                     const unsigned parity_size,
                                     const std::string& detector_type,
-                                    const bool is_systematic)
+                                    const bool is_systematic,
+                                    const std::string& constructor_type)
 {
-    const auto frozen_bit_positions =
-        PolarCode::Construction::frozen_bits(block_length, info_length, dsnr);
+    const auto frozen_bit_positions = PolarCode::Construction::frozen_bits(
+        block_length, info_length, dsnr, constructor_type);
     auto decoder = create_polar_decoder(block_length,
                                         list_size,
                                         frozen_bit_positions,
@@ -364,7 +365,8 @@ BENCHMARK_CAPTURE(BM_polar_encode, CRC, "crc")
 
 static void BM_polar_decode(benchmark::State& state,
                             const std::string& detector_type,
-                            const std::string& decoder_type)
+                            const std::string& decoder_type,
+                            const std::string& constructor_type = std::string("BB"))
 {
     const size_t block_length = static_cast<size_t>(state.range(0));
     const size_t info_length = static_cast<size_t>(state.range(1));
@@ -390,7 +392,8 @@ static void BM_polar_decode(benchmark::State& state,
                             decoder_type,
                             parity_size,
                             detector_type,
-                            is_systematic);
+                            is_systematic,
+                            constructor_type);
 }
 
 
@@ -448,6 +451,18 @@ BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
                     { 0, 8, 16, 32 },
                     { 0, 1 },
                     { -100, 0, 100, 200, 300, 400 } });
+
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_BE_float, "crc", "float", "BE")
+    ->ArgsProduct({ {
+                        1024,
+                    },
+                    { 128, 256, 384, 512, 640, 768, 896 },
+                    { 1, 2, 4, 8, 16, 32 },
+                    { 0, 8, 16, 32 },
+                    { 0, 1 },
+                    {
+                        100,
+                    } });
 
 BENCHMARK_CAPTURE(BM_polar_decode, CRC_char, "crc", "char")
     ->ArgsProduct({ {

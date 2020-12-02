@@ -102,7 +102,7 @@ def find_all_values(results):
 def extract_result_line(results, fixed_values):
     line = []
     for r in results:
-        if np.all([r[k] == v for k, v in fixed_values.items()]):
+        if np.all([r.get(k, None) == v for k, v in fixed_values.items()]):
             # pprint(r)
             line.append(r)
     return line
@@ -129,6 +129,30 @@ def prepare_latency_over_info_length(results):
     return infos, latencies, label
 
 
+def prepare_throughput_over_info_length(results):
+    infos = []
+    code_thr = []
+    info_thr = []
+    for r in results:
+        infos.append(r['info_length'])
+        code_thr.append(r['CodeThr'])
+        info_thr.append(r['InfoThr'])
+    indices = np.argsort(infos)
+    infos = np.array(infos, dtype=int)[indices]
+    code_thr = np.array(code_thr, dtype=float)[indices]
+    info_thr = np.array(info_thr, dtype=float)[indices]
+
+    # print(results)
+    p = results[0]
+    label = f'N={p["block_length"]}, {p["detector_type"]}{p["detector_size"]}, dSNR={p["dsnr"]:.1f}'
+    if 'list_size' in p:
+        label += f', L={p["list_size"]}'
+    if 'decoder_type' in p:
+        label += f', {p["decoder_type"]}'
+    label += ', syst' if p['is_systematic'] else ''
+    return infos, code_thr, info_thr, label
+
+
 def main():
     latex_textwidth = 327.20668  # pt
     print(f'CWD: {os.getcwd()}')
@@ -137,17 +161,20 @@ def main():
     # print(args)
 
     # filename = args.file
-    # filename = '../polar_code_benchmarks_encode_crc_trx3970.json'
-    # context, results = load_json(filename)
-    # pprint(context)
-    # filename = '../polar_code_benchmarks_encode_cmac_trx3970.json'
-    # context, cmac_results = load_json(filename)
-    # pprint(context)
-    # results.extend(cmac_results)
+    results = []
+    filename = '../polar_code_benchmarks_encode_crc_trx3970.json'
+    context, crc_results = load_json(filename)
+    pprint(context)
+    results.extend(crc_results)
+    filename = '../polar_code_benchmarks_encode_cmac_trx3970.json'
+    context, cmac_results = load_json(filename)
+    pprint(context)
+    results.extend(cmac_results)
 
     filename = '../polar_code_benchmarks_trx3970.json'
-    context, results = load_json(filename)
+    context, decode_results = load_json(filename)
     pprint(context)
+    results.extend(decode_results)
 
     results = extract_result_information(results)
 
@@ -162,7 +189,7 @@ def main():
     all_latencies = []
     dsize = 32
     dtype = 'CRC'
-    is_systematic = False
+    is_systematic = True
     list_size = 1
     dsnr = 1.0
     benchmark_type = 'polar_decode'
@@ -175,15 +202,15 @@ def main():
         'detector_size': dsize,
         'dsnr': dsnr,
         'is_systematic': is_systematic}
-    if benchmark_type == 'polar_decode':
+    if benchmark_type == 'polar_encode':
         fixed_values.update({
             'list_size': list_size,
             'decoder_type': decoder_type,
         })
 
-    compare_values = ['decoder_type', 'is_systematic', 'block_length']
-    values['block_length'] = set(sorted(values['block_length'])[4:5])
-    values['list_size'] = set(sorted(values['list_size'])[1:-1])
+    compare_values = ['block_length', ]
+    # values['block_length'] = set(sorted(values['block_length'])[4:5])
+    # values['list_size'] = set(sorted(values['list_size'])[-3:])
     # print(values['block_length'])
 
     plt.figure(figsize=set_size(latex_textwidth))
@@ -195,27 +222,47 @@ def main():
         plotset = extract_result_line(results, fixed_values)
         if not plotset:
             continue
-        info_lens, latencies, label = prepare_latency_over_info_length(
+        # info_lens, latencies, label = prepare_latency_over_info_length(
+        #     plotset)
+        # plt.plot(info_lens, code_thr, label=label)
+        info_lens, code_thr, info_thr, label = prepare_throughput_over_info_length(
             plotset)
+        print(fixed_values['block_length'])
+        code_rate  = info_lens / fixed_values['block_length']
         print(label)
         print(info_lens)
-        print(latencies)
-        all_latencies.append(latencies)
-        plt.plot(info_lens, latencies, label=label)
+        print(code_thr)
+        print(info_thr)
+        # print(latencies)
+        # all_latencies.append(latencies)
+        p = plt.plot(code_rate, code_thr, label=label)
+        color = p[0].get_color()
+        p = plt.plot(code_rate, info_thr, color=color, linestyle='dashed')
 
     # for l in all_latencies[1:]:
     #     print(l - all_latencies[0])
     plt.xlabel(r'$K$')
     plt.ylabel('execution time [ns]')
+
+    plt.xlabel(r'$R$')
+    plt.ylabel('throughput [b/s]')
+
     plt.legend(fontsize='x-small')
     plt.tight_layout()
+    # plt.savefig('polar_encoder_blocksizes.pgf')
     # plt.savefig('polar_encoder_N1024_CRCs.pgf')
     # plt.savefig('polar_encoder_N1024_CMACs.pgf')
     # plt.savefig('polar_encoder_N1024_systematic.pgf')
     # plt.savefig('polar_encoder_N1024_dSNRs.pgf')
     # plt.savefig('polar_encoder_N1024_CRCvsCMAC.pgf')
+    # plt.savefig('polar_decoder_blocksizes.pgf')
     # plt.savefig('polar_decoder_N1024_dSNRs.pgf')
     # plt.savefig('polar_decoder_N1024_systematic.pgf')
+    # plt.savefig('polar_decoder_N1024_CRCs.pgf')
+    # plt.savefig('polar_decoder_N1024_listsizes_small.pgf')
+    # plt.savefig('polar_decoder_N1024_listsizes_large.pgf')
+    plt.savefig('polar_encoder_throughput.pgf')
+    # plt.savefig('polar_decoder_throughput.pgf')
 
 
 if __name__ == '__main__':
