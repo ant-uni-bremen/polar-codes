@@ -13,7 +13,7 @@ jobs:
       with:
         args: git submodule update --init --recursive
     - name: dependencies
-      run: sudo apt install doxygen python3-pybind11 python3-numpy python3-scipy libcppunit-dev libtclap-dev libssl-dev
+      run: sudo apt install doxygen python3-pybind11 python3-numpy python3-scipy libcppunit-dev libtclap-dev libssl-dev libfmt-dev
     - name: configure
       run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Werror" ..
     - name: build
