@@ -167,6 +167,8 @@ public:
     void decode();
 };
 
+void decode_double_spc(float* out, const float* in, const unsigned block_length);
+
 class DoubleSpcDecoder : public Node
 {
     unsigned* mFlipIndices;

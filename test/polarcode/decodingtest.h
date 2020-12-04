@@ -71,6 +71,7 @@ public:
 
 private:
     void showScanTestOutput(unsigned, float*);
+    void fillRandom(float* vec, const unsigned length);
 };
 
 #endif // PC_TEST_DECODING_H

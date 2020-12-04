@@ -33,6 +33,18 @@ inline float hardDecode(float llr)
     return (llr < 0) ? -0.0f : 0.0f;
 }
 
+static const __m256 IDX_STEP = _mm256_set1_ps(8.0);
+
+static const __m256 EVEN_MASK =
+    _mm256_cmp_ps(_mm256_setr_ps(1.0, -1.0, 2.0, -3.0, 4.0, -5.0, 6.0, -7.0),
+                  _mm256_set1_ps(0.0),
+                  _CMP_GT_OQ);
+
+static const __m256 ODD_MASK =
+    _mm256_cmp_ps(_mm256_setr_ps(-1.0, 1.0, -2.0, 3.0, -4.0, 5.0, -6.0, 7.0),
+                  _mm256_set1_ps(0.0),
+                  _CMP_GT_OQ);
+
 static const __m256 SIGN_MASK = _mm256_set1_ps(-0.0f);
 
 inline __m256 _mm256_abs_ps(const __m256 values)

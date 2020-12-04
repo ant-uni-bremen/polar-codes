@@ -219,9 +219,10 @@ def main():
 
     sorted_channels = fbp._reliabilities
 
-    fbp_be = FrozenBitPositionsPW(1024, 512, 0.)
+    fbp_be = FrozenBitPositionsPW(256, 64, 0.)
     frozen_bit_positions_be = fbp_be.frozen_bit_positions()
-    # print(frozen_bit_positions_be)
+    print(', '.join([str(i) for i in frozen_bit_positions_be]))
+    return
     # sorted_channels_be = fbp_be._reliabilities
     # print(sorted_channels)
     # print(sorted_channels_be)

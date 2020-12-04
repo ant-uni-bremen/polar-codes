@@ -307,6 +307,15 @@ static inline short reduce_adds_epi16(__m128i x)
 }
 #endif
 
+
+static inline __m256 _mm256_reduce_xor_half_ps(__m256 x)
+{
+    const __m256 four = _mm256_xor_ps(x, _mm256_permute2f128_ps(x, x, 0b00000001));
+    /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */
+    return _mm256_xor_ps(four, _mm256_permute_ps(four, 0b01001110));
+}
+
+
 static inline float reduce_xor_ps(__m256 x)
 {
     /* ( x3+x7, x2+x6, x1+x5, x0+x4 ) */

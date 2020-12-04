@@ -10,6 +10,7 @@
 #include "siformat.h"
 
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 #include <polarcode/construction/bhattacharrya.h>
 #include <polarcode/decoding/fastssc_avx_float.h>
 #include <polarcode/decoding/fastssc_fip_char.h>
@@ -100,8 +101,7 @@ void DecodingTest::runRepetitionCodeFipLong(const size_t block_length)
     }
 
     const char result = char(std::min(127, std::max(-128, iresult)));
-    std::cout << "testRepetitionCodeFipChar: block_length=" << block_length << std::endl;
-    fmt::print("Hello {}", "World");
+    fmt::print("testRepetitionCodeFipChar: block_length={}\n", block_length);
     for (unsigned i = 0; i < block_length; i++) {
         CPPUNIT_ASSERT_EQUAL(result, output[i]);
     }
@@ -140,8 +140,11 @@ void DecodingTest::runDoubleRepetitionCodeFipLong(const size_t block_length)
     const char result0 = char(std::min(127, std::max(-128, iresult0)));
     const char result1 = char(std::min(127, std::max(-128, iresult1)));
 
-    std::cout << "testDoubleRepetitionCodeFipChar: block_length=" << block_length << "\t"
-              << "r0=" << int(result0) << "\tr1=" << int(result1) << std::endl;
+    fmt::print(
+        "testDoubleRepetitionCodeFipChar: block_length={:>4d}\tr0={:>+3d}\tr1={:>+3d}\n",
+        block_length,
+        result0,
+        result1);
 
     for (unsigned i = 0; i < block_length; i += 2) {
         CPPUNIT_ASSERT_EQUAL(result0, output[i]);
@@ -256,7 +259,7 @@ void DecodingTest::runSPCCodeFloat(const size_t block_length)
     decoder->decode();
     decoder->getSoftCodeword(output);
 
-    std::cout << "testSPCCodeFloat: block_length=" << block_length << std::endl;
+    fmt::print("testSPCCodeFloat: block_length={}\n", block_length);
     for (unsigned i = 0; i < block_length; i++) {
         CPPUNIT_ASSERT_DOUBLES_EQUAL(expected[i], output[i], 1e-7);
     }
@@ -277,8 +280,19 @@ void DecodingTest::testSPCCodeFloat()
     runSPCCodeFloat(block_length * 64);
 }
 
+void DecodingTest::fillRandom(float* vec, const unsigned length)
+{
+    std::mt19937_64 generator;
+    std::normal_distribution<float> dist(10, 20);
+    for (unsigned i = 0; i < length; ++i) {
+        vec[i] = dist(generator);
+    }
+}
+
 void DecodingTest::runDoubleSPCCodeFloat(const size_t block_length)
 {
+
+    fmt::print("testDoubleSPCFloat: block_length={}\n", block_length);
     std::vector<unsigned> frozen_bit_positions(2);
     std::iota(frozen_bit_positions.begin(), frozen_bit_positions.end(), 0);
     auto decoder = std::make_unique<PolarCode::Decoding::FastSscAvxFloat>(
@@ -288,15 +302,19 @@ void DecodingTest::runDoubleSPCCodeFloat(const size_t block_length)
     float* signal = (float*)std::aligned_alloc(32, block_length * sizeof(float));
     float* output = (float*)std::aligned_alloc(32, block_length * sizeof(float));
 
-    std::iota(signal, signal + block_length, -5.9);
-    std::vector<float> expected(signal, signal + block_length);
-    expected[5] *= -1.0;
-    expected[6] *= -1.0;
+    fillRandom(signal, block_length);
+
+    std::vector<float> expected(block_length);
+    PolarCode::Decoding::FastSscAvx::decode_double_spc(
+        expected.data(), signal, block_length);
+
+    // fmt::print("signal: {}\n", std::vector<float>(signal, signal + block_length));
     decoder->setSignal(signal);
     decoder->decode();
     decoder->getSoftCodeword(output);
 
-    std::cout << "testDoubleSPCCodeFloat: block_length=" << block_length << std::endl;
+    // fmt::print("output: {}\n", std::vector<float>(output, output + block_length));
+    // fmt::print("expect: {}\n", expected);
     for (unsigned i = 0; i < block_length; i++) {
         CPPUNIT_ASSERT_DOUBLES_EQUAL(expected[i], output[i], 1e-7);
     }
@@ -952,6 +970,7 @@ void DecodingTest::testFipShort()
 
     delete decoder;
 }
+
 
 void DecodingTest::testPerformance()
 {

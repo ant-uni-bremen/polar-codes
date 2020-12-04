@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2018 Florian Lotze
+ * Copyright 2018, 2020 Florian Lotze, Johannes Demel
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -15,6 +15,9 @@
 
 #include <cmath>
 #include <cstring> //for memset
+
+#include <fmt/core.h>
+#include <fmt/ranges.h>
 
 namespace PolarCode {
 namespace Decoding {
@@ -103,12 +106,16 @@ RateRNode::RateRNode(const std::vector<unsigned>& frozenBits,
     if (flags & NO_LEFT) {
         mLeft = new Node();
     } else {
+        // fmt::print("ctor: left  RateR( {} / {})\n", mBlockLength,
+        // leftFrozenBits.size());
         mLeft = createDecoder(leftFrozenBits, this);
     }
 
     if (flags & NO_RIGHT) {
         mRight = new Node();
     } else {
+        // fmt::print("ctor: right RateR( {} / {})\n", mBlockLength,
+        // rightFrozenBits.size());
         mRight = createDecoder(rightFrozenBits, this);
     }
 
@@ -373,6 +380,47 @@ void SpcDecoder::decode()
  * DoubleSpcDecoder
  * ***********/
 
+void decode_double_spc(float* out, const float* in, const unsigned block_length)
+{
+    unsigned even_min_idx = 0;
+    unsigned odd_min_idx = 0;
+    bool even_parity = 0;
+    bool odd_parity = 0;
+    float even_min = std::numeric_limits<float>::max();
+    float odd_min = std::numeric_limits<float>::max();
+
+    for (unsigned i = 0; i < block_length; i += 2) {
+        const float even = in[i];
+        const float abs_even = std::abs(even);
+        even_parity ^= std::signbit(even);
+        if (abs_even < even_min) {
+            even_min_idx = i;
+            even_min = abs_even;
+        }
+
+        const float odd = in[i + 1];
+        const float abs_odd = std::abs(odd);
+        odd_parity ^= std::signbit(odd);
+        if (abs_odd < odd_min) {
+            odd_min_idx = i + 1;
+            odd_min = abs_odd;
+        }
+
+        out[i] = even;
+        out[i + 1] = odd;
+    }
+
+    // fmt::print("even idx={},\tval={},\tparity={}\n", even_min_idx, even_min,
+    // even_parity); fmt::print("odd  idx={},\tval={},\tparity={}\n", odd_min_idx,
+    // odd_min, odd_parity);
+
+    reinterpret_cast<unsigned int*>(out)[even_min_idx] ^=
+        (even_parity ? 0x80000000 : 0x00000000);
+    reinterpret_cast<unsigned int*>(out)[odd_min_idx] ^=
+        (odd_parity ? 0x80000000 : 0x00000000);
+}
+
+
 DoubleSpcDecoder::DoubleSpcDecoder(Node* parent) : Node(parent)
 {
     mTempBlock = xmDataPool->allocate(mBlockLength);
@@ -383,46 +431,45 @@ DoubleSpcDecoder::~DoubleSpcDecoder() { xmDataPool->release(mTempBlock); }
 
 void DoubleSpcDecoder::decode()
 {
-    SpcPrepare(mInput, mBlockLength);
+    // SpcPrepare(mInput, mBlockLength);
     const float* llrs = mInput;
+
     __m256 parity = _mm256_setzero_ps();
     __m256 minvalues = _mm256_set1_ps(std::numeric_limits<float>::max());
     __m256 minindices = _mm256_setzero_ps();
-    __m256 indices = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
-    const __m256 step = _mm256_set1_ps(8.0);
+
+    __m256 indices = _mm256_setr_ps(0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0);
+
     for (unsigned i = 0; i < mBlockLength; i += 8) {
-        __m256 part = _mm256_loadu_ps(llrs + i);
-        _mm256_storeu_ps(mOutput + i, part);
+        const __m256 part = _mm256_load_ps(llrs + i);
+        _mm256_store_ps(mOutput + i, part);
         parity = _mm256_xor_ps(parity, part);
         minvalues = _mm256_argabsmin_ps(minindices, indices, minvalues, part);
-        indices = _mm256_add_ps(indices, step);
+        indices = _mm256_add_ps(indices, IDX_STEP);
     }
 
     const __m256 fourMin = _mm256_min4_ps(minvalues);
     const __m256 twoMin = _mm256_min2_ps(fourMin);
+
     const __m256 mask = _mm256_cmp_ps(minvalues, twoMin, _CMP_EQ_OQ);
 
-    unsigned even_idx = 0;
-    unsigned odd_idx = 1;
-    for (unsigned i = 0; i < 4; ++i) {
-        if (mask[2 * i]) {
-            even_idx = minindices[2 * i];
-        }
-        if (mask[2 * i + 1]) {
-            odd_idx = minindices[2 * i + 1];
-        }
-    }
+    const unsigned even_idx_mask =
+        __tzcnt_u32(_mm256_movemask_ps(_mm256_and_ps(mask, EVEN_MASK)));
+    const unsigned odd_idx_mask =
+        __tzcnt_u32(_mm256_movemask_ps(_mm256_and_ps(mask, ODD_MASK)));
 
-    const __m128 x128 =
-        _mm_xor_ps(_mm256_extractf128_ps(parity, 1), _mm256_castps256_ps128(parity));
-    /* ( -, -, x1+x3+x5+x7, x0+x2+x4+x6 ) */
-    const __m128 x64 = _mm_xor_ps(x128, _mm_movehl_ps(x128, x128));
+    const unsigned even_idx = minindices[even_idx_mask];
+    const unsigned odd_idx = minindices[odd_idx_mask];
 
-    const unsigned int even_parity = x64[0] > 0 ? 0x00000000 : 0x80000000;
-    reinterpret_cast<unsigned int*>(mOutput)[even_idx] ^= even_parity;
+    const __m256 parities = _mm256_reduce_xor_half_ps(parity);
 
-    const unsigned int odd_parity = x64[1] > 0 ? 0x00000000 : 0x80000000;
-    reinterpret_cast<unsigned int*>(mOutput)[odd_idx] ^= odd_parity;
+    const bool even_parity = std::signbit(parities[0]);
+    const bool odd_parity = std::signbit(parities[1]);
+
+    reinterpret_cast<unsigned int*>(mOutput)[even_idx] ^=
+        (even_parity ? 0x80000000 : 0x00000000);
+    reinterpret_cast<unsigned int*>(mOutput)[odd_idx] ^=
+        (odd_parity ? 0x80000000 : 0x00000000);
 }
 
 
@@ -487,47 +534,54 @@ void ZeroSpcDecoder::decode()
 
 Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
 {
+
     size_t blockLength = parent->blockLength();
     size_t frozenBitCount = frozenBits.size();
 
     // Begin with the two most simple codes:
     if (frozenBitCount == blockLength) {
+        // fmt::print("create: RateZeroDecoder( {} / {})\n", blockLength, frozenBitCount);
         return new RateZeroDecoder(parent);
     }
     if (frozenBitCount == 0) {
+        // fmt::print("create: RateOneDecoder( {} / {})\n", blockLength, frozenBitCount);
         return new RateOneDecoder(parent);
     }
 
     // Following are "one bit unlike the others" codes:
     if (frozenBitCount == (blockLength - 1)) {
+        // fmt::print("create: RepetitionDecoder( {} / {})\n", blockLength,
+        // frozenBitCount);
         return new RepetitionDecoder(parent);
     }
     if (frozenBitCount == 1) {
-        // std::cout << "SPC: " << blockLength << std::endl;
+        // fmt::print("create: SpcDecoder( {} / {})\n", blockLength, frozenBitCount);
         return new SpcDecoder(parent);
     }
 
     // Following are "interleaved one bit unlike the others" codes:
     if (frozenBitCount == blockLength - 2) {
-        // std::cout << "DoubleREP: " << blockLength << std::endl;
-        // for(auto fb : frozenBits){
-        //     std::cout << fb << "\t";
-        // }
-        // std::cout << std::endl;
+        // fmt::print(
+        // "create: DoubleRepetitionDecoder( {} / {})\n", blockLength, frozenBitCount);
+        for (unsigned i = 0; i < frozenBits.size(); i++) {
+            if (frozenBits[i] != i) {
+                throw std::invalid_argument(fmt::format("{}", frozenBits));
+            }
+        }
         return new DoubleRepetitionDecoder(parent);
     }
-    /*
-        if (frozenBitCount == 2) {
-            std::cout << "DoubleSPC: " << blockLength << std::endl;
-            for(auto fb : frozenBits){
-                std::cout << fb << "\t";
-            }
-            std::cout << std::endl;
-            return new DoubleSpcDecoder(parent);
-        }
-    */
+
+    if (frozenBitCount == 2 and frozenBits[0] == 0 and frozenBits[1] == 1) {
+        // fmt::print("create: DoubleSpcDecoder( {} / {}): {}\n",
+        //            blockLength,
+        //            frozenBitCount,
+        //            frozenBits);
+        return new DoubleSpcDecoder(parent);
+    }
+
     // Fallback: No special code available, split into smaller subcodes
     if (blockLength <= 8) {
+        // fmt::print("create: ShortRateRNode( {} / {})\n", blockLength, frozenBitCount);
         return new ShortRateRNode(frozenBits, parent);
     } else {
         std::vector<unsigned> leftFrozenBits, rightFrozenBits;
@@ -536,20 +590,23 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
         // Last case of optimization:
         // Common child node combination(s)
         if (leftFrozenBits.size() == blockLength / 2 && rightFrozenBits.size() == 1) {
+            // fmt::print("create: ZeroSpcDecoder( {} / {})\n", blockLength,
+            // frozenBitCount);
             return new ZeroSpcDecoder(parent);
         }
-
 
         // Minor optimization:
         // Right rate-1
         if (rightFrozenBits.size() == 0) {
+            // fmt::print("create: ROneNode( {} / {})\n", blockLength, frozenBitCount);
             return new ROneNode(frozenBits, parent);
         }
         // Left rate-0
         if (leftFrozenBits.size() == blockLength / 2) {
+            // fmt::print("create: ZeroRNode( {} / {})\n", blockLength, frozenBitCount);
             return new ZeroRNode(frozenBits, parent);
         }
-
+        // fmt::print("create: RateRNode( {} / {})\n", blockLength, frozenBitCount);
         return new RateRNode(frozenBits, parent);
     }
 }
