@@ -565,6 +565,30 @@ void ZeroSpcDecoderShort8::decode()
 }
 
 
+TripleRepetitionDecoder::TripleRepetitionDecoder(Node* parent) : Node(parent) {}
+
+TripleRepetitionDecoder::~TripleRepetitionDecoder() {}
+
+void TripleRepetitionDecoder::decode()
+{
+    __m256 input = _mm256_setzero_ps();
+    for (unsigned i = 0; i < mBlockLength; i += 8) {
+        const __m256 part = _mm256_load_ps(mInput + i);
+        input = _mm256_add_ps(input, part);
+    }
+
+    const __m256 swaplane = _mm256_permute2f128_ps(input, input, 0b00000001);
+
+    const __m256 spc_input = _mm256_add_ps(input, swaplane);
+    const __m256 spc_output = _mm256_spc_right4_ps(spc_input);
+    const __m256 result = _mm256_permute2f128_ps(spc_output, spc_output, 0b00010001);
+
+    for (unsigned i = 0; i < mBlockLength; i += 8) {
+        _mm256_store_ps(mOutput + i, result);
+    }
+}
+
+
 namespace {
 
 void calculate_repetition_generic(float* out,
@@ -808,6 +832,16 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
         } else {
             return new DoubleSpcDecoder(parent);
         }
+    }
+
+    if (frozenBitCount == blockLength - 3 and blockLength > 8 and
+        frozenBits[frozenBitCount - 1] == blockLength - 4) {
+        for (unsigned i = 0; i < frozenBits.size(); i++) {
+            if (frozenBits[i] != i) {
+                throw std::invalid_argument(fmt::format("{}", frozenBits));
+            }
+        }
+        return new TripleRepetitionDecoder(parent);
     }
 
     if (frozenBitCount == blockLength - 4 and

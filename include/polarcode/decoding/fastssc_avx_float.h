@@ -165,6 +165,14 @@ public:
     void decode();
 };
 
+class TripleRepetitionDecoder : public Node
+{
+public:
+    TripleRepetitionDecoder(Node* parent);
+    ~TripleRepetitionDecoder();
+    void decode();
+};
+
 class SpcDecoder : public Node
 {
 public:
