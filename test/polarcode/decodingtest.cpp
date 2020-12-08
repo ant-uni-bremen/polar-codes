@@ -333,6 +333,48 @@ void DecodingTest::testDoubleSPCCodeFloat()
 }
 
 
+void DecodingTest::runTypeFiveDecoder(const size_t block_length)
+{
+    fmt::print("testTypeFiveDecoder: block_length={}\n", block_length);
+    std::vector<unsigned> frozen_bit_positions(block_length - 4);
+    std::iota(frozen_bit_positions.begin(), frozen_bit_positions.end() - 1, 0);
+    frozen_bit_positions[block_length - 5] = block_length - 4;
+    fmt::print("positions: {}\n", frozen_bit_positions);
+    auto decoder = std::make_unique<PolarCode::Decoding::FastSscAvxFloat>(
+        block_length, frozen_bit_positions);
+    decoder->setSystematic(false);
+
+    float* signal = (float*)std::aligned_alloc(32, block_length * sizeof(float));
+    float* output = (float*)std::aligned_alloc(32, block_length * sizeof(float));
+
+    fillRandom(signal, block_length);
+
+    std::vector<float> expected(block_length);
+    PolarCode::Decoding::FastSscAvx::decode_type_five_generic(
+        expected.data(), signal, block_length);
+
+    decoder->setSignal(signal);
+    decoder->decode();
+    decoder->getSoftCodeword(output);
+
+    for (unsigned i = 0; i < block_length; i++) {
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(expected[i], output[i], 1e-7);
+    }
+
+    free(signal);
+    free(output);
+}
+
+void DecodingTest::testTypeFiveDecoder()
+{
+    size_t block_length = 4;
+    runTypeFiveDecoder(block_length * 2);
+    runTypeFiveDecoder(block_length * 4);
+    runTypeFiveDecoder(block_length * 8);
+    runTypeFiveDecoder(block_length * 16);
+}
+
+
 void DecodingTest::testSpecialDecoders()
 {
 /*	__m256i llr, bits, expectedResult;

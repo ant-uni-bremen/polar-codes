@@ -156,11 +156,6 @@ public:
 
 class SpcDecoder : public Node
 {
-    unsigned* mFlipIndices;
-    block_t* mTempBlock;
-    float* mTempBlockPtr;
-    void findWeakLlr();
-
 public:
     SpcDecoder(Node* parent);
     ~SpcDecoder();
@@ -171,15 +166,32 @@ void decode_double_spc(float* out, const float* in, const unsigned block_length)
 
 class DoubleSpcDecoder : public Node
 {
-    unsigned* mFlipIndices;
-    block_t* mTempBlock;
-    float* mTempBlockPtr;
-
 public:
     DoubleSpcDecoder(Node* parent);
     ~DoubleSpcDecoder();
     void decode();
 };
+
+
+class DoubleSpcDecoderShort8 : public Node
+{
+public:
+    DoubleSpcDecoderShort8(Node* parent);
+    ~DoubleSpcDecoderShort8();
+    void decode();
+};
+
+void decode_type_five_generic(float* out, const float* in, const unsigned block_length);
+
+
+class TypeFiveDecoder : public Node
+{
+public:
+    TypeFiveDecoder(Node* parent);
+    ~TypeFiveDecoder();
+    void decode();
+};
+
 
 class ZeroSpcDecoder : public Node
 {

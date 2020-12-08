@@ -11,6 +11,7 @@
 #include <polarcode/polarcode.h>
 
 #include <iostream>
+#include <numeric>
 #include <string>
 
 #include <cmath>
@@ -334,13 +335,9 @@ void DoubleRepetitionDecoder::decode()
  * SpcDecoder
  * ***********/
 
-SpcDecoder::SpcDecoder(Node* parent) : Node(parent)
-{
-    mTempBlock = xmDataPool->allocate(mBlockLength);
-    mTempBlockPtr = mTempBlock->data;
-}
+SpcDecoder::SpcDecoder(Node* parent) : Node(parent) {}
 
-SpcDecoder::~SpcDecoder() { xmDataPool->release(mTempBlock); }
+SpcDecoder::~SpcDecoder() {}
 
 void SpcDecoder::decode()
 {
@@ -421,13 +418,9 @@ void decode_double_spc(float* out, const float* in, const unsigned block_length)
 }
 
 
-DoubleSpcDecoder::DoubleSpcDecoder(Node* parent) : Node(parent)
-{
-    mTempBlock = xmDataPool->allocate(mBlockLength);
-    mTempBlockPtr = mTempBlock->data;
-}
+DoubleSpcDecoder::DoubleSpcDecoder(Node* parent) : Node(parent) {}
 
-DoubleSpcDecoder::~DoubleSpcDecoder() { xmDataPool->release(mTempBlock); }
+DoubleSpcDecoder::~DoubleSpcDecoder() {}
 
 void DoubleSpcDecoder::decode()
 {
@@ -470,6 +463,28 @@ void DoubleSpcDecoder::decode()
         (even_parity ? 0x80000000 : 0x00000000);
     reinterpret_cast<unsigned int*>(mOutput)[odd_idx] ^=
         (odd_parity ? 0x80000000 : 0x00000000);
+}
+
+
+DoubleSpcDecoderShort8::DoubleSpcDecoderShort8(Node* parent) : Node(parent) {}
+
+DoubleSpcDecoderShort8::~DoubleSpcDecoderShort8() {}
+
+void DoubleSpcDecoderShort8::decode()
+{
+    const __m256 values = _mm256_load_ps(mInput);
+    const __m256 minvalues = _mm256_abs_ps(values);
+
+    const __m256 fourMin = _mm256_min4_ps(minvalues);
+    const __m256 twoMin = _mm256_min2_ps(fourMin);
+    const __m256 mask = _mm256_cmp_ps(minvalues, twoMin, _CMP_EQ_OQ);
+
+    const __m256 signs = _mm256_and_ps(mask, SIGN_MASK);
+
+    const __m256 parities = _mm256_reduce_xor_half_ps(values);
+    const __m256 signed_mask = _mm256_and_ps(parities, signs);
+    const __m256 result = _mm256_xor_ps(signed_mask, values);
+    _mm256_store_ps(mOutput, result);
 }
 
 
@@ -530,7 +545,165 @@ void ZeroSpcDecoder::decode()
     iOutput[minIdx + subBlockLength] ^= iParity;
 }
 
+
+namespace {
+
+void calculate_repetition_generic(float* out,
+                                  const float* in,
+                                  const unsigned block_length)
+{
+    float sum = std::accumulate(in, in + block_length, 0.0f);
+    std::fill(out, out + block_length, sum);
+}
+
+void calculate_spc_generic(float* out, const float* in, const unsigned block_length)
+{
+    std::copy(in, in + block_length, out);
+
+    bool parity = false;
+    unsigned idx = 0;
+    float min = std::numeric_limits<float>::max();
+    for (unsigned i = 0; i < block_length; i++) {
+        parity ^= std::signbit(in[i]);
+        float abs = std::abs(in[i]);
+
+        if (min > abs) {
+            min = abs;
+            idx = i;
+        }
+    }
+    if (parity) {
+        out[idx] *= -1.0f;
+    }
+}
+
+void calculate_f_generic(float* out,
+                         const float* in_left,
+                         const float* in_right,
+                         const unsigned block_length)
+{
+    for (unsigned i = 0; i < block_length; ++i) {
+        bool sign = std::signbit(in_left[i]) ^ std::signbit(in_right[i]);
+        float min = std::min(std::abs(in_left[i]), std::abs(in_right[i]));
+        out[i] = (sign ? -1.0f : 1.0f) * min;
+    }
+}
+
+void calculate_g_generic(float* out,
+                         const float* in_left,
+                         const float* in_right,
+                         const float* bits,
+                         const unsigned block_length)
+{
+    for (unsigned i = 0; i < block_length; ++i) {
+        out[i] = std::signbit(bits[i]) ? (in_right[i] - in_left[i])
+                                       : (in_right[i] + in_left[i]);
+    }
+}
+
+void combine(float* out,
+             const float* in_left,
+             const float* in_right,
+             const unsigned block_length)
+{
+    for (unsigned i = 0; i < block_length; ++i) {
+        bool sign = std::signbit(in_left[i]) ^ std::signbit(in_right[i]);
+        out[i] = sign ? -1.0f : 1.0f;
+    }
+}
+
+void decode_repspc_generic_8(float* out, const float* in)
+{
+    std::vector<float> repetition_input(4);
+    calculate_f_generic(repetition_input.data(), in, in + 4, 4);
+
+    // fmt::print("rep in: \t{}\n", repetition_input);
+
+    std::vector<float> repetition_result(4);
+    calculate_repetition_generic(repetition_result.data(), repetition_input.data(), 4);
+
+    // fmt::print("rep out: \t{}\n", repetition_result);
+
+    std::vector<float> spc_input(4);
+    calculate_g_generic(spc_input.data(), in, in + 4, repetition_result.data(), 4);
+
+    // fmt::print("spc in: \t{}\n", spc_input);
+
+    std::vector<float> spc_output(4);
+    calculate_spc_generic(spc_output.data(), spc_input.data(), 4);
+
+    // fmt::print("spc out: \t{}\n", spc_output);
+
+    combine(out, repetition_result.data(), spc_output.data(), 4);
+    std::copy(spc_output.begin(), spc_output.end(), out + 4);
+}
+} // namespace
+
+
+void decode_type_five_generic(float* out, const float* in, const unsigned block_length)
+{
+    std::vector<float> llrs_vector(8, 0.0f);
+    for (unsigned i = 0; i < block_length; i += 8) {
+        for (unsigned j = 0; j < 8; ++j) {
+            llrs_vector[j] += in[i + j];
+        }
+    }
+
+    decode_repspc_generic_8(out, llrs_vector.data());
+
+    for (unsigned i = 8; i < block_length; i += 8) {
+        std::copy(out, out + 8, out + i);
+    }
+}
+
+TypeFiveDecoder::TypeFiveDecoder(Node* parent) : Node(parent) {}
+
+TypeFiveDecoder::~TypeFiveDecoder() {}
+
+void TypeFiveDecoder::decode()
+{
+    __m256 llrs = _mm256_setzero_ps();
+
+    for (unsigned i = 0; i < mBlockLength; i += 8) {
+        const __m256 part = _mm256_load_ps(mInput + i);
+        llrs = _mm256_add_ps(llrs, part);
+    }
+
+    const __m256 swaplane = _mm256_permute2f128_ps(llrs, llrs, 0b00000001);
+
+    const __m256 rep_in = _mm256_polarf_ps(llrs, swaplane);
+
+    const __m256 reduce_half = _mm256_hadd_ps(rep_in, rep_in);
+    const __m256 rep_result = _mm256_hadd_ps(reduce_half, reduce_half);
+
+    const __m256 spc_in = _mm256_polarg_ps(swaplane, llrs, rep_result);
+
+    const __m256 abs = _mm256_abs_ps(spc_in);
+    const __m256 twoMin = _mm256_min2_ps(abs);
+    const __m256 oneMin = _mm256_min_ps(twoMin, _mm256_permute_ps(twoMin, 0b10110001));
+    const __m256 mask = _mm256_cmp_ps(abs, oneMin, _CMP_EQ_OQ);
+
+    const __m256 permute_half = _mm256_permute_ps(spc_in, 0b01001110);
+    const __m256 xor_half_h = _mm256_xor_ps(spc_in, permute_half);
+    const __m256 xor_half = _mm256_and_ps(SIGN_MASK, xor_half_h);
+    const __m256 permute_full = _mm256_permute_ps(xor_half, 0b10110001);
+    const __m256 xor_full = _mm256_xor_ps(xor_half, permute_full);
+    const __m256 spc_result = _mm256_xor_ps(spc_in, _mm256_and_ps(xor_full, mask));
+
+    const __m256 combine_sign =
+        _mm256_and_ps(SIGN_MASK, _mm256_xor_ps(rep_result, spc_result));
+    const __m256 broad_sign =
+        _mm256_permute2f128_ps(combine_sign, combine_sign, 0b00010001);
+    const __m256 sign_result = _mm256_xor_ps(broad_sign, _mm256_set1_ps(1.0f));
+    const __m256 result = _mm256_blend_ps(sign_result, spc_result, 0b11110000);
+
+    for (unsigned i = 0; i < mBlockLength; i += 8) {
+        _mm256_storeu_ps(mOutput + i, result);
+    }
+}
+
 // End of decoder definitions
+
 
 Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
 {
@@ -538,31 +711,46 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
     size_t blockLength = parent->blockLength();
     size_t frozenBitCount = frozenBits.size();
 
+    // if (blockLength == 8) {
+    //     fmt::print("positions: {}\n", frozenBits);
+    // }
     // Begin with the two most simple codes:
     if (frozenBitCount == blockLength) {
-        // fmt::print("create: RateZeroDecoder( {} / {})\n", blockLength, frozenBitCount);
+        // if (blockLength == 8) {
+        //     fmt::print(
+        //         "create: RateZeroDecoder( {} / {})\n", blockLength, frozenBitCount);
+        // }
         return new RateZeroDecoder(parent);
     }
     if (frozenBitCount == 0) {
-        // fmt::print("create: RateOneDecoder( {} / {})\n", blockLength, frozenBitCount);
+        // if (blockLength == 8) {
+        //     fmt::print("create: RateOneDecoder( {} / {})\n", blockLength, frozenBitCount);
+        // }
         return new RateOneDecoder(parent);
     }
 
     // Following are "one bit unlike the others" codes:
     if (frozenBitCount == (blockLength - 1)) {
-        // fmt::print("create: RepetitionDecoder( {} / {})\n", blockLength,
-        // frozenBitCount);
+        // if (blockLength == 8) {
+        //     fmt::print(
+        //         "create: RepetitionDecoder( {} / {})\n", blockLength, frozenBitCount);
+        // }
         return new RepetitionDecoder(parent);
     }
     if (frozenBitCount == 1) {
-        // fmt::print("create: SpcDecoder( {} / {})\n", blockLength, frozenBitCount);
+        // if (blockLength == 8) {
+        //     fmt::print("create: SpcDecoder( {} / {})\n", blockLength, frozenBitCount);
+        // }
         return new SpcDecoder(parent);
     }
 
     // Following are "interleaved one bit unlike the others" codes:
     if (frozenBitCount == blockLength - 2) {
-        // fmt::print(
-        // "create: DoubleRepetitionDecoder( {} / {})\n", blockLength, frozenBitCount);
+        // if (blockLength == 8) {
+        //     fmt::print("create: DoubleRepetitionDecoder( {} / {})\n",
+        //                blockLength,
+        //                frozenBitCount);
+        // }
         for (unsigned i = 0; i < frozenBits.size(); i++) {
             if (frozenBits[i] != i) {
                 throw std::invalid_argument(fmt::format("{}", frozenBits));
@@ -572,12 +760,33 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
     }
 
     if (frozenBitCount == 2 and frozenBits[0] == 0 and frozenBits[1] == 1) {
-        // fmt::print("create: DoubleSpcDecoder( {} / {}): {}\n",
+        // if (blockLength == 8) {
+        //     fmt::print("create: DoubleSpcDecoder( {} / {}): {}\n",
+        //                blockLength,
+        //                frozenBitCount,
+        //                frozenBits);
+        // }
+        if (blockLength == 8) {
+            return new DoubleSpcDecoderShort8(parent);
+        } else {
+            return new DoubleSpcDecoder(parent);
+        }
+    }
+
+    if (frozenBitCount == blockLength - 4 and
+        frozenBits[frozenBitCount - 1] == blockLength - 4 and
+        frozenBits[frozenBitCount - 2] == blockLength - 6) {
+        // fmt::print("create: TypeFiveDecoder( {} / {}): {}\n",
         //            blockLength,
         //            frozenBitCount,
         //            frozenBits);
-        return new DoubleSpcDecoder(parent);
+        return new TypeFiveDecoder(parent);
     }
+
+    // if (blockLength == 8) {
+    //     fmt::print("-->\tNO-opt 8bit decoder: {}\n", frozenBits);
+    // }
+
 
     // Fallback: No special code available, split into smaller subcodes
     if (blockLength <= 8) {
