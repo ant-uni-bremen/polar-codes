@@ -724,7 +724,8 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
     }
     if (frozenBitCount == 0) {
         // if (blockLength == 8) {
-        //     fmt::print("create: RateOneDecoder( {} / {})\n", blockLength, frozenBitCount);
+        //     fmt::print("create: RateOneDecoder( {} / {})\n", blockLength,
+        //     frozenBitCount);
         // }
         return new RateOneDecoder(parent);
     }
