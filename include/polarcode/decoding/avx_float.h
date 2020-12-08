@@ -286,6 +286,21 @@ inline unsigned _mm256_argmin_ps(const __m256 x)
     return idx & 0x7;
 }
 
+inline __m256 _mm256_spc_right4_ps(const __m256 spc_in)
+{
+    const __m256 abs = _mm256_abs_ps(spc_in);
+    const __m256 twoMin = _mm256_min2_ps(abs);
+    const __m256 oneMin = _mm256_min_ps(twoMin, _mm256_permute_ps(twoMin, 0b10110001));
+    const __m256 mask = _mm256_cmp_ps(abs, oneMin, _CMP_EQ_OQ);
+
+    const __m256 permute_half = _mm256_permute_ps(spc_in, 0b01001110);
+    const __m256 xor_half_h = _mm256_xor_ps(spc_in, permute_half);
+    const __m256 xor_half = _mm256_and_ps(SIGN_MASK, xor_half_h);
+    const __m256 permute_full = _mm256_permute_ps(xor_half, 0b10110001);
+    const __m256 xor_full = _mm256_xor_ps(xor_half, permute_full);
+    return _mm256_xor_ps(spc_in, _mm256_and_ps(xor_full, mask));
+}
+
 } // namespace FastSscAvx
 
 /*!

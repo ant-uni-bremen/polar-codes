@@ -146,6 +146,17 @@ public:
     void decode();
 };
 
+void decode_repone_generic_8(float* out, const float* in);
+
+class RepetitionRateOneDecoderShort8 : public Node
+{
+public:
+    RepetitionRateOneDecoderShort8(Node* parent);
+    ~RepetitionRateOneDecoderShort8();
+    void decode();
+};
+
+
 class DoubleRepetitionDecoder : public Node
 {
 public:
@@ -203,6 +214,14 @@ class ZeroSpcDecoder : public Node
 public:
     ZeroSpcDecoder(Node* parent);
     ~ZeroSpcDecoder();
+    void decode();
+};
+
+class ZeroSpcDecoderShort8 : public Node
+{
+public:
+    ZeroSpcDecoderShort8(Node* parent);
+    ~ZeroSpcDecoderShort8();
     void decode();
 };
 

@@ -34,6 +34,7 @@ class DecodingTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testSPCCodeFloat);
     CPPUNIT_TEST(testDoubleSPCCodeFloat);
     CPPUNIT_TEST(testTypeFiveDecoder);
+    CPPUNIT_TEST(testRepRateOneDecoderShort8);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -72,6 +73,8 @@ public:
 
     void testTypeFiveDecoder();
     void runTypeFiveDecoder(const size_t block_length);
+
+    void testRepRateOneDecoderShort8();
 
 private:
     void showScanTestOutput(unsigned, float*);

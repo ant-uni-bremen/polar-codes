@@ -545,6 +545,25 @@ void ZeroSpcDecoder::decode()
     iOutput[minIdx + subBlockLength] ^= iParity;
 }
 
+/*************
+ * ZeroSpcDecoderShort8
+ * ***********/
+
+ZeroSpcDecoderShort8::ZeroSpcDecoderShort8(Node* parent) : Node(parent) {}
+
+ZeroSpcDecoderShort8::~ZeroSpcDecoderShort8() {}
+
+void ZeroSpcDecoderShort8::decode()
+{
+    const __m256 input = _mm256_load_ps(mInput);
+    const __m256 swaplane = _mm256_permute2f128_ps(input, input, 0b00000001);
+
+    const __m256 spc_input = _mm256_add_ps(input, swaplane);
+    const __m256 spc_output = _mm256_spc_right4_ps(spc_input);
+    const __m256 result = _mm256_permute2f128_ps(spc_output, spc_output, 0b00010001);
+    _mm256_store_ps(mOutput, result);
+}
+
 
 namespace {
 
@@ -637,7 +656,63 @@ void decode_repspc_generic_8(float* out, const float* in)
     combine(out, repetition_result.data(), spc_output.data(), 4);
     std::copy(spc_output.begin(), spc_output.end(), out + 4);
 }
+
 } // namespace
+
+void decode_repone_generic_8(float* out, const float* in)
+{
+    std::vector<float> repetition_input(4);
+    calculate_f_generic(repetition_input.data(), in, in + 4, 4);
+
+    // fmt::print("rep in: \t{}\n", repetition_input);
+
+    std::vector<float> repetition_result(4);
+    calculate_repetition_generic(repetition_result.data(), repetition_input.data(), 4);
+
+    // fmt::print("rep out: \t{}\n", repetition_result);
+
+    std::vector<float> one_input(4);
+    calculate_g_generic(one_input.data(), in, in + 4, repetition_result.data(), 4);
+
+    // fmt::print("spc in: \t{}\n", spc_input);
+
+    combine(out, repetition_result.data(), one_input.data(), 4);
+    std::copy(one_input.begin(), one_input.end(), out + 4);
+}
+
+/*************
+ * RepetitionRateOneDecoderShort8
+ * ***********/
+
+RepetitionRateOneDecoderShort8::RepetitionRateOneDecoderShort8(Node* parent)
+    : Node(parent)
+{
+}
+
+RepetitionRateOneDecoderShort8::~RepetitionRateOneDecoderShort8() {}
+
+void RepetitionRateOneDecoderShort8::decode()
+{
+    const __m256 input = _mm256_load_ps(mInput);
+
+    const __m256 swaplane = _mm256_permute2f128_ps(input, input, 0b00000001);
+
+    const __m256 rep_in = _mm256_polarf_ps(input, swaplane);
+
+    const __m256 reduce_half = _mm256_hadd_ps(rep_in, rep_in);
+    const __m256 rep_result = _mm256_hadd_ps(reduce_half, reduce_half);
+
+    const __m256 one_result = _mm256_polarg_ps(swaplane, input, rep_result);
+
+    const __m256 combine_sign =
+        _mm256_and_ps(SIGN_MASK, _mm256_xor_ps(rep_result, one_result));
+    const __m256 broad_sign =
+        _mm256_permute2f128_ps(combine_sign, combine_sign, 0b00010001);
+    const __m256 sign_result = _mm256_xor_ps(broad_sign, _mm256_set1_ps(1.0f));
+    const __m256 result = _mm256_blend_ps(sign_result, one_result, 0b11110000);
+
+    _mm256_store_ps(mOutput, result);
+}
 
 
 void decode_type_five_generic(float* out, const float* in, const unsigned block_length)
@@ -678,17 +753,7 @@ void TypeFiveDecoder::decode()
 
     const __m256 spc_in = _mm256_polarg_ps(swaplane, llrs, rep_result);
 
-    const __m256 abs = _mm256_abs_ps(spc_in);
-    const __m256 twoMin = _mm256_min2_ps(abs);
-    const __m256 oneMin = _mm256_min_ps(twoMin, _mm256_permute_ps(twoMin, 0b10110001));
-    const __m256 mask = _mm256_cmp_ps(abs, oneMin, _CMP_EQ_OQ);
-
-    const __m256 permute_half = _mm256_permute_ps(spc_in, 0b01001110);
-    const __m256 xor_half_h = _mm256_xor_ps(spc_in, permute_half);
-    const __m256 xor_half = _mm256_and_ps(SIGN_MASK, xor_half_h);
-    const __m256 permute_full = _mm256_permute_ps(xor_half, 0b10110001);
-    const __m256 xor_full = _mm256_xor_ps(xor_half, permute_full);
-    const __m256 spc_result = _mm256_xor_ps(spc_in, _mm256_and_ps(xor_full, mask));
+    const __m256 spc_result = _mm256_spc_right4_ps(spc_in);
 
     const __m256 combine_sign =
         _mm256_and_ps(SIGN_MASK, _mm256_xor_ps(rep_result, spc_result));
@@ -711,47 +776,24 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
     size_t blockLength = parent->blockLength();
     size_t frozenBitCount = frozenBits.size();
 
-    // if (blockLength == 8) {
-    //     fmt::print("positions: {}\n", frozenBits);
-    // }
     // Begin with the two most simple codes:
     if (frozenBitCount == blockLength) {
-        // if (blockLength == 8) {
-        //     fmt::print(
-        //         "create: RateZeroDecoder( {} / {})\n", blockLength, frozenBitCount);
-        // }
         return new RateZeroDecoder(parent);
     }
     if (frozenBitCount == 0) {
-        // if (blockLength == 8) {
-        //     fmt::print("create: RateOneDecoder( {} / {})\n", blockLength,
-        //     frozenBitCount);
-        // }
         return new RateOneDecoder(parent);
     }
 
     // Following are "one bit unlike the others" codes:
     if (frozenBitCount == (blockLength - 1)) {
-        // if (blockLength == 8) {
-        //     fmt::print(
-        //         "create: RepetitionDecoder( {} / {})\n", blockLength, frozenBitCount);
-        // }
         return new RepetitionDecoder(parent);
     }
     if (frozenBitCount == 1) {
-        // if (blockLength == 8) {
-        //     fmt::print("create: SpcDecoder( {} / {})\n", blockLength, frozenBitCount);
-        // }
         return new SpcDecoder(parent);
     }
 
     // Following are "interleaved one bit unlike the others" codes:
     if (frozenBitCount == blockLength - 2) {
-        // if (blockLength == 8) {
-        //     fmt::print("create: DoubleRepetitionDecoder( {} / {})\n",
-        //                blockLength,
-        //                frozenBitCount);
-        // }
         for (unsigned i = 0; i < frozenBits.size(); i++) {
             if (frozenBits[i] != i) {
                 throw std::invalid_argument(fmt::format("{}", frozenBits));
@@ -761,12 +803,6 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
     }
 
     if (frozenBitCount == 2 and frozenBits[0] == 0 and frozenBits[1] == 1) {
-        // if (blockLength == 8) {
-        //     fmt::print("create: DoubleSpcDecoder( {} / {}): {}\n",
-        //                blockLength,
-        //                frozenBitCount,
-        //                frozenBits);
-        // }
         if (blockLength == 8) {
             return new DoubleSpcDecoderShort8(parent);
         } else {
@@ -777,21 +813,30 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
     if (frozenBitCount == blockLength - 4 and
         frozenBits[frozenBitCount - 1] == blockLength - 4 and
         frozenBits[frozenBitCount - 2] == blockLength - 6) {
-        // fmt::print("create: TypeFiveDecoder( {} / {}): {}\n",
-        //            blockLength,
-        //            frozenBitCount,
-        //            frozenBits);
         return new TypeFiveDecoder(parent);
     }
 
-    // if (blockLength == 8) {
-    //     fmt::print("-->\tNO-opt 8bit decoder: {}\n", frozenBits);
-    // }
+    if (blockLength == 8 and frozenBitCount == 3 and frozenBits[0] == 0 and
+        frozenBits[1] == 1 and frozenBits[2] == 2) {
+        return new RepetitionRateOneDecoderShort8(parent);
+    }
 
+    if (blockLength == 8 and frozenBitCount == 5 and
+        frozenBits[frozenBitCount - 1] == blockLength - 4 and
+        frozenBits[frozenBitCount - 2] == blockLength - 5) {
+        return new ZeroSpcDecoderShort8(parent);
+    }
+
+    if (blockLength == 8) {
+        fmt::print("WARNING\t-->\tNO-opt 8bit decoder: N={}, notK={}, \t{}\n\t\tThis "
+                   "should never happen!\n",
+                   blockLength,
+                   frozenBitCount,
+                   frozenBits);
+    }
 
     // Fallback: No special code available, split into smaller subcodes
     if (blockLength <= 8) {
-        // fmt::print("create: ShortRateRNode( {} / {})\n", blockLength, frozenBitCount);
         return new ShortRateRNode(frozenBits, parent);
     } else {
         std::vector<unsigned> leftFrozenBits, rightFrozenBits;
@@ -800,23 +845,18 @@ Node* createDecoder(const std::vector<unsigned>& frozenBits, Node* parent)
         // Last case of optimization:
         // Common child node combination(s)
         if (leftFrozenBits.size() == blockLength / 2 && rightFrozenBits.size() == 1) {
-            // fmt::print("create: ZeroSpcDecoder( {} / {})\n", blockLength,
-            // frozenBitCount);
             return new ZeroSpcDecoder(parent);
         }
 
         // Minor optimization:
         // Right rate-1
         if (rightFrozenBits.size() == 0) {
-            // fmt::print("create: ROneNode( {} / {})\n", blockLength, frozenBitCount);
             return new ROneNode(frozenBits, parent);
         }
         // Left rate-0
         if (leftFrozenBits.size() == blockLength / 2) {
-            // fmt::print("create: ZeroRNode( {} / {})\n", blockLength, frozenBitCount);
             return new ZeroRNode(frozenBits, parent);
         }
-        // fmt::print("create: RateRNode( {} / {})\n", blockLength, frozenBitCount);
         return new RateRNode(frozenBits, parent);
     }
 }
