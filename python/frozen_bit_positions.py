@@ -87,6 +87,23 @@ class FrozenBitPositionsPW(FrozenBitPositions):
         return np.sort(fbp)
 
 
+def find_aff3ct_config_path():
+    try:
+        import aff3ct
+        base_path = Path(aff3ct.AFF3CT_CONFIG_SEARCH_PATH)
+        while not base_path.exists() and base_path.name:
+            base_path = base_path.parent
+
+    except ImportError:
+        base_path = Path(
+            '~/src/pybind11_aff3ct/lib/aff3ct/conf/cde/awgn_polar_codes/TV/').expanduser()
+
+    if base_path.name == 'share':
+        base_path = list(base_path.glob('aff3ct*/conf'))[0]
+    base_path = base_path / "cde" / "awgn_polar_codes" / "TV"
+    return base_path
+
+
 class FrozenBitPositionsDE(FrozenBitPositions):
     '''
     Frozen bit positions based on Density Evolution or Tal-Vardy's algorithm.
@@ -101,9 +118,12 @@ class FrozenBitPositionsDE(FrozenBitPositions):
         super().__init__(block_length, info_length)
         self._dSNR = dSNR
         self._log_block_length = int(np.log2(block_length))
-        self._base_path = Path(
-            '~/src/pybind11_aff3ct/lib/aff3ct/conf/cde/awgn_polar_codes/TV/').expanduser()
+
+        self._base_path = find_aff3ct_config_path()
+        print(self._base_path)
         self._path = self._base_path / Path(str(self._log_block_length))
+        if not self._path.exists():
+            raise ValueError(f"Can not find configuration path '{self._path}' for DE!")
 
     def _load_file(self, filename):
         result = {}
@@ -210,6 +230,8 @@ def get_frozen_bit_generator(frozen_bit_generator, block_length, info_length, dS
 
 
 def main():
+    gen = get_frozen_bit_generator('DE', 1024, 512, 0.0)
+    return
     fbp = FrozenBitPositions5G(1024, 512, 3.)
     # print(fbp._file)
     # fbp._load_reliabilities()
