@@ -9,6 +9,7 @@
 #include <polarcode/construction/betaexpansion.h>
 #include <polarcode/construction/bhattacharrya.h>
 #include <polarcode/construction/constructor.h>
+#include <polarcode/construction/fiveGList.h>
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -49,6 +50,9 @@ std::vector<unsigned> frozen_bits(const int blockLength,
     std::unique_ptr<PolarCode::Construction::Constructor> constructor;
     if (ctype.find("be") != std::string::npos) {
         constructor = std::make_unique<PolarCode::Construction::BetaExpansion>(
+            blockLength, infoLength, designSnr);
+    } else if (ctype.find("5g") != std::string::npos) {
+        constructor = std::make_unique<PolarCode::Construction::FiveGList>(
             blockLength, infoLength, designSnr);
     } else {
         constructor = std::make_unique<PolarCode::Construction::Bhattacharrya>(

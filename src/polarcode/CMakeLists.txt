@@ -31,9 +31,11 @@ add_library(PolarConstructor OBJECT
         construction/constructor
         construction/bhattacharrya
         construction/betaexpansion
+        construction/fiveGList
         ${CMAKE_SOURCE_DIR}/include/polarcode/construction/constructor.h
         ${CMAKE_SOURCE_DIR}/include/polarcode/construction/bhattacharrya.h
-        ${CMAKE_SOURCE_DIR}/include/polarcode/construction/betaexpansion.h)
+        ${CMAKE_SOURCE_DIR}/include/polarcode/construction/betaexpansion.h
+        ${CMAKE_SOURCE_DIR}/include/polarcode/construction/fiveGList.h)
 
 
 #add_executable(pcfactory
