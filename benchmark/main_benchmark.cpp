@@ -397,7 +397,7 @@ static void BM_polar_decode(benchmark::State& state,
 }
 
 
-BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_BB_float, "crc", "float")
     ->ArgsProduct({ {
                         64,
                     },
@@ -410,7 +410,7 @@ BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
                     { 0, 1 },
                     { -100, 0, 100, 200, 300, 400 } });
 
-BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_BB_float, "crc", "float")
     ->ArgsProduct({ {
                         128,
                     },
@@ -421,7 +421,7 @@ BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
                     { -100, 0, 100, 200, 300, 400 } });
 
 
-BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_BB_float, "crc", "float")
     ->ArgsProduct({ {
                         256,
                     },
@@ -431,7 +431,7 @@ BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
                     { 0, 1 },
                     { -100, 0, 100, 200, 300, 400 } });
 
-BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_BB_float, "crc", "float")
     ->ArgsProduct({ {
                         512,
                     },
@@ -442,7 +442,7 @@ BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
                     { -100, 0, 100, 200, 300, 400 } });
 
 
-BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_BB_float, "crc", "float")
     ->ArgsProduct({ {
                         1024,
                     },
@@ -464,7 +464,7 @@ BENCHMARK_CAPTURE(BM_polar_decode, CRC_BE_float, "crc", "float", "BE")
                         100,
                     } });
 
-BENCHMARK_CAPTURE(BM_polar_decode, CRC_char, "crc", "char")
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_BB_char, "crc", "char")
     ->ArgsProduct({ {
                         1024,
                     },
@@ -474,7 +474,7 @@ BENCHMARK_CAPTURE(BM_polar_decode, CRC_char, "crc", "char")
                     { 0, 1 },
                     { -100, 0, 100, 200, 300, 400 } });
 
-BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_BB_float, "crc", "float")
     ->ArgsProduct({ {
                         2048,
                     },
@@ -484,7 +484,7 @@ BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
                     { 0, 1 },
                     { -100, 0, 100, 200, 300, 400 } });
 
-BENCHMARK_CAPTURE(BM_polar_decode, CRC_float, "crc", "float")
+BENCHMARK_CAPTURE(BM_polar_decode, CRC_BB_float, "crc", "float")
     ->ArgsProduct({ {
                         8192,
                     },

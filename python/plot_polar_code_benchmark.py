@@ -19,6 +19,7 @@ import string
 import os
 import json
 import itertools
+import datetime
 
 from latex_plot_magic import set_size
 
@@ -44,8 +45,11 @@ def parse_benchmark_name(name):
     values = [int(v) for v in parts[2:]]
     detector_type = parts[1].split('_')
     decoder_type = ''
+    generator_type = 'BB'
     if len(detector_type) > 1:
-        decoder_type = detector_type[1]
+        decoder_type = detector_type[-1]
+    if len(detector_type) > 2:
+        generator_type = detector_type[1]
     detector_type = detector_type[0]
 
     results = {
@@ -61,6 +65,8 @@ def parse_benchmark_name(name):
         results['list_size'] = values[2]
     if decoder_type:
         results['decoder_type'] = decoder_type
+    if generator_type:
+        results['generator_type'] = generator_type
     return results
 
 
@@ -77,7 +83,9 @@ def update_result(result):
 
     name = result.pop('name')
     run_name = result.pop('run_name')
+    # print(f'{name}, "{run_name}')
     res = parse_benchmark_name(name)
+    # print(f'{res}')
 
     for k, v in result.items():
         res[k] = converters.get(k, int)(v)
@@ -101,6 +109,8 @@ def find_all_values(results):
 
 def extract_result_line(results, fixed_values):
     line = []
+    # print('\n\n\n')
+    # print(fixed_values)
     for r in results:
         if np.all([r.get(k, None) == v for k, v in fixed_values.items()]):
             # pprint(r)
@@ -144,13 +154,74 @@ def prepare_throughput_over_info_length(results):
 
     # print(results)
     p = results[0]
-    label = f'N={p["block_length"]}, {p["detector_type"]}{p["detector_size"]}, dSNR={p["dsnr"]:.1f}'
+    label = f'N={p["block_length"]}, {p["detector_type"]}{p["detector_size"]}'
+    if 'generator_type' in p:
+        label += f', {p["generator_type"]}'
+    label += f', dSNR={p["dsnr"]:.1f}'
     if 'list_size' in p:
         label += f', L={p["list_size"]}'
     if 'decoder_type' in p:
         label += f', {p["decoder_type"]}'
     label += ', syst' if p['is_systematic'] else ''
     return infos, code_thr, info_thr, label
+
+
+def parse_date(date_str):
+    date_str = date_str.split('+', 1)[0]
+    return datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S')
+
+
+def merge_results(context, results, next_context, next_results):
+    assert context['host_name'] == next_context['host_name']
+    assert context['mhz_per_cpu'] == next_context['mhz_per_cpu']
+    assert context['num_cpus'] == next_context['num_cpus']
+
+    contextdate = parse_date(context['date'])
+    print(context['date'])
+    print(contextdate)
+    nextcontextdate = parse_date(next_context['date'])
+    print(next_context['date'])
+    print(nextcontextdate)
+    print(contextdate < nextcontextdate)
+    print(contextdate > nextcontextdate)
+    c = context if contextdate > nextcontextdate else next_context
+    r = results if contextdate > nextcontextdate else next_results
+
+    # oldc = next_context if contextdate > nextcontextdate else context
+    oldr = next_results if contextdate > nextcontextdate else results
+
+    rnames = [i['name'] for i in r]
+    for i in oldr:
+        if 'BE' in i['name']:
+            print(i['name'])
+        if i in rnames:
+            print('duplicate')
+        else:
+            # print(f'append: {i["name"]}')
+            r.append(i)
+
+    return c, r
+
+
+def load_results(filenames):
+    assert len(filenames) > 0
+    # choose a random reference
+    context, results = load_json(filenames[0])
+    print(f'initial result size: {len(results)}')
+
+    for f in filenames[1:]:
+        fc, fr = load_json(f)
+        context, results = merge_results(context, results, fc, fr)
+        print(f'new     result size: {len(results)}')
+
+    return context, results
+
+
+def sanitize_value_set(values, measure_keys=['CodeThr', 'InfoThr', 'real_time',
+                                             'cpu_time', 'repetitions', 'iterations', ]):
+    for k in measure_keys:
+        values.pop(k)
+    return values
 
 
 def main():
@@ -161,33 +232,43 @@ def main():
     # print(args)
 
     # filename = args.file
-    results = []
-    filename = '../polar_code_benchmarks_encode_crc_trx3970.json'
-    context, crc_results = load_json(filename)
-    pprint(context)
-    results.extend(crc_results)
-    filename = '../polar_code_benchmarks_encode_cmac_trx3970.json'
-    context, cmac_results = load_json(filename)
-    pprint(context)
-    results.extend(cmac_results)
+    ext_filenames = ['../polar_code_benchmarks_encode_crc_trx3970.json',
+                     '../polar_code_benchmarks_encode_cmac_trx3970.json',
+                     '../polar_code_benchmarks_trx3970.json',
+                     ]
+    # filename = '../polar_code_benchmarks_encode_crc_trx3970.json'
+    # context, crc_results = load_json(filename)
+    # pprint(context)
+    # results.extend(crc_results)
+    # filename = '../polar_code_benchmarks_encode_cmac_trx3970.json'
+    # context, cmac_results = load_json(filename)
+    # pprint(context)
+    # results.extend(cmac_results)
 
-    filename = '../polar_code_benchmarks_trx3970.json'
-    context, decode_results = load_json(filename)
+    # filename = '../polar_code_benchmarks_trx3970.json'
+    # context, decode_results = load_json(filename)
+    # pprint(context)
+    # results.extend(decode_results)
+    filenames = ['../polar_code_benchmarks_decode_trx3970_1024vs512.json',
+                 '../polar_code_benchmarks_decode_trx3970_256vs128.json',
+                 '../polar_code_benchmarks_decode_trx3970_1024_generators.json']
+    # filenames.extend(ext_filenames)
+    context, results = load_results(filenames)
     pprint(context)
-    results.extend(decode_results)
-
     results = extract_result_information(results)
 
+    # pprint(results)
     values = find_all_values(results)
-    measure_keys = ['CodeThr', 'InfoThr', 'real_time',
-                    'cpu_time', 'repetitions', 'iterations', ]
-    for k in measure_keys:
-        values.pop(k)
+    # measure_keys = ['CodeThr', 'InfoThr', 'real_time',
+    #                 'cpu_time', 'repetitions', 'iterations', ]
+    # for k in measure_keys:
+    #     values.pop(k)
+    values = sanitize_value_set(values)
     for k, v in values.items():
         print(f'{k}\t\t{v}')
 
     all_latencies = []
-    dsize = 32
+    dsize = 0
     dtype = 'CRC'
     is_systematic = True
     list_size = 1
@@ -195,20 +276,22 @@ def main():
     benchmark_type = 'polar_decode'
     block_length = 1024
     decoder_type = 'float'
+    generator_type = 'BB'
     fixed_values = {
         'benchmark_type': benchmark_type,
         'block_length': block_length,
         'detector_type': dtype,
         'detector_size': dsize,
         'dsnr': dsnr,
-        'is_systematic': is_systematic}
-    if benchmark_type == 'polar_encode':
+        'is_systematic': is_systematic,
+        'generator_type': generator_type}
+    if benchmark_type == 'polar_decode':
         fixed_values.update({
             'list_size': list_size,
             'decoder_type': decoder_type,
         })
 
-    compare_values = ['block_length', ]
+    compare_values = ['generator_type', 'dsnr']
     # values['block_length'] = set(sorted(values['block_length'])[4:5])
     # values['list_size'] = set(sorted(values['list_size'])[-3:])
     # print(values['block_length'])
@@ -222,13 +305,15 @@ def main():
         plotset = extract_result_line(results, fixed_values)
         if not plotset:
             continue
+        print('all values in plotset')
+        pprint(sanitize_value_set(find_all_values(plotset)))
         # info_lens, latencies, label = prepare_latency_over_info_length(
         #     plotset)
         # plt.plot(info_lens, code_thr, label=label)
         info_lens, code_thr, info_thr, label = prepare_throughput_over_info_length(
             plotset)
-        print(fixed_values['block_length'])
-        code_rate  = info_lens / fixed_values['block_length']
+
+        code_rate = info_lens / fixed_values['block_length']
         print(label)
         print(info_lens)
         print(code_thr)
@@ -247,7 +332,7 @@ def main():
     plt.xlabel(r'$R$')
     plt.ylabel('throughput [b/s]')
 
-    plt.legend(fontsize='x-small')
+    plt.legend(fontsize='xx-small')
     plt.tight_layout()
     # plt.savefig('polar_encoder_blocksizes.pgf')
     # plt.savefig('polar_encoder_N1024_CRCs.pgf')
@@ -261,8 +346,9 @@ def main():
     # plt.savefig('polar_decoder_N1024_CRCs.pgf')
     # plt.savefig('polar_decoder_N1024_listsizes_small.pgf')
     # plt.savefig('polar_decoder_N1024_listsizes_large.pgf')
-    plt.savefig('polar_encoder_throughput.pgf')
-    # plt.savefig('polar_decoder_throughput.pgf')
+    # plt.savefig('polar_encoder_throughput.pgf')
+    # plt.savefig('polar_decoder_throughput_short.pgf')
+    # plt.savefig('polar_decoder_throughput_list.pgf')
 
 
 if __name__ == '__main__':
