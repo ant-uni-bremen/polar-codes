@@ -18,8 +18,9 @@ FiveGList::FiveGList() {}
 
 FiveGList::FiveGList(size_t N, size_t K)
 {
-    if(N > 1024){
-        throw std::invalid_argument("5G standard does not allow for block size N > 1024!");
+    if (N > 1024) {
+        throw std::invalid_argument(
+            "5G standard does not allow for block size N > 1024!");
     }
     setBlockLength(N);
     setInformationLength(K);
