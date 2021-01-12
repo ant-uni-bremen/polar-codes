@@ -18,6 +18,7 @@ on your system:
 - libcppunit-dev
 - libtclap-dev
 - libssl-dev
+- libfmt-dev
 - python3-numpy
 - python3-scipy
 
@@ -40,6 +41,27 @@ In `build/bin`
 ## Python interface usage
 With `import pypolar` you can use the Encoders, Decoders, Puncturers and Detectors with Python3. Also, you can use `pypolar.frozen_bits` to get a suitable frozen bit set for polar codes.
 
+A quick example
+```python
+import numpy as np
+import pypolar
+
+frozen_bit_positions = pypolar.frozen_bits(64, 40, 1.0, 'BB')
+encoder = pypolar.PolarEncoder(64, frozen_bit_positions)
+
+info_bits = np.random.randint(0, 2, 40, dtype=np.uint8)
+info_bytes = np.packbits(info_bits)
+
+codeword_bytes = encoder.encode_vector(info_bytes)
+codeword_bits = np.unpackbits(codeword_bytes)
+
+llrs = 1.0 - 2.0 * codeword_bits
+
+decoder = pypolar.PolarDecoder(64, 4, frozen_bit_positions, 'mixed')
+hat_bytes = decoder.decode_vector(llrs)
+
+assert np.all(info_bytes == hat_bytes)
+```
 
 ## Library description #
 The library is split into four independent modules:
