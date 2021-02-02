@@ -82,6 +82,9 @@ def update_node_type(G, node):
     G.nodes[node]['pattern'] = pattern = G.nodes[n0]['pattern'] + G.nodes[n1]['pattern']
     pattern = np.array(pattern, dtype=int)
     ntype = find_node_type(pattern)
+    if pattern.size == 8:
+        print(f'type={ntype} -> pattern: {pattern}')
+
     if ntype == 'type1':
         ntype = 'DREP'
     if ntype == 'type2':
@@ -91,8 +94,14 @@ def update_node_type(G, node):
     if ntype == 'type4':
         ntype = 'TSPC'
 
-    if not ntype in ('rate0', 'rate1', 'REP', 'DREP', 'SPC', 'DSPC', 'rateR'):
+    if ntype in ('TSPC', ):
         ntype = 'rateR'
+    # if not ntype in ('rate0', 'rate1', 'rateR'):
+    #     ntype = 'rateR'
+
+    # if not ntype in ('rate0', 'rate1', 'REP', 'DREP', 'SPC', 'DSPC', 'rateR'):
+    #     ntype = 'rateR'
+
     # if not ntype in ('rate0', 'rate1', 'REP', 'DREP', 'TREP', 'SPC', 'DSPC', 'rateR'):
     #     ntype = 'rateR'
 
@@ -113,6 +122,10 @@ def find_node_type(frozen_pattern):
         return 'SPC'
     elif np.all(frozen_pattern == 0):
         return 'rate1'
+    elif frozen_pattern.size == 8 and np.all(frozen_pattern[0:5] == 1):
+        return 'ZeroSPC'
+    elif frozen_pattern.size == 8 and np.all(frozen_pattern[0:3] == 1):
+        return 'REPONE'
     elif frozen_pattern.size > 2 and np.all(frozen_pattern[0:-2] == 1) and np.all(frozen_pattern[-2:] == 0):
         return 'type1'
     elif frozen_pattern.size > 2 and np.all(frozen_pattern[0:-3] == 1) and np.all(frozen_pattern[-3:] == 0):
@@ -248,9 +261,9 @@ def prune_nodes(G, node, remove=False):
 
 
 def main():
-    n = 10
+    n = 8
     N = int(2 ** n)
-    K = N // 2
+    K = int(N * 1 / 8)
     snr = 1.
     generator = 'BB'
     # find_polar_codes()
@@ -285,8 +298,8 @@ def main():
     colors = {}
 
     colormap = {'rate0': 'white', 'rate1': 'black',
-                'REP': 'green', 'DREP': 'cyan', 'TREP': 'blue',
-                'SPC': 'orange', 'DSPC': 'yellow', 'TSPC': 'brown',
+                'REP': 'green', 'DREP': 'cyan', 'TREP': 'blue', 'REPONE': 'blue',
+                'SPC': 'orange', 'DSPC': 'yellow', 'TSPC': 'brown', 'ZeroSPC': 'brown',
                 'type5': 'red', 'rateR': 'gray'}
 
     # colormap = {'rate0': 'black', 'rate1': 'red',
@@ -316,7 +329,7 @@ def main():
 
     fig = plt.gcf()
     fig.set_size_inches(set_size())
-    # plt.savefig(f'polar_code_tree_N{N}_{generator}SNR{snr:.0f}.pgf')
+    plt.savefig(f'polar_code_tree_N{N}_K{K}_{generator}SNR{snr:.0f}_full.pgf')
     plt.show()
 
 
