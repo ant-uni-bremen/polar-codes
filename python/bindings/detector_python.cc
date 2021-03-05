@@ -26,6 +26,7 @@ void bind_detector(py::module& m)
     py::class_<Detector>(m, "Detector")
         .def(py::init(&create), py::arg("size"), py::arg("type"))
         .def("getCheckBitCount", &Detector::getCheckBitCount)
+        .def("getType", &Detector::getType)
         .def("generate",
              [](Detector& self,
                 const py::array_t<uint8_t, py::array::c_style | py::array::forcecast>&
@@ -35,8 +36,11 @@ void bind_detector(py::module& m)
                      throw std::runtime_error("Only ONE-dimensional vectors allowed!");
                  }
 
-                 auto result =
-                     py::array_t<uint8_t>(inb.size + self.getCheckBitCount() / 8);
+                 unsigned crc_bytes = (self.getCheckBitCount() % 8)
+                                          ? ((self.getCheckBitCount() + 8) / 8)
+                                          : (self.getCheckBitCount() / 8);
+
+                 auto result = py::array_t<uint8_t>(inb.size + crc_bytes);
                  py::buffer_info resb = result.request();
                  std::memcpy(resb.ptr, inb.ptr, inb.size * inb.itemsize);
 

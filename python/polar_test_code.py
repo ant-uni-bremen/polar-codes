@@ -6,14 +6,17 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import pypolar
+from channel_construction import ChannelConstructorBhattacharyyaBounds, ChannelConstructorGaussianApproximationDai
+from frozen_bit_positions import FrozenBitPositions5G
+from polar_code_tools import get_info_indices, get_expanding_matrix, calculate_ga
+from polar_code_tools import design_snr_to_bec_eta, calculate_bec_channel_capacities, get_frozenBitMap, get_frozenBitPositions, get_polar_generator_matrix, get_polar_encoder_matrix_systematic, frozen_indices_to_map
 import numpy as np
 import unittest
+import os
 
-from polar_code_tools import design_snr_to_bec_eta, calculate_bec_channel_capacities, get_frozenBitMap, get_frozenBitPositions, get_polar_generator_matrix, get_polar_encoder_matrix_systematic, frozen_indices_to_map
-from polar_code_tools import get_info_indices, get_expanding_matrix, calculate_ga
-from channel_construction import ChannelConstructorBhattacharyyaBounds, ChannelConstructorGaussianApproximation
-
-import pypolar
+if os.path.dirname(__file__) != os.getcwd():
+    os.chdir(os.path.dirname(__file__))
 
 
 '''
@@ -88,11 +91,6 @@ def encode_matrix(u, N, frozenBitMap):
 
 def get_diff_positions(block_length, pos):
     return np.setdiff1d(np.arange(block_length), pos).astype(pos.dtype)
-
-
-
-
-
 
 
 def get_polar_capacities(N, snr):
@@ -171,16 +169,131 @@ def calculate_code_properties(N, K, design_snr_db):
     assert dmin_ext_search == dmin_P
 
 
+SUBBLOCK_INTERLEAVER_PATTERN = np.array([0, 1, 2, 4, 3, 5, 6, 7,
+                                         8, 16, 9, 17, 10, 18, 11, 19,
+                                         12, 20, 13, 21, 14, 22, 15, 23,
+                                         24, 25, 26, 28, 27, 29, 30, 31], dtype=int)
+
+
+def generate_5g_polar_interleaver_pattern(codeword_len):
+    # see 38.212 Sec. 5.4.1.1
+    # The output is J with J(n) as the nth element value.
+    # interleaver_pattern = np.zeros(codeword_len, dtype=int)
+    # for n in range(codeword_len):
+    #     i = int(np.floor(32 * n / codeword_len))
+    #     interleaver_pattern[n] = SUBBLOCK_INTERLEAVER_PATTERN[i] * \
+    #         (codeword_len // 32) + (n % (codeword_len // 32))
+
+    p = np.arange(codeword_len, dtype=int)
+    mp = np.reshape(p, (32, -1))
+    return mp[SUBBLOCK_INTERLEAVER_PATTERN].flatten()
+
+
+def generate_5g_polar_shortening_indices(mother_codeword_len, codeword_len):
+    interleaver_pattern = generate_5g_polar_interleaver_pattern(
+        mother_codeword_len)
+    return interleaver_pattern[codeword_len:]
+
+
+def generate_5g_polar_puncturing_indices(mother_codeword_len, codeword_len):
+    interleaver_pattern = generate_5g_polar_interleaver_pattern(
+        mother_codeword_len)
+    punc_pattern = interleaver_pattern[0: mother_codeword_len - codeword_len]
+    if codeword_len >= (3 * mother_codeword_len / 4):
+        num_frontpositions = int(
+            np.ceil(3 * mother_codeword_len / 4 - codeword_len / 2))
+    else:
+        num_frontpositions = int(
+            np.ceil(9 * mother_codeword_len / 16 - codeword_len / 4))
+    frontpositions = np.arange(num_frontpositions)
+    return np.union1d(punc_pattern, frontpositions)
+
+
+def generate_5g_polar_ratematching_indices(mother_codeword_len, codeword_len, info_len):
+    if codeword_len < mother_codeword_len:
+        if info_len / codeword_len <= (7. / 16.):
+            print('puncturing')
+            return generate_5g_polar_puncturing_indices(mother_codeword_len, codeword_len)
+        else:
+            print('shortening')
+            return generate_5g_polar_shortening_indices(mother_codeword_len, codeword_len)
+    print('match')
+    return np.array([], dtype=int)
+
+
+def calculate_5g_polar_mother_code_length(codeword_len, info_len, max_codeword_power=10):
+    # cf. TS 38.212 Sec. 5.3.1
+    codeword_power1 = int(np.ceil(np.log2(codeword_len)))
+    if codeword_len <= (9. / 8.) * (2 ** (np.ceil(np.log2(codeword_len)) - 1)) and \
+            info_len / codeword_len < (9. / 16.):
+        codeword_power1 -= 1
+
+    rate_min = 1. / 8.
+    codeword_power2 = int(np.ceil(np.log2(info_len / rate_min)))
+    min_codeword_power = 5
+    codeword_power = np.maximum(np.min(
+        [codeword_power1, codeword_power2, max_codeword_power]), min_codeword_power)
+    mother_codeword_len = int(2 ** codeword_power)
+    return mother_codeword_len
+
+
 def main():
-    a = np.array([-0.742-0.216j, -0.586-0.325j, -0.077-0.331j, +0.604-0.537j, ], dtype=np.complex64)
-    b = np.array([+0.800-0.569j, +0.621-0.834j, -0.801+0.775j, +0.344-0.703j, ], dtype=np.complex64)
+    np.set_printoptions(linewidth=150, precision=3)
+    a = np.array([-0.742-0.216j, -0.586-0.325j, -0.077 -
+                  0.331j, +0.604-0.537j, ], dtype=np.complex64)
+    b = np.array([+0.800-0.569j, +0.621-0.834j, -0.801 +
+                  0.775j, +0.344-0.703j, ], dtype=np.complex64)
     print(a)
     print(b)
     print(a / b)
 
-    r = a.real * b.real + 1.j * a.imag * b.real - 1.j * a.real * b.imag + a.imag * b.imag
+    r = a.real * b.real + 1.j * a.imag * b.real - \
+        1.j * a.real * b.imag + a.imag * b.imag
     r /= (b.real ** 2 + b.imag ** 2)
     print(r)
+
+    assert SUBBLOCK_INTERLEAVER_PATTERN.dtype == int
+    print(SUBBLOCK_INTERLEAVER_PATTERN)
+    assert SUBBLOCK_INTERLEAVER_PATTERN.size == 32
+    assert np.unique(SUBBLOCK_INTERLEAVER_PATTERN).size == 32
+    gen = pypolar.get_frozen_bit_generator('5G', 32, 0, 0)
+    # print(gen.frozen_bit_positions())
+    frozens = FrozenBitPositions5G(32, 16)
+    frozens.frozen_bit_positions()
+    rels = frozens._reliabilities
+    print(rels[np.where(rels < 32)])
+    # print(frozens._reliabilities)
+    intl_pattern = generate_5g_polar_interleaver_pattern(32)
+    print(intl_pattern)
+
+    print(generate_5g_polar_shortening_indices(32, 24))
+
+    max_rate = 0.0
+    min_rate = 1.0
+    dl_codeword_lens = 108 * (2 ** np.arange(5))
+    for e in dl_codeword_lens:
+        for k in range(12 + 24, min(e, 164)):
+            mother_codeword_len = calculate_5g_polar_mother_code_length(e, k, 9)
+            max_rate = np.maximum(max_rate, k / mother_codeword_len)
+            min_rate = np.minimum(min_rate, k / mother_codeword_len)
+            # print(f'E={e}\tK={k}\tN={mother_codeword_len}')
+    print(f'max={max_rate:.3f}\tmin={min_rate:.3f}')
+    return
+    for c in (128, 64, 32, ):
+        code_rels = rels[np.where(rels < c)]
+        for e in range(12, c + 1):
+            k = 12
+            indices = generate_5g_polar_ratematching_indices(c, e, k)
+            assert indices.dtype == int
+            print(f'N={c}\tE={e}\tK={k}')
+            # print(indices)
+            info_candidates = np.setdiff1d(
+                code_rels, indices, assume_unique=True)
+            info_positions = info_candidates[-k:]
+            frozen_bit_positions = np.setdiff1d(
+                code_rels, info_positions, assume_unique=True)
+            print(frozen_bit_positions)
+
 
 if __name__ == '__main__':
     main()

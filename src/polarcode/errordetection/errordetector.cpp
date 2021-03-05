@@ -7,8 +7,12 @@
  */
 
 #include <polarcode/errordetection/cmac.h>
+#include <polarcode/errordetection/crc11nr.h>
 #include <polarcode/errordetection/crc16.h>
+#include <polarcode/errordetection/crc16nr.h>
+#include <polarcode/errordetection/crc24nrc.h>
 #include <polarcode/errordetection/crc32.h>
+#include <polarcode/errordetection/crc6nr.h>
 #include <polarcode/errordetection/crc8.h>
 #include <polarcode/errordetection/dummy.h>
 #include <polarcode/errordetection/errordetector.h>
@@ -25,23 +29,40 @@ Detector* create(unsigned size, std::string type)
     std::transform(type.begin(), type.end(), type.begin(), [](unsigned char c) {
         return std::tolower(c);
     });
+
     Detector* detector;
     if (type.find("crc") != std::string::npos) {
-        std::vector<unsigned> crc_sizes({ 0, 8, 16, 32 });
+        const bool use_5gnr_type = type.find("nr") != std::string::npos;
+
+        std::vector<unsigned> crc_sizes({ 0, 6, 8, 11, 16, 24, 32 });
         bool found =
             (std::find(crc_sizes.begin(), crc_sizes.end(), size) != crc_sizes.end());
         if (not found) {
             throw std::logic_error("CRC INVALID SIZE!");
         }
+
         switch (size) {
         case 0:
             detector = new Dummy();
             break;
+        case 6:
+            detector = new CRC6NR();
+            break;
         case 8:
             detector = new CRC8();
             break;
+        case 11:
+            detector = new CRC11NR();
+            break;
         case 16:
-            detector = new CRC16();
+            if (use_5gnr_type) {
+                detector = new CRC16NR();
+            } else {
+                detector = new CRC16();
+            }
+            break;
+        case 24:
+            detector = new CRC24NRC();
             break;
         case 32:
             detector = new CRC32();

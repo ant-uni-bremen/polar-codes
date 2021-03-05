@@ -45,7 +45,7 @@ void ButterflyFipPacked::initialize(size_t blockLength,
 void ButterflyFipPacked::encode()
 {
     if (!mCodewordReady) {
-        mErrorDetector->generate(xmInputData, (mBlockLength - mFrozenBits.size()) / 8);
+        mErrorDetector->generate(xmInputData, informationByteSize());
         mBitContainer->insertPackedInformationBits(xmInputData);
     }
 

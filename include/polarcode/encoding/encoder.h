@@ -36,6 +36,12 @@ protected:
     BitContainer* mBitContainer;       ///< Internal bit memory
     std::vector<unsigned> mFrozenBits; ///< Indices for frozen bits
 
+    size_t informationByteSize()
+    {
+        const size_t infoBitSize = mBlockLength - mFrozenBits.size();
+        return (infoBitSize % 8) ? infoBitSize / 8 : (infoBitSize + 8) / 8;
+    }
+
 public:
     Encoder();
     virtual ~Encoder();
