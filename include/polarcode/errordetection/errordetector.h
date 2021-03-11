@@ -40,6 +40,14 @@ public:
     virtual std::string getType() = 0;
 
     /*!
+     * \brief Calculate checksum
+     * \param data Memory location to generate the checksum of.
+     * \param bits Number of bits of data excluding the checksum.
+     * \return CRC checksum
+     */
+    virtual uint64_t calculate(void* data, size_t bits) = 0;
+
+    /*!
      * \brief Replaces the last bytes of data with a checksum.
      * \param data Memory location to generate the checksum of.
      * \param bytes Number of bytes of data including the checksum.

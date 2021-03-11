@@ -25,6 +25,11 @@ void CRC32::checkBlockSizeRestriction(int blockCount, int byteCount)
     }
 }
 
+uint64_t CRC32::calculate(void* data, size_t bits)
+{
+    return gen(reinterpret_cast<unsigned int*>(data), bits / 8);
+}
+
 unsigned int CRC32::gen(unsigned int* data, int blockCount)
 {
     unsigned int chkSum = 0;

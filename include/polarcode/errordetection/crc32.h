@@ -33,6 +33,7 @@ public:
 
     std::string getType() { return std::string("CRC"); }
     unsigned getCheckBitCount() { return 32; }
+    uint64_t calculate(void* data, size_t bits);
     void generate(void* pData, int bytes);
     bool check(void* pData, int bytes);
     int multiCheck(void** dataPtr, int nArrays, int nBytes);

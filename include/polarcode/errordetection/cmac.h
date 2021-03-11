@@ -43,6 +43,7 @@ public:
     void setKey(std::vector<unsigned char> key);
     std::string getType() { return std::string("CMAC"); }
     unsigned getCheckBitCount() { return mBitCount; }
+    uint64_t calculate(void* data, size_t bits);
     void generate(void* pData, int bytes);
     bool check(void* pData, int bytes);
     int multiCheck(void** pData, int nArrays, int nBytes);

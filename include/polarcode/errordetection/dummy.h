@@ -36,6 +36,14 @@ public:
     /*!
      * \brief Does not do anything.
      * \param dataPtr Memory location that might hold data.
+     * \param bits Number of bits there might be.
+     * \return 0.
+     */
+    uint64_t calculate(void* data, size_t bits){return 0; };
+
+    /*!
+     * \brief Does not do anything.
+     * \param dataPtr Memory location that might hold data.
      * \param bytes Number of bytes there might be.
      */
     void generate(void* dataPtr, int bytes);

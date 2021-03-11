@@ -18,6 +18,11 @@ CRC16::CRC16() {}
 
 CRC16::~CRC16() {}
 
+uint64_t CRC16::calculate(void* data, size_t bits)
+{
+    return gen(reinterpret_cast<uint16_t*>(data), bits / 8);
+}
+
 uint16_t CRC16::gen(uint16_t* data, int byteSize)
 {
     return CRC::Calculate(data, byteSize, CRC::CRC_16_CCITTFALSE());

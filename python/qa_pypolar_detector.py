@@ -298,6 +298,30 @@ class DetectorTests(unittest.TestCase):
         self.assertListEqual(list(vec_msg), list(res[:-3]))
         self.assertListEqual(list(ref), list(res[-3:]))
 
+    def test_025_crc24c_calculate(self):
+        print("CRC-24C NR calculator test")
+        det = pypolar.Detector(24, "cRcNr")
+        self.assertEqual(det.getCheckBitCount(), 24)
+        self.assertEqual(det.getType(), "CRCNR")
+        print(f"Test {det.getType()}-{det.getCheckBitCount()}")
+
+        data = np.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0], dtype=np.uint8)
+        packed_data = np.packbits(data)
+        reference = 0x1fb065
+        print(f'0x{reference:06x}')
+        checksum = det.calculate(packed_data, data.size)
+        print(f'0x{checksum:06x}')
+        self.assertEqual(reference, checksum)
+
+        data = np.array([1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0], dtype=np.uint8)
+        packed_data = np.packbits(data)
+
+        reference = 0xf70030
+        print(f'0x{reference:06x}')
+        checksum = det.calculate(packed_data, data.size)
+        print(f'0x{checksum:06x}')
+        self.assertEqual(reference, checksum)
+
     def test_060_crc6_gen(self):
         # http://www.ghsi.de/pages/subpages/Online%20CRC%20Calculation/index.php?Polynom=1100001&Message=31+32+33+34+35+36+37+38+39
         # cf. CRC6 TS 38.212 Sec 5.1
@@ -319,10 +343,6 @@ class DetectorTests(unittest.TestCase):
         self.assertListEqual(list(vec_msg), list(res[:-1]))
         self.assertListEqual(list(ref), list(res[-1:]))
 
-        # print(vec_msg)
-        # print(res)
-        # print(checksum)
-        # print("\t".join(f"0x{i:02x}" for i in checksum))
 
         msg = "CommsIsAComplicatedMatter"
         expected = [
@@ -334,6 +354,31 @@ class DetectorTests(unittest.TestCase):
         checksum = res[-1:]
         self.assertListEqual(list(vec_msg), list(res[:-1]))
         self.assertListEqual(list(ref), list(res[-1:]))
+
+    def test_061_crc6_calculate(self):
+        print("CRC-6 NR calculator test")
+        det = pypolar.Detector(6, "cRcNr")
+        self.assertEqual(det.getCheckBitCount(), 6)
+        self.assertEqual(det.getType(), "CRCNR")
+        print(f"Test {det.getType()}-{det.getCheckBitCount()}")
+
+        data = np.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0], dtype=np.uint8)
+        packed_data = np.packbits(data)
+        reference = 0x02
+
+        print(f'0x{reference:02x}')
+        checksum = det.calculate(packed_data, data.size)
+        print(f'0x{checksum:02x}')
+        self.assertEqual(reference, checksum)
+
+        data = np.array([1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0], dtype=np.uint8)
+        packed_data = np.packbits(data)
+        reference = 0x2f
+
+        print(f'0x{reference:02x}')
+        checksum = det.calculate(packed_data, data.size)
+        print(f'0x{checksum:02x}')
+        self.assertEqual(reference, checksum)
 
     def test_011_crc11_gen(self):
         # http://www.ghsi.de/pages/subpages/Online%20CRC%20Calculation/index.php?Polynom=111000100001&Message=31+32+33+34+35+36+37+38+39
@@ -376,6 +421,30 @@ class DetectorTests(unittest.TestCase):
         self.assertListEqual(list(vec_msg), list(res[:-2]))
         self.assertListEqual(list(ref), list(res[-2:]))
 
+    def test_012_crc11_calculate(self):
+        print("CRC-11 NR calculator test")
+        det = pypolar.Detector(11, "cRcNr")
+        self.assertEqual(det.getCheckBitCount(), 11)
+        self.assertEqual(det.getType(), "CRCNR")
+        print(f"Test {det.getType()}-{det.getCheckBitCount()}")
+
+        data = np.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0], dtype=np.uint8)
+        packed_data = np.packbits(data)
+        reference = 0x0608
+
+        print(f'0x{reference:03x}')
+        checksum = det.calculate(packed_data, data.size)
+        print(f'0x{checksum:03x}')
+        self.assertEqual(reference, checksum)
+
+        data = np.array([1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0], dtype=np.uint8)
+        packed_data = np.packbits(data)
+        reference = 0x06c8
+
+        print(f'0x{reference:03x}')
+        checksum = det.calculate(packed_data, data.size)
+        print(f'0x{checksum:03x}')
+        self.assertEqual(reference, checksum)
 
 if __name__ == "__main__":
     unittest.main(failfast=False)

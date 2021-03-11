@@ -31,6 +31,11 @@ CRC8::CRC8()
 
 CRC8::~CRC8() {}
 
+uint64_t CRC8::calculate(void* data, size_t bits)
+{
+    return gen(reinterpret_cast<unsigned char*>(data), bits / 8);
+}
+
 unsigned char CRC8::gen(unsigned char* data, int bytes)
 {
     unsigned char chkSum = 0;

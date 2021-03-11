@@ -20,9 +20,15 @@ CRC24NRC::CRC24NRC() {}
 
 CRC24NRC::~CRC24NRC() {}
 
-uint32_t CRC24NRC::gen(uint32_t* data, int byteSize)
+uint64_t CRC24NRC::calculate(void* data, size_t bits)
 {
-    return CRC::Calculate(data, byteSize, CRC::CRC_24_NRC());
+    uint32_t* tData = reinterpret_cast<uint32_t*>(data);
+    return gen(tData, bits);
+}
+
+uint32_t CRC24NRC::gen(uint32_t* data, size_t bitSize)
+{
+    return CRC::CalculateBits(data, bitSize, CRC::CRC_24_NRC());
 }
 
 bool CRC24NRC::check(void* pData, int bytes)
@@ -31,14 +37,14 @@ bool CRC24NRC::check(void* pData, int bytes)
     uint8_t* p = reinterpret_cast<uint8_t*>(pData);
     const uint32_t rx_checksum = (uint32_t(p[bytes - 3] << 16) |
                                   uint32_t(p[bytes - 2] << 8) | uint32_t(p[bytes - 1]));
-    const auto checksum = gen(data, bytes - 3);
+    const auto checksum = gen(data, 8 * (bytes - 3));
     return checksum == rx_checksum;
 }
 
 void CRC24NRC::generate(void* pData, int bytes)
 {
     uint32_t* data = reinterpret_cast<uint32_t*>(pData);
-    auto checksum = gen(data, bytes - 3);
+    auto checksum = gen(data, 8 * (bytes - 3));
 
     uint8_t* p = reinterpret_cast<uint8_t*>(pData);
     p[bytes - 3] = (checksum >> 16) & 0xFF;

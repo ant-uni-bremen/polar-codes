@@ -124,7 +124,7 @@ void BitContainerTest::testPackedContainerOddSize()
     // std::vector<unsigned char> data = {
     //     0x07, 0xff,
     // };
-    container->insertPackedInformationBits(data.data(), 5);
+    container->insertPackedInformationBits(data.data());
     std::vector<unsigned char> result(nbyte);
     container->getPackedBits(result.data());
 

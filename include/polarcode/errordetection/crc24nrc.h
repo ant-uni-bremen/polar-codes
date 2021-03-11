@@ -28,7 +28,7 @@ namespace ErrorDetection {
  */
 class CRC24NRC : public Detector
 {
-    uint32_t gen(uint32_t* data, int byteSize);
+    uint32_t gen(uint32_t* data, size_t bitSize);
 
 public:
     CRC24NRC();
@@ -36,6 +36,7 @@ public:
 
     std::string getType() { return std::string("CRCNR"); }
     unsigned getCheckBitCount() { return 24; }
+    uint64_t calculate(void* data, size_t bits);
     void generate(void* pData, int bytes);
     bool check(void* pData, int bytes);
     int multiCheck(void** dataPtr, int nArrays, int nBytes);

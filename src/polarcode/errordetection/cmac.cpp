@@ -142,6 +142,11 @@ size_t cmac::calculate_cmac(unsigned char* cmac,
     return mactlen;
 }
 
+uint64_t cmac::calculate(void* data, size_t bits)
+{
+    return gen(reinterpret_cast<unsigned char*>(data), bits / 8);
+}
+
 unsigned char cmac::gen(unsigned char* data, int bytes)
 {
     unsigned char chkSum = 0;

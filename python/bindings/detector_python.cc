@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Johannes Demel
+ * Copyright 2020, 2021 Johannes Demel
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -9,9 +9,6 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-
-// #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-// #include <numpy/arrayobject.h>
 
 #include <cstdint>
 #include <cstring>
@@ -27,6 +24,25 @@ void bind_detector(py::module& m)
         .def(py::init(&create), py::arg("size"), py::arg("type"))
         .def("getCheckBitCount", &Detector::getCheckBitCount)
         .def("getType", &Detector::getType)
+        .def(
+            "calculate",
+            [](Detector& self,
+               const py::array_t<uint8_t, py::array::c_style | py::array::forcecast>&
+                   array,
+               const size_t bitsize) {
+                py::buffer_info inb = array.request();
+                if (inb.ndim != 1) {
+                    throw std::runtime_error("Only ONE-dimensional vectors allowed!");
+                }
+                if (size_t(inb.size * inb.itemsize * 8) < bitsize) {
+                    throw std::runtime_error("Provided number of bits is smaller than "
+                                             "stated significant bits!");
+                }
+
+                return self.calculate((void*)inb.ptr, bitsize);
+            },
+            py::arg("data"),
+            py::arg("bitsize"))
         .def("generate",
              [](Detector& self,
                 const py::array_t<uint8_t, py::array::c_style | py::array::forcecast>&

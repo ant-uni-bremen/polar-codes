@@ -20,9 +20,14 @@ CRC6NR::CRC6NR() {}
 
 CRC6NR::~CRC6NR() {}
 
-uint8_t CRC6NR::gen(uint8_t* data, int byteSize)
+uint64_t CRC6NR::calculate(void* data, size_t bits)
 {
-    return CRC::Calculate(data, byteSize, CRC::CRC_6_NR());
+    return gen(reinterpret_cast<uint8_t*>(data), bits);
+}
+
+uint8_t CRC6NR::gen(uint8_t* data, int bitSize)
+{
+    return CRC::CalculateBits(data, bitSize, CRC::CRC_6_NR());
 }
 
 bool CRC6NR::check(void* pData, int bytes)
@@ -30,14 +35,14 @@ bool CRC6NR::check(void* pData, int bytes)
     uint8_t* data = reinterpret_cast<uint8_t*>(pData);
     uint8_t* p = reinterpret_cast<uint8_t*>(pData);
     const uint8_t rx_checksum = uint8_t(p[bytes - 1]);
-    const auto checksum = gen(data, bytes - 1);
+    const auto checksum = gen(data, 8 * (bytes - 1));
     return checksum == rx_checksum;
 }
 
 void CRC6NR::generate(void* pData, int bytes)
 {
     uint8_t* data = reinterpret_cast<uint8_t*>(pData);
-    auto checksum = gen(data, bytes - 1);
+    auto checksum = gen(data, 8 * (bytes - 1));
 
     uint8_t* p = reinterpret_cast<uint8_t*>(pData);
     p[bytes - 1] = checksum & 0xFF;
