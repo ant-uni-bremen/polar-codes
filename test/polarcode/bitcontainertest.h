@@ -11,6 +11,8 @@
 
 #include <cppunit/extensions/HelperMacros.h>
 #include <polarcode/bitcontainer.h>
+#include <memory>
+#include <vector>
 
 class BitContainerTest : public CppUnit::TestFixture
 {
@@ -20,12 +22,15 @@ class BitContainerTest : public CppUnit::TestFixture
     CPPUNIT_TEST(testCharContainer);
     CPPUNIT_TEST(testCharContainerWithFrozenBits);
     CPPUNIT_TEST(testCharContainerWithFloatInputLarge);
+    CPPUNIT_TEST(testPackedContainer);
+    CPPUNIT_TEST(testPackedContainerWithFrozenBits);
+    CPPUNIT_TEST(testPackedContainerOddSize);
     CPPUNIT_TEST_SUITE_END();
 
-    PolarCode::BitContainer* floatContainer;
-    PolarCode::BitContainer* charContainer;
-    PolarCode::BitContainer* packedContainer;
-    unsigned char* control;
+    std::unique_ptr<PolarCode::BitContainer> floatContainer;
+    std::unique_ptr<PolarCode::BitContainer> charContainer;
+    std::unique_ptr<PolarCode::BitContainer> packedContainer;
+    std::vector<unsigned char> control;
     std::string mTestData;
     std::vector<unsigned> mFrozenBits;
 
@@ -40,6 +45,7 @@ public:
     void testCharContainerWithFloatInputLarge();
     void testPackedContainer();
     void testPackedContainerWithFrozenBits();
+    void testPackedContainerOddSize();
 };
 
 #endif // PC_TEST_BITCONTAINER_H

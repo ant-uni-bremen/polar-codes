@@ -172,7 +172,8 @@ void DecodingTest::runRepetitionCodeFloat(const size_t block_length)
     decoder->getSoftCodeword(output);
 
     const float result = std::accumulate(signal, signal + block_length, 0.0f);
-    std::cout << "testRepetitionCode: block_length=" << block_length << std::endl;
+    fmt::print("testRepetitionCode: block_length={}\n", block_length);
+    // std::cout << "testRepetitionCode: block_length=" << block_length << std::endl;
     for (unsigned i = 0; i < block_length; i++) {
         CPPUNIT_ASSERT_DOUBLES_EQUAL(result, output[i], 1e-7);
     }
@@ -183,7 +184,7 @@ void DecodingTest::runRepetitionCodeFloat(const size_t block_length)
 
 void DecodingTest::testRepetitionCodeFloat()
 {
-    size_t block_length = 2;
+    size_t block_length = 8;
     runRepetitionCodeFloat(block_length);
     runRepetitionCodeFloat(block_length * 2);
     runRepetitionCodeFloat(block_length * 4);
@@ -230,7 +231,7 @@ void DecodingTest::runDoubleRepetitionCodeFloat(const size_t block_length)
 
 void DecodingTest::testDoubleRepetitionCodeFloat()
 {
-    size_t block_length = 4;
+    size_t block_length = 8;
     runDoubleRepetitionCodeFloat(block_length);
     runDoubleRepetitionCodeFloat(block_length * 2);
     runDoubleRepetitionCodeFloat(block_length * 4);
@@ -270,7 +271,7 @@ void DecodingTest::runSPCCodeFloat(const size_t block_length)
 
 void DecodingTest::testSPCCodeFloat()
 {
-    size_t block_length = 4;
+    size_t block_length = 8;
     runSPCCodeFloat(block_length);
     runSPCCodeFloat(block_length * 2);
     runSPCCodeFloat(block_length * 4);
@@ -285,7 +286,14 @@ void DecodingTest::fillRandom(float* vec, const unsigned length)
     std::mt19937_64 generator;
     std::normal_distribution<float> dist(10, 20);
     for (unsigned i = 0; i < length; ++i) {
-        vec[i] = dist(generator);
+        auto value = dist(generator);
+        while (!std::isfinite(value)) {
+            // This seems strange but we don't want +-NaN or +-Inf.
+            // We've seen NaN in the output...
+            value = dist(generator);
+        }
+        // fmt::print("{:02}\t{}\n", i, value);
+        vec[i] = value;
     }
 }
 
@@ -303,6 +311,7 @@ void DecodingTest::runDoubleSPCCodeFloat(const size_t block_length)
     float* output = (float*)std::aligned_alloc(32, block_length * sizeof(float));
 
     fillRandom(signal, block_length);
+    // fmt::print("signal: {}\n", std::vector<float>(signal, signal + block_length));
 
     std::vector<float> expected(block_length);
     PolarCode::Decoding::FastSscAvx::decode_double_spc(
@@ -1101,28 +1110,28 @@ void DecodingTest::testPerformance()
 
     delete decoder;
 
-    decoder = new PolarCode::Decoding::SclFipChar(blockLength, 4, frozenBits);
+    auto decocder_char =
+        std::make_unique<PolarCode::Decoding::SclFipChar>(blockLength, 4, frozenBits);
 
     TimeInject = high_resolution_clock::now();
-    decoder->setSignal(signal);
+    decocder_char->setSignal(signal);
     TimeDecode = high_resolution_clock::now();
-    decoder->decode();
+    decocder_char->decode();
     TimeEnd = high_resolution_clock::now();
 
-    // decoder->getDecodedInformationBits(&output);
+    // decocder_char->getDecodedInformationBits(&output);
     // CPPUNIT_ASSERT(output == 0xF0);
 
     TimeUsed = duration_cast<duration<float>>(TimeEnd - TimeInject).count();
     TimeDecoder = duration_cast<duration<float>>(TimeEnd - TimeDecode).count();
 
-    std::cout << "List decoder speed for " << blockLength
-              << "-bit block: " << siFormat(blockLength / TimeUsed) << "bps ("
-              << siFormat(TimeUsed) << "s per block)"
-              << " [Decoder without bit injection: "
-              << siFormat(blockLength / TimeDecoder) << "bps, " << siFormat(TimeDecoder)
-              << "s/block]" << std::endl;
-
-    delete decoder;
+    fmt::print("List decoder speed for {}-bit block: {}bps ({}s per block) [Decoder "
+               "without bit injection: {}bps, {}s/block]\n",
+               blockLength,
+               siFormat(blockLength / TimeUsed),
+               siFormat(TimeUsed),
+               siFormat(blockLength / TimeDecoder),
+               siFormat(TimeDecoder));
 }
 
 void DecodingTest::testListDecoder()
@@ -1138,42 +1147,36 @@ void DecodingTest::testListDecoder()
     float signal[] = { -5, -6, -4, 1, -4, -5, -7, 2 };
     unsigned char output = 0;
 
-    PolarCode::Decoding::Decoder* decoder =
-        new PolarCode::Decoding::SclFipChar(blockLength, listSizeLimit, frozenBits);
+    auto decoder_char = std::make_unique<PolarCode::Decoding::SclFipChar>(
+        blockLength, listSizeLimit, frozenBits);
 
     TimeStart = high_resolution_clock::now();
-    decoder->setSignal(signal);
-    decoder->decode();
+    decoder_char->setSignal(signal);
+    decoder_char->decode();
     TimeEnd = high_resolution_clock::now();
-    decoder->getDecodedInformationBits(&output);
+    decoder_char->getDecodedInformationBits(&output);
+    CPPUNIT_ASSERT((output & 0xF0) == 0xF0);
+
+    TimeUsed = duration_cast<duration<float>>(TimeEnd - TimeStart).count();
+    fmt::print("Char list decoder speed for 8-bit block: {}bps ({}s per block)\n",
+               siFormat(blockLength / TimeUsed),
+               siFormat(TimeUsed));
+
+    auto decoder_float = std::make_unique<PolarCode::Decoding::SclAvxFloat>(
+        blockLength, listSizeLimit, frozenBits);
+
+    TimeStart = high_resolution_clock::now();
+    decoder_float->setSignal(signal);
+    decoder_float->decode();
+    TimeEnd = high_resolution_clock::now();
+    decoder_float->getDecodedInformationBits(&output);
     CPPUNIT_ASSERT((output & 0xF0) == 0xF0);
 
     TimeUsed = duration_cast<duration<float>>(TimeEnd - TimeStart).count();
 
-    std::cout << "Char list decoder speed for 8-bit block: "
-              << siFormat(blockLength / TimeUsed) << "bps (" << siFormat(TimeUsed)
-              << "s per block)" << std::endl;
-
-    delete decoder;
-
-
-    decoder =
-        new PolarCode::Decoding::SclAvxFloat(blockLength, listSizeLimit, frozenBits);
-
-    TimeStart = high_resolution_clock::now();
-    decoder->setSignal(signal);
-    decoder->decode();
-    TimeEnd = high_resolution_clock::now();
-    decoder->getDecodedInformationBits(&output);
-    CPPUNIT_ASSERT((output & 0xF0) == 0xF0);
-
-    TimeUsed = duration_cast<duration<float>>(TimeEnd - TimeStart).count();
-
-    std::cout << "Float list decoder speed for 8-bit block: "
-              << siFormat(blockLength / TimeUsed) << "bps (" << siFormat(TimeUsed)
-              << "s per block)" << std::endl;
-
-    delete decoder;
+    fmt::print("Float list decoder speed for 8-bit block: {}bps ({}s per block)\n",
+               siFormat(blockLength / TimeUsed),
+               siFormat(TimeUsed));
 }
 
 
@@ -1182,49 +1185,26 @@ std::vector<unsigned> frozenEightIdx = { 3, 5, 6, 7 };
 
 void DecodingTest::testTemplatized()
 {
-    /*
-     * This is an attempt to make things compile for old GCC compilers.
-     * The templated code is known to work with GCC 6 and above.
-     * For older compilers, this test is redundant.
-     */
-    // #if defined(__GNUC__) && __GNUC__ >= 6
-    PolarCode::Decoding::Decoder* decoder =
-        new PolarCode::Decoding::TemplatizedFloat<8, frozenEight>(frozenEightIdx);
-    // #else
-    // std::vector<unsigned> frozenBits({0,1,2,4});
-    // PolarCode::Decoding::Decoder *decoder =
-    // 		new PolarCode::Decoding::FastSscAvxFloat(8, frozenBits);
-    // #endif
-    float signal[] = { -5, -6, -4, 1, -4, -5, -7, 2 };
+    auto decoder =
+        std::make_unique<PolarCode::Decoding::TemplatizedFloat<8, frozenEight>>(
+            frozenEightIdx);
 
+    float signal[] = { -5, -6, -4, 1, -4, -5, -7, 2 };
 
     decoder->setSignal(signal);
     decoder->decode();
     float output[8];
     decoder->getSoftCodeword(output);
 
-    std::cout << std::endl << "Templatized decoder output: " << std::endl << "[";
-    for (int i = 0; i < 8; ++i) {
-        std::cout << output[i];
-        if (i != 7)
-            std::cout << ", ";
-    }
-    std::cout << "]" << std::endl;
-
-    delete decoder;
+    fmt::print("Templatized decoder output:\n{}\n",
+               std::vector<float>(output, output + 8));
 }
 
 void DecodingTest::showScanTestOutput(unsigned iterationLimit, float output[8])
 {
-    std::cout << "Systematic SCAN decoder output for I=" << iterationLimit << ": "
-              << std::endl
-              << "[";
-    for (int i = 0; i < 8; ++i) {
-        std::cout << output[i];
-        if (i != 7)
-            std::cout << ", ";
-    }
-    std::cout << "]" << std::endl;
+    fmt::print("Systematic SCAN decoder output for I={}:\n{}\n",
+               iterationLimit,
+               std::vector<float>(output, output + 8));
 }
 
 void DecodingTest::testScan()

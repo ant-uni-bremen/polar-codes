@@ -1,12 +1,14 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2018 Florian Lotze
+ * Copyright 2018 Florian Lotze, 2021 Johannes Demel
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  */
 
 #include "bitcontainertest.h"
+#include <fmt/core.h>
+#include <fmt/ranges.h>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -20,55 +22,52 @@ void BitContainerTest::setUp()
     mTestData = "TestData";
     mFrozenBits = { 0, 1, 2, 3, 4, 5, 6, 7 }; // Freeze first byte
 
-    floatContainer = new PolarCode::FloatContainer(mTestData.size() * 8, mFrozenBits);
-    charContainer = new PolarCode::CharContainer(mTestData.size() * 8, mFrozenBits);
-    packedContainer = new PolarCode::PackedContainer(mTestData.size() * 8, mFrozenBits);
+    floatContainer =
+        std::make_unique<PolarCode::FloatContainer>(mTestData.size() * 8, mFrozenBits);
+    charContainer =
+        std::make_unique<PolarCode::CharContainer>(mTestData.size() * 8, mFrozenBits);
+    packedContainer =
+        std::make_unique<PolarCode::PackedContainer>(mTestData.size() * 8, mFrozenBits);
 
-    control = new unsigned char[mTestData.size()];
+    control.resize(mTestData.size());
 }
 
-void BitContainerTest::tearDown()
-{
-    delete floatContainer;
-    delete charContainer;
-    delete packedContainer;
-    delete[] control;
-}
+void BitContainerTest::tearDown() {}
 
 void BitContainerTest::testFloatContainer()
 {
-    memset(control, 0, mTestData.size());
+    memset(control.data(), 0, mTestData.size());
     floatContainer->insertPackedBits(mTestData.data());
-    floatContainer->getPackedBits(control);
+    floatContainer->getPackedBits(control.data());
 
-    CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size()) == 0);
+    CPPUNIT_ASSERT(memcmp(mTestData.data(), control.data(), mTestData.size()) == 0);
 }
 
 void BitContainerTest::testFloatContainerWithFrozenBits()
 {
-    memset(control, 0, mTestData.size());
+    memset(control.data(), 0, mTestData.size());
     floatContainer->insertPackedInformationBits(mTestData.data());
-    floatContainer->getPackedInformationBits(control);
+    floatContainer->getPackedInformationBits(control.data());
 
-    CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size() - 1) == 0);
+    CPPUNIT_ASSERT(memcmp(mTestData.data(), control.data(), mTestData.size() - 1) == 0);
 }
 
 void BitContainerTest::testCharContainer()
 {
-    memset(control, 0, mTestData.size());
+    memset(control.data(), 0, mTestData.size());
     charContainer->insertPackedBits(mTestData.data());
-    charContainer->getPackedBits(control);
+    charContainer->getPackedBits(control.data());
 
-    CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size()) == 0);
+    CPPUNIT_ASSERT(memcmp(mTestData.data(), control.data(), mTestData.size()) == 0);
 }
 
 void BitContainerTest::testCharContainerWithFrozenBits()
 {
-    memset(control, 0, mTestData.size());
+    memset(control.data(), 0, mTestData.size());
     charContainer->insertPackedInformationBits(mTestData.data());
-    charContainer->getPackedInformationBits(control);
+    charContainer->getPackedInformationBits(control.data());
 
-    CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size() - 1) == 0);
+    CPPUNIT_ASSERT(memcmp(mTestData.data(), control.data(), mTestData.size() - 1) == 0);
 }
 
 void BitContainerTest::testCharContainerWithFloatInputLarge()
@@ -98,18 +97,47 @@ void BitContainerTest::testCharContainerWithFloatInputLarge()
 
 void BitContainerTest::testPackedContainer()
 {
-    memset(control, 0, mTestData.size());
+    memset(control.data(), 0, mTestData.size());
     packedContainer->insertPackedBits(mTestData.data());
-    packedContainer->getPackedBits(control);
+    packedContainer->getPackedBits(control.data());
 
-    CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size()) == 0);
+    CPPUNIT_ASSERT(memcmp(mTestData.data(), control.data(), mTestData.size()) == 0);
 }
 
 void BitContainerTest::testPackedContainerWithFrozenBits()
 {
-    memset(control, 0, mTestData.size());
+    memset(control.data(), 0, mTestData.size());
     packedContainer->insertPackedInformationBits(mTestData.data());
-    packedContainer->getPackedInformationBits(control);
+    packedContainer->getPackedInformationBits(control.data());
 
-    CPPUNIT_ASSERT(memcmp(mTestData.data(), control, mTestData.size() - 1) == 0);
+    CPPUNIT_ASSERT(memcmp(mTestData.data(), control.data(), mTestData.size() - 1) == 0);
+}
+
+void BitContainerTest::testPackedContainerOddSize()
+{
+    const unsigned nbyte = 4;
+    std::vector<unsigned> frozen_bit_positions = { 0, 1, 2, 4, 5 };
+    auto container =
+        std::make_unique<PolarCode::PackedContainer>(nbyte * 8, frozen_bit_positions);
+    std::vector<unsigned char> data(nbyte, 0xff);
+    data[0] = 0x07;
+    // std::vector<unsigned char> data = {
+    //     0x07, 0xff,
+    // };
+    container->insertPackedInformationBits(data.data(), 5);
+    std::vector<unsigned char> result(nbyte);
+    container->getPackedBits(result.data());
+
+    fmt::print("data:   ");
+    for (const auto& b : data) {
+        fmt::print("{:02x}\t", b);
+    }
+    fmt::print("\n");
+    fmt::print("result: ");
+    for (const auto& b : result) {
+        fmt::print("{:02x}\t", b);
+    }
+    fmt::print("\n");
+    // fmt::print("data:   {:b}\n", data);
+    // fmt::print("result: {:b}\n", result);
 }
