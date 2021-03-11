@@ -39,7 +39,7 @@ public:
      * \param bits Number of bits there might be.
      * \return 0.
      */
-    uint64_t calculate(void* data, size_t bits){return 0; };
+    uint64_t calculate(void* data, size_t bits) { return 0; };
 
     /*!
      * \brief Does not do anything.
