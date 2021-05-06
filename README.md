@@ -112,6 +112,10 @@ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ```
 in every terminal you open. Or put this in your `.bashrc` or `.zshrc` or your shell config file. The `/usr/local` part in the lines above must match your `CMAKE_INSTALL_PREFIX`. You can set this to any path with `cmake -DCMAKE_INSTALL_PREFIX=/your/custom/fancy/install/prefix ..`. A more permanent solution needs further consideration because of the interaction between different system components.
 
+## Benchmark
+Theoretically, there is `libbenchmark-dev` in Ubuntu 20.04 but we need a newer [benchmark](https://github.com/google/benchmark) version. Thus, we must build and install from source.
+
+
 ## License and Referencing
 This program is licensed under the GPLv3+ license.
 
