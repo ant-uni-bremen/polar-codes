@@ -224,34 +224,23 @@ def sanitize_value_set(values, measure_keys=['CodeThr', 'InfoThr', 'real_time',
     return values
 
 
+def exlcude_pattern(plot_data, pattern):
+    res = []
+    for d in plot_data:
+        if np.all([d[0].get(k, None) in v for k, v in pattern.items()]):
+            continue
+        res.append(d)
+    return res
+
+
 def main():
     latex_textwidth = 327.20668  # pt
     print(f'CWD: {os.getcwd()}')
-    # parser = get_cli_configuration()
-    # args = parser.parse_args()
-    # print(args)
 
-    # filename = args.file
-    ext_filenames = ['../polar_code_benchmarks_encode_crc_trx3970.json',
-                     '../polar_code_benchmarks_encode_cmac_trx3970.json',
-                     '../polar_code_benchmarks_trx3970.json',
-                     ]
-    # filename = '../polar_code_benchmarks_encode_crc_trx3970.json'
-    # context, crc_results = load_json(filename)
-    # pprint(context)
-    # results.extend(crc_results)
-    # filename = '../polar_code_benchmarks_encode_cmac_trx3970.json'
-    # context, cmac_results = load_json(filename)
-    # pprint(context)
-    # results.extend(cmac_results)
-
-    # filename = '../polar_code_benchmarks_trx3970.json'
-    # context, decode_results = load_json(filename)
-    # pprint(context)
-    # results.extend(decode_results)
     filenames = ['../polar_code_benchmarks_decode_trx3970_1024vs512.json',
                  '../polar_code_benchmarks_decode_trx3970_256vs128.json',
                  '../polar_code_benchmarks_decode_trx3970_1024_generators.json']
+    filenames = ['../polar_code_benchmarks_encode_r5900_1024.json', ]
     # filenames.extend(ext_filenames)
     context, results = load_results(filenames)
     pprint(context)
@@ -259,21 +248,19 @@ def main():
 
     # pprint(results)
     values = find_all_values(results)
-    # measure_keys = ['CodeThr', 'InfoThr', 'real_time',
-    #                 'cpu_time', 'repetitions', 'iterations', ]
-    # for k in measure_keys:
-    #     values.pop(k)
+
     values = sanitize_value_set(values)
     for k, v in values.items():
         print(f'{k}\t\t{v}')
 
     all_latencies = []
+    benchmark_plot_type = 'latency'
     dsize = 0
     dtype = 'CRC'
-    is_systematic = True
+    is_systematic = False
     list_size = 1
     dsnr = 1.0
-    benchmark_type = 'polar_decode'
+    benchmark_type = 'polar_encode'
     block_length = 1024
     decoder_type = 'float'
     generator_type = 'BB'
@@ -291,13 +278,13 @@ def main():
             'decoder_type': decoder_type,
         })
 
-    compare_values = ['generator_type', 'dsnr']
+    # compare_values = ['generator_type', 'dsnr']
+    compare_values = ['detector_size', 'detector_type', 'is_systematic']
     # values['block_length'] = set(sorted(values['block_length'])[4:5])
     # values['list_size'] = set(sorted(values['list_size'])[-3:])
     # print(values['block_length'])
 
-    plt.figure(figsize=set_size(latex_textwidth))
-
+    plot_data = []
     for lv in itertools.product(*(sorted(values[v]) for v in compare_values)):
         for i, v in enumerate(compare_values):
             fixed_values[v] = lv[i]
@@ -305,32 +292,49 @@ def main():
         plotset = extract_result_line(results, fixed_values)
         if not plotset:
             continue
-        print('all values in plotset')
-        pprint(sanitize_value_set(find_all_values(plotset)))
-        # info_lens, latencies, label = prepare_latency_over_info_length(
-        #     plotset)
-        # plt.plot(info_lens, code_thr, label=label)
-        info_lens, code_thr, info_thr, label = prepare_throughput_over_info_length(
-            plotset)
+        plot_data.append(plotset)
 
-        code_rate = info_lens / fixed_values['block_length']
-        print(label)
-        print(info_lens)
-        print(code_thr)
-        print(info_thr)
-        # print(latencies)
-        # all_latencies.append(latencies)
-        p = plt.plot(code_rate, code_thr, label=label)
-        color = p[0].get_color()
-        p = plt.plot(code_rate, info_thr, color=color, linestyle='dashed')
+    pattern = {'detector_type': ['CMAC', ],
+                'detector_size': [16, 64]}
+    plot_data = exlcude_pattern(plot_data, pattern)
 
-    # for l in all_latencies[1:]:
-    #     print(l - all_latencies[0])
-    plt.xlabel(r'$K$')
-    plt.ylabel('execution time [ns]')
+    pattern = {'is_systematic': [True, ],
+                'detector_size': [0, 8, 16, 64]}
+    plot_data = exlcude_pattern(plot_data, pattern)
 
-    plt.xlabel(r'$R$')
-    plt.ylabel('throughput [b/s]')
+    pattern = {'is_systematic': [True, ],
+                'detector_type': ['CRC', ],
+                'detector_size': [32, ]}
+    plot_data = exlcude_pattern(plot_data, pattern)
+
+    plt.figure(figsize=set_size(latex_textwidth))
+
+    if benchmark_plot_type == 'latency':
+        for plotset in plot_data:
+            info_lens, latencies, label = prepare_latency_over_info_length(
+                plotset)
+            plt.plot(info_lens, latencies, label=label)
+        plt.xlabel(r'$K$')
+        plt.ylabel('execution time [ns]')
+    elif benchmark_plot_type == 'throughput':
+        for plotset in plot_data:
+            info_lens, code_thr, info_thr, label = prepare_throughput_over_info_length(
+                plotset)
+
+            code_rate = info_lens / fixed_values['block_length']
+            print(label)
+            print(info_lens)
+            print(code_thr)
+            print(info_thr)
+
+            p = plt.plot(code_rate, code_thr, label=label)
+            color = p[0].get_color()
+            p = plt.plot(code_rate, info_thr, color=color, linestyle='dashed')
+        plt.xlabel(r'$R$')
+        plt.ylabel('throughput [b/s]')
+    else:
+        print('unknown plot type!')
+        return
 
     plt.legend(fontsize='xx-small')
     plt.tight_layout()
