@@ -241,6 +241,7 @@ def main():
                  '../polar_code_benchmarks_decode_trx3970_256vs128.json',
                  '../polar_code_benchmarks_decode_trx3970_1024_generators.json']
     filenames = ['../polar_code_benchmarks_encode_r5900_1024.json', ]
+    filenames = ['../polar_code_benchmarks_encode_trx3970.json', ]
     # filenames.extend(ext_filenames)
     context, results = load_results(filenames)
     pprint(context)
@@ -279,7 +280,7 @@ def main():
         })
 
     # compare_values = ['generator_type', 'dsnr']
-    compare_values = ['detector_size', 'detector_type', 'is_systematic']
+    compare_values = ['detector_size', 'detector_type', ]
     # values['block_length'] = set(sorted(values['block_length'])[4:5])
     # values['list_size'] = set(sorted(values['list_size'])[-3:])
     # print(values['block_length'])
@@ -302,10 +303,10 @@ def main():
                 'detector_size': [0, 8, 16, 64]}
     plot_data = exlcude_pattern(plot_data, pattern)
 
-    pattern = {'is_systematic': [True, ],
-                'detector_type': ['CRC', ],
-                'detector_size': [32, ]}
-    plot_data = exlcude_pattern(plot_data, pattern)
+    # pattern = {'is_systematic': [True, ],
+    #             'detector_type': ['CRC', ],
+    #             'detector_size': [32, ]}
+    # plot_data = exlcude_pattern(plot_data, pattern)
 
     plt.figure(figsize=set_size(latex_textwidth))
 
@@ -313,6 +314,9 @@ def main():
         for plotset in plot_data:
             info_lens, latencies, label = prepare_latency_over_info_length(
                 plotset)
+            print(label)
+            print(info_lens)
+            print(latencies)
             plt.plot(info_lens, latencies, label=label)
         plt.xlabel(r'$K$')
         plt.ylabel('execution time [ns]')
@@ -337,7 +341,9 @@ def main():
         return
 
     plt.legend(fontsize='xx-small')
+    plt.grid()
     plt.tight_layout()
+    plt.savefig('polar_encoder_N1024_CRCs.pgf')
     # plt.savefig('polar_encoder_blocksizes.pgf')
     # plt.savefig('polar_encoder_N1024_CRCs.pgf')
     # plt.savefig('polar_encoder_N1024_CMACs.pgf')

@@ -39,7 +39,7 @@ protected:
     size_t informationByteSize()
     {
         const size_t infoBitSize = mBlockLength - mFrozenBits.size();
-        return (infoBitSize % 8) ? infoBitSize / 8 : (infoBitSize + 8) / 8;
+        return (infoBitSize % 8) ? (infoBitSize + 8) / 8 : infoBitSize / 8;
     }
 
 public:

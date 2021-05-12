@@ -8,6 +8,7 @@
 
 #include "test_functions.txx"
 #include <benchmark/benchmark.h>
+#include <fmt/core.h>
 #include <iostream>
 #include <memory>
 
@@ -178,18 +179,16 @@ static void benchmark_polar_encoder(benchmark::State& state,
     auto encoder = create_polar_encoder(
         block_length, frozen_bit_positions, parity_size, detector_type, is_systematic);
 
-    auto vec = initialize_random_bit_vector(info_length / 8);
+    auto vec = initialize_random_bit_vector((info_length + parity_size) / 8);
     std::vector<uint8_t> result(block_length / 8);
 
     for (auto _ : state) {
         benchmark::DoNotOptimize(vec);
         benchmark::DoNotOptimize(result);
-        encoder->encode_vector((void*)vec.data(), (void*)result.data());
+        encoder->encode_vector((void*)vec.data(), reinterpret_cast<void*>(result.data()));
         benchmark::DoNotOptimize(vec);
         benchmark::DoNotOptimize(result);
     }
-
-    // state.SetBytesProcessed(block_length * state.iterations());
 
     state.counters["CodeThr"] = benchmark::Counter(block_length * state.iterations(),
                                                    benchmark::Counter::kIsRate,
@@ -247,15 +246,20 @@ static void BM_polar_encode(benchmark::State& state, const std::string& detector
     const unsigned parity_size = static_cast<unsigned>(state.range(2));
     const bool is_systematic = static_cast<size_t>(state.range(3)) > 0;
     const float dsnr = static_cast<float>(state.range(4)) / 100.0f;
-    // std::cout << block_length << "\t" << info_length << "\t" << detector_type
-    //           << parity_size << "\t" << dsnr << "\t" << is_systematic << std::endl;
+    // fmt::print("Encoder: N={}, K={}, {}{}, syst.={}, dSNR={}\n",
+    //            block_length,
+    //            info_length,
+    //            detector_type,
+    //            parity_size,
+    //            is_systematic,
+            //    dsnr);
     if (not(block_length > info_length)) {
         std::string msg("Invalid code (" + std::to_string(block_length) + ", " +
                         std::to_string(info_length) + ")");
         state.SkipWithError(msg.c_str());
         return;
     }
-
+    // fmt::print("BM_polar_encode: RUN\n");
     benchmark_polar_encoder(state,
                             block_length,
                             info_length,
@@ -263,6 +267,7 @@ static void BM_polar_encode(benchmark::State& state, const std::string& detector
                             parity_size,
                             detector_type,
                             is_systematic);
+    // fmt::print("BM_polar_encode: EXIT\n");
 }
 
 
