@@ -24,10 +24,15 @@ import datetime
 from latex_plot_magic import set_size
 
 
-def load_json(filename):
+def load_json(filename, cpu_name):
     with open(filename) as file:
         data = json.load(file)
-        return data['context'], data['benchmarks']
+        benchmarks = data['benchmarks']
+        for b in benchmarks:
+            b['cpu_name'] = cpu_name
+        context = data['context']
+        context['cpu_name'] = cpu_name
+        return context, benchmarks
 
 
 def get_cli_configuration():
@@ -74,6 +79,7 @@ def update_result(result):
     converters = {'name': str,
                   'run_name': str,
                   'run_type': str,
+                  'cpu_name': str,
                   'real_time': float,
                   'cpu_time': float,
                   'time_unit': str,
@@ -206,15 +212,11 @@ def merge_results(context, results, next_context, next_results):
 def load_results(filenames):
     assert len(filenames) > 0
     # choose a random reference
-    context, results = load_json(filenames[0])
-    print(f'initial result size: {len(results)}')
-
-    for f in filenames[1:]:
-        fc, fr = load_json(f)
-        context, results = merge_results(context, results, fc, fr)
-        print(f'new     result size: {len(results)}')
-
-    return context, results
+    res = []
+    for f, cpu in filenames:
+        fc, fr = load_json(f, cpu)
+        res.append([fc, fr])
+    return res
 
 
 def sanitize_value_set(values, measure_keys=['CodeThr', 'InfoThr', 'real_time',
@@ -241,10 +243,21 @@ def main():
                  '../polar_code_benchmarks_decode_trx3970_256vs128.json',
                  '../polar_code_benchmarks_decode_trx3970_1024_generators.json']
     filenames = ['../polar_code_benchmarks_encode_r5900_1024.json', ]
-    filenames = ['../polar_code_benchmarks_encode_trx3970.json', ]
+    filenames = [['../polar_code_benchmarks_encode_trx3970.json', "Ryzen Threadripper 3970X"],
+                 ['../polar_code_benchmarks_encode_xeon6254.json', "Xeon Gold 6254"],
+                 ['../polar_code_benchmarks_encode_7700t.json', "Core i7-7700T"],
+                 ['../polar_code_benchmarks_encode_r5800.json', "Ryzen 7 5800X"],
+                 ['../polar_code_benchmarks_encode_r5900.json', "Ryzen 9 5900X"], ]
     # filenames.extend(ext_filenames)
-    context, results = load_results(filenames)
-    pprint(context)
+    raw_results = load_results(filenames)
+    results = []
+    for r in raw_results:
+        pprint(r[0])
+        print(np.shape(r[1]))
+        results.extend(r[1])
+    print(np.shape(results))
+    # pprint(context)
+
     results = extract_result_information(results)
 
     # pprint(results)
@@ -253,16 +266,16 @@ def main():
     values = sanitize_value_set(values)
     for k, v in values.items():
         print(f'{k}\t\t{v}')
-
+    # return
     all_latencies = []
-    benchmark_plot_type = 'latency'
+    benchmark_plot_type = 'throughput'
     dsize = 0
     dtype = 'CRC'
     is_systematic = False
     list_size = 1
     dsnr = 1.0
     benchmark_type = 'polar_encode'
-    block_length = 1024
+    block_length = 131072
     decoder_type = 'float'
     generator_type = 'BB'
     fixed_values = {
@@ -281,6 +294,8 @@ def main():
 
     # compare_values = ['generator_type', 'dsnr']
     compare_values = ['detector_size', 'detector_type', ]
+    compare_values = ['cpu_name',]
+    compare_values = ['cpu_name', 'block_length']
     # values['block_length'] = set(sorted(values['block_length'])[4:5])
     # values['list_size'] = set(sorted(values['list_size'])[-3:])
     # print(values['block_length'])
@@ -303,6 +318,9 @@ def main():
                 'detector_size': [0, 8, 16, 64]}
     plot_data = exlcude_pattern(plot_data, pattern)
 
+    pattern = {'detector_type': ['CRC', ],
+                'block_length': [16, 64, 128, 512, 2048, 32768]}
+    plot_data = exlcude_pattern(plot_data, pattern)
     # pattern = {'is_systematic': [True, ],
     #             'detector_type': ['CRC', ],
     #             'detector_size': [32, ]}
@@ -315,6 +333,8 @@ def main():
             info_lens, latencies, label = prepare_latency_over_info_length(
                 plotset)
             print(label)
+            if 'cpu_name' in compare_values and len(compare_values) < 2:
+                label = plotset[0]['cpu_name']
             print(info_lens)
             print(latencies)
             plt.plot(info_lens, latencies, label=label)
@@ -324,12 +344,14 @@ def main():
         for plotset in plot_data:
             info_lens, code_thr, info_thr, label = prepare_throughput_over_info_length(
                 plotset)
-
-            code_rate = info_lens / fixed_values['block_length']
+            res_block_length = plotset[0]['block_length']
+            code_rate = info_lens / res_block_length
             print(label)
             print(info_lens)
             print(code_thr)
             print(info_thr)
+            if 'cpu_name' in compare_values:
+                label = ', '.join([f'{plotset[0][v]}' for v in compare_values])
 
             p = plt.plot(code_rate, code_thr, label=label)
             color = p[0].get_color()
@@ -343,7 +365,7 @@ def main():
     plt.legend(fontsize='xx-small')
     plt.grid()
     plt.tight_layout()
-    plt.savefig('polar_encoder_N1024_CRCs.pgf')
+    # plt.savefig('polar_encoder_N1024_CRCs.pgf')
     # plt.savefig('polar_encoder_blocksizes.pgf')
     # plt.savefig('polar_encoder_N1024_CRCs.pgf')
     # plt.savefig('polar_encoder_N1024_CMACs.pgf')

@@ -1,4 +1,4 @@
-name: Check Formatting
+name: Check C++ code formatting with clang-format
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v2.4.0
     - uses: gnuradio/clang-format-lint-action@v0.5-4
       with:
         source: '.'

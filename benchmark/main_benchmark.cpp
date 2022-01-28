@@ -252,7 +252,7 @@ static void BM_polar_encode(benchmark::State& state, const std::string& detector
     //            detector_type,
     //            parity_size,
     //            is_systematic,
-            //    dsnr);
+    //    dsnr);
     if (not(block_length > info_length)) {
         std::string msg("Invalid code (" + std::to_string(block_length) + ", " +
                         std::to_string(info_length) + ")");
