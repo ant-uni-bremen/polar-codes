@@ -7,26 +7,28 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Checkout submodules
-      uses: srt32/git-actions@v0.0.3
-      with:
-        args: git submodule update --init --recursive
-    - name: dependencies
-      run: sudo apt install doxygen python3-pybind11 python3-numpy python3-scipy libcppunit-dev libtclap-dev libssl-dev libfmt-dev
-    - name: configure
-      run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Werror" ..
-    - name: build
-      run: cmake --build build
-    - name: install
-      run: cd build && sudo make install
-    - name: environment
-      run: |
-        echo "export PATH=/usr/local/bin:$PATH" > setup_env.sh
-        echo "export PYTHONPATH=/usr/local/lib/python3/dist-packages:$PYTHONPATH" >> setup_env.sh
-        echo "export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH"  >> setup_env.sh
-        echo "export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH" >> setup_env.sh
-    - name: test
-      run: |
-        source setup_env.sh
-        cd build && ctest -V
+      - uses: actions/checkout@v2.4.0
+        with:
+          submodules: "recursive"
+      # - name: Checkout submodules
+      #   uses: srt32/git-actions@v0.0.3
+      #   with:
+      #     args: git submodule update --init --recursive
+      - name: dependencies
+        run: sudo apt install doxygen python3-pybind11 python3-numpy python3-scipy libcppunit-dev libtclap-dev libssl-dev libfmt-dev
+      - name: configure
+        run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Werror" ..
+      - name: build
+        run: cmake --build build
+      - name: install
+        run: cd build && sudo make install
+      - name: environment
+        run: |
+          echo "export PATH=/usr/local/bin:$PATH" > setup_env.sh
+          echo "export PYTHONPATH=/usr/local/lib/python3/dist-packages:$PYTHONPATH" >> setup_env.sh
+          echo "export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH"  >> setup_env.sh
+          echo "export LIBRARY_PATH=/usr/local/lib:$LIBRARY_PATH" >> setup_env.sh
+      - name: test
+        run: |
+          source setup_env.sh
+          cd build && ctest -V
