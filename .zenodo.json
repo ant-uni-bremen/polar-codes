@@ -1,0 +1,27 @@
+{
+    "title": "polar-codes",
+    "description": "This is a library and simulation tool for a Forward Error Correcting (FEC) scheme named Polar Codes. A very promising group of codes that have low encoding and decoding latency with high BLER-performance.",
+    "license": {
+        "id": "GPL-3.0-or-later"
+    },
+    "keywords": [
+        "communication",
+        "software radio",
+        "SDR",
+        "C++",
+        "FEC",
+        "error correction",
+        "polar codes",
+        "Python"
+    ],
+    "creators": [
+        {
+            "affiliation": "Department of Communications Engineering, University of Bremen, Germany",
+            "name": "Demel, Johannes",
+            "orcid": "0000-0002-5434-7232"
+        },
+        {
+            "name": "Lotze, Florian"
+        }
+    ]
+}
