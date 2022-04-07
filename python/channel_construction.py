@@ -9,6 +9,8 @@
 import numpy as np
 from scipy import special as sps
 
+from latex_plot_magic import set_size
+
 
 def db2lin(snr_db):
     return 10. ** (snr_db / 10.)
@@ -247,8 +249,12 @@ class ChannelConstructorBetaExpansion(ChannelConstructor):
 def plot_capacity_approx(N, snr):
     import matplotlib.pyplot as plt
     bb = ChannelConstructorBhattacharyyaBounds(N, snr)
-    plt.figure(figsize=(4, 2))
-    for snr in (-1.5917, ):
+    static_size = (4, 2)
+    latex_size = set_size()
+    fig_size = (latex_size[0], static_size[1] * (latex_size[0] / static_size[0]))
+    plt.figure(figsize=fig_size)
+    min_dsnr = -1.5917
+    for snr in (0, ):
         bb = ChannelConstructorBhattacharyyaBoundsLog(N, snr)
         ga4 = ChannelConstructorGaussianApproximationDai(N, snr)
         print(f'BB snr={snr}, capacity={np.sum(bb.getCapacities())}')
@@ -272,12 +278,12 @@ def plot_capacity_approx(N, snr):
     plt.legend(loc='lower right')
     plt.xlim((0, N))
     plt.tight_layout()
-    plt.savefig(f'polar_channel_capacity_graph_dSNR-1.5917_N{N}.pgf')
+    plt.savefig(f'polar_channel_capacity_graph_dSNR0.0_N{N}.pgf', bbox_inches='tight', pad_inches=0)
     plt.show()
 
 
 def main():
-    n = 9
+    n = 6
     N = int(2 ** n)
     snr = 1.
     cc = ChannelConstructorBetaExpansion(N, 0.0)

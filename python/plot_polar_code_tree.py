@@ -79,7 +79,8 @@ def update_node_type(G, node):
     # print('update node:', node, G.nodes[n0])
     # print('update node:', node, G.nodes[n1])
     G.nodes[node]['ctsize'] = G.nodes[n0]['ctsize'] + G.nodes[n1]['ctsize']
-    G.nodes[node]['pattern'] = pattern = G.nodes[n0]['pattern'] + G.nodes[n1]['pattern']
+    G.nodes[node]['pattern'] = pattern = G.nodes[n0]['pattern'] + \
+        G.nodes[n1]['pattern']
     pattern = np.array(pattern, dtype=int)
     ntype = find_node_type(pattern)
     if pattern.size == 8:
@@ -261,11 +262,13 @@ def prune_nodes(G, node, remove=False):
 
 
 def main():
-    n = 8
+    n = 4
     N = int(2 ** n)
-    K = int(N * 1 / 8)
+    K = int(N * 1 / 2)
     snr = 1.
     generator = 'BB'
+    tree_type = 'full' # 'prune
+    code_type = 'SSC' # 'Fast-SSC', 'ADVANCED'
     # find_polar_codes()
     # return
 
@@ -292,15 +295,34 @@ def main():
     rootnode = [n for n, d in G.in_degree() if d == 0][0]
     print(rootnode)
     G = update_node_type(G, rootnode)
-    G = prune_nodes(G, rootnode, remove=False)
+
+    if tree_type == 'prune':
+        # For pruned trees that end at specialization.
+        G = prune_nodes(G, rootnode, remove=False)
 
     labels = {}
     colors = {}
 
+    # I recall a presentation by Alexios Balatsoukas-Stimming that suggested these colors as a common default.
     colormap = {'rate0': 'white', 'rate1': 'black',
                 'REP': 'green', 'DREP': 'cyan', 'TREP': 'blue', 'REPONE': 'blue',
                 'SPC': 'orange', 'DSPC': 'yellow', 'TSPC': 'brown', 'ZeroSPC': 'brown',
                 'type5': 'red', 'rateR': 'gray'}
+
+    # SSC colormap
+    if code_type == 'SSC':
+        colormap = {'rate0': 'white', 'rate1': 'black',
+                    'REPONE': 'gray',
+                    'REP': 'gray',
+                    'SPC': 'gray',
+                    'rateR': 'gray'}
+    elif code_type == 'Fast-SSC':
+        # Fast-SSC colormap
+        colormap = {'rate0': 'white', 'rate1': 'black',
+                    'REPONE': 'blue',
+                    'REP': 'green',
+                    'SPC': 'orange',
+                    'rateR': 'gray'}
 
     # colormap = {'rate0': 'black', 'rate1': 'red',
     #             'REP': 'gray', 'SPC': 'cyan', 'rateR': 'blue'}
@@ -313,6 +335,12 @@ def main():
             G.nodes[node]['nodetype'], 0) + 1
 
     print('labels:', labels)
+
+    if code_type == 'SSC':
+        # Remove labels for SSC tree
+        labels.pop('REP')
+        labels.pop('SPC')
+
     legend_elements = []
     for label in labels.keys():
         legend_elements.append(Line2D([0], [0], marker='o', color=colormap[label], label=label,
@@ -322,14 +350,15 @@ def main():
         G, 'pos'), node_size=50, node_color=colors.values(), edgecolors='black')
     edges = nx.draw_networkx_edges(
         G, nx.get_node_attributes(G, 'pos'), arrows=False)
-    plt.legend(handles=legend_elements)
+    plt.legend(handles=legend_elements, fontsize='x-small')
     ax = plt.gca()
     ax.set_axis_off()
     plt.tight_layout()
 
     fig = plt.gcf()
     fig.set_size_inches(set_size())
-    plt.savefig(f'polar_code_tree_N{N}_K{K}_{generator}SNR{snr:.0f}_full.pgf')
+    plt.savefig(
+        f'polar_code_tree_N{N}_K{K}_{generator}SNR{snr:.0f}_{code_type}_{tree_type}.pgf', bbox_inches='tight', pad_inches=0)
     plt.show()
 
 
