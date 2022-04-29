@@ -9,8 +9,6 @@
 import numpy as np
 from scipy import special as sps
 
-from latex_plot_magic import set_size
-
 
 def db2lin(snr_db):
     return 10. ** (snr_db / 10.)
@@ -247,6 +245,9 @@ class ChannelConstructorBetaExpansion(ChannelConstructor):
 
 
 def plot_capacity_approx(N, snr):
+    # Careful! These are function local imports to make sure they installed version doesn't fail.
+    # Obviously, unless you want to plot things.
+    from latex_plot_magic import set_size
     import matplotlib.pyplot as plt
     bb = ChannelConstructorBhattacharyyaBounds(N, snr)
     static_size = (4, 2)
