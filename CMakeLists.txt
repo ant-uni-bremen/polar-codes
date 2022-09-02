@@ -13,6 +13,8 @@ project ("polar-codes" VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
+cmake_policy(SET CMP0115 OLD)
+
 #select the release build type by default to get optimization flags
 if(NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE "Release")
@@ -31,7 +33,7 @@ endif()
 find_package(Doxygen)
 find_package(OpenSSL REQUIRED)
 #find_package(cppunit)
-find_package(Python3 REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(fmt REQUIRED)
 
 ## Check for TCLAP!
@@ -41,9 +43,11 @@ IF(NOT HAVE_TCLAP)
   message( FATAL_ERROR "TCLAP is not found (apt install libtclap-dev)" )
 ENDIF()
 
-add_subdirectory(pybind11)
-# Probably the preferred way long term:
-# find_package(pybind11 REQUIRED)
+# Probably the preferred way
+find_package(pybind11)
+if(NOT pybind11_FOUND)
+    add_subdirectory(pybind11)
+endif()
 
 SET(BUILD_SHARED_LIBS ON)
 
@@ -101,10 +105,35 @@ message(STATUS "Py3k NumPy VERSION: ${Python3_NumPy_VERSION}")
 message(STATUS "NumPy: ${PYTHON_NUMPY_INCLUDE_DIR}")
 
 if(NOT DEFINED PYTHON_DIR)
-execute_process(COMMAND ${Python3_EXECUTABLE} -c "
-from distutils import sysconfig
-print(sysconfig.get_python_lib(plat_specific=True, prefix=''))
-" OUTPUT_VARIABLE PYTHON_DIR OUTPUT_STRIP_TRAILING_WHITESPACE
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import os
+import sysconfig
+import site
+install_dir = None
+# The next line passes a CMake variable into our script.
+prefix = '${CMAKE_INSTALL_PREFIX}'
+# We use `site` to identify if our chosen prefix is a default one.
+# https://docs.python.org/3/library/site.html
+try:
+    # https://docs.python.org/3/library/site.html#site.getsitepackages
+    paths = [p for p in site.getsitepackages() if p.startswith(prefix)]
+    if len(paths) == 1: install_dir = paths[0]
+except AttributeError: pass
+# If we found a default install path, `install_dir` is set.
+if not install_dir:
+    # We use a custom install prefix!
+    # Determine the correct install path in that prefix on the current platform.
+    # For Python 3.11+, we could use the 'venv' scheme for all platforms
+    # https://docs.python.org/3.11/library/sysconfig.html#installation-paths
+    if os.name == 'nt':
+        scheme = 'nt'
+    else:
+        scheme = 'posix_prefix'
+    install_dir = sysconfig.get_path('platlib', scheme)
+    prefix = sysconfig.get_path('data', scheme)
+#strip the prefix to return a relative path
+print(os.path.relpath(install_dir, prefix))"
+    OUTPUT_VARIABLE PYTHON_DIR 
+    OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 endif()
 file(TO_CMAKE_PATH ${PYTHON_DIR} PYTHON_DIR)
@@ -123,9 +152,12 @@ add_subdirectory(python)
 ########################################################################
 # Include benchmark folder if Google benchmark is available
 ########################################################################
-find_package(benchmark)
+find_package(benchmark QUIET)
 if(benchmark_FOUND)
+    message(STATUS "Add benchmarks ...")
     add_subdirectory(benchmark)
+else()
+message(STATUS "Skipping benchmarks ...")
 endif(benchmark_FOUND)
 
 

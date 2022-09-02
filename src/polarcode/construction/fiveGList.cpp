@@ -9,6 +9,7 @@
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 #include <polarcode/construction/fiveGList.h>
+#include <algorithm>
 #include <stdexcept>
 
 namespace PolarCode {
