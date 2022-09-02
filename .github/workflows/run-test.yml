@@ -4,12 +4,20 @@ on: [push, pull_request]
 
 jobs:
   build-ubuntu:
-    runs-on: ubuntu-20.04
-
+    strategy:
+      fail-fast: false
+      matrix:
+        distro:
+          - ubuntu-20.04
+          - ubuntu-22.04
+    
+    name: Build on ${{ matrix.distro }}
+    runs-on: ${{ matrix.distro }}
+    
     steps:
-      - uses: actions/checkout@v2.4.0
-        with:
-          submodules: "recursive"
+      - uses: actions/checkout@v3.0.2
+        # with:
+          # submodules: "recursive"
       - name: dependencies
         run: sudo apt install doxygen python3-pybind11 python3-numpy python3-scipy libcppunit-dev libtclap-dev libssl-dev libfmt-dev
       - name: configure
