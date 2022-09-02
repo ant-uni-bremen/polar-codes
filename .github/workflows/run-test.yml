@@ -21,7 +21,7 @@ jobs:
       - name: dependencies
         run: sudo apt install doxygen python3-pybind11 python3-numpy python3-scipy libcppunit-dev libtclap-dev libssl-dev libfmt-dev
       - name: configure
-        run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Werror -Wno-error=deprecated" ..
+        run: mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-Werror -Wno-error=deprecated-declarations" ..
       - name: build
         run: cmake --build build -j2
       - name: install
