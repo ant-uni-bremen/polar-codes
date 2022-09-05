@@ -8,12 +8,14 @@
 ########################################################################
 # Project setup
 ########################################################################
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 project ("polar-codes" VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
-cmake_policy(SET CMP0115 OLD)
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.20)
+    cmake_policy(SET CMP0115 OLD)
+endif()
 
 #select the release build type by default to get optimization flags
 if(NOT CMAKE_BUILD_TYPE)

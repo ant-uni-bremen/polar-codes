@@ -10,7 +10,7 @@ import numpy as np
 import unittest
 from polar_code_tools import design_snr_to_bec_eta, calculate_bec_channel_capacities, get_frozenBitMap, get_frozenBitPositions, get_polar_generator_matrix, get_polar_encoder_matrix_systematic, frozen_indices_to_map
 from polar_code_tools import get_info_indices, get_expanding_matrix, calculate_ga
-from channel_construction import ChannelConstructorBhattacharyyaBounds, ChannelConstructorGaussianApproximationDai
+from channel_construction import ChannelConstructorBhattacharyyaBounds, ChannelConstructorGaussianApproximationDai, ChannelConstructorBetaExpansion
 import pypolar
 
 
@@ -53,10 +53,10 @@ class PolarDecoderTests(unittest.TestCase):
     def initialize_encoder(self, N, K, snr):
         try:
             np.seterr(invalid='raise')
-            cc = ChannelConstructorBhattacharyyaBounds(N, snr)
+            cc = ChannelConstructorBetaExpansion(N, snr)
         except FloatingPointError:
             np.seterr(invalid='warn')
-            cc = ChannelConstructorBhattacharyyaBounds(N, snr)
+            cc = ChannelConstructorBetaExpansion(N, snr)
 
         f = np.sort(cc.getSortedChannels())[0:N - K]
         p = pypolar.PolarEncoder(N, f)
@@ -110,7 +110,8 @@ class PolarDecoderTests(unittest.TestCase):
             llrs = llrs.astype(dtype=np.float32)
 
             dhat0 = dec0.decode_vector(llrs)
-            self.assertTrue(np.all(d == dhat0))
+            np.testing.assert_equal(dhat0, d)
+            # self.assertTrue(np.all(d == dhat0))
 
 
 if __name__ == '__main__':
