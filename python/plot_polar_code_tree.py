@@ -262,13 +262,16 @@ def prune_nodes(G, node, remove=False):
 
 
 def main():
-    n = 4
+    n = 8
     N = int(2 ** n)
-    K = int(N * 1 / 2)
+    K = int(N * 5 / 8)
     snr = 1.
     generator = 'BB'
-    tree_type = 'full' # 'prune
-    code_type = 'SSC' # 'Fast-SSC', 'ADVANCED'
+    tree_type = 'prune' # 'full', 'prune
+    code_type = 'ADVANCED' # 'SSC, 'Fast-SSC', 'ADVANCED'
+    legend_loc = 'lower right'
+    legend_fontsize = 'small'
+    # legend_fontsize = None
     # find_polar_codes()
     # return
 
@@ -350,7 +353,7 @@ def main():
         G, 'pos'), node_size=50, node_color=colors.values(), edgecolors='black')
     edges = nx.draw_networkx_edges(
         G, nx.get_node_attributes(G, 'pos'), arrows=False)
-    plt.legend(handles=legend_elements, fontsize='x-small')
+    plt.legend(handles=legend_elements, fontsize=legend_fontsize, loc=legend_loc)
     ax = plt.gca()
     ax.set_axis_off()
     plt.tight_layout()
