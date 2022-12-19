@@ -98,7 +98,6 @@ class PolarDecoderTests(unittest.TestCase):
             p.setErrorDetection(8)
             dec0.setErrorDetection(8)
             self.assertListEqual(f, dec0.frozenBits())
-            self.assertNotEqual(decType, "scan")
 
             for i in np.arange(10):
                 u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
