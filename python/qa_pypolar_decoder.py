@@ -80,7 +80,7 @@ class PolarDecoderTests(unittest.TestCase):
         self.run_decoder(N, K, 4, snr, 'float')
         self.run_decoder(N, K, 8, snr, 'float')
         self.run_decoder(N, K, 4, snr, 'mixed')
-        if N < 600 and N // K < 8 and N // K >= 2:
+        if N < 600 and N // K == 2:
             self.run_decoder(N, K, 4, snr, 'scan')
 
     def run_decoder(self, N, K, L, snr, decType):
