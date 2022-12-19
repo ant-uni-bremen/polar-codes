@@ -84,34 +84,35 @@ class PolarDecoderTests(unittest.TestCase):
             self.run_decoder(N, K, 4, snr, 'scan')
 
     def run_decoder(self, N, K, L, snr, decType):
-        print("Decoder CPP test (N={}, K={}, L={}, type='{}') -> {}dB".format(N, K, L, decType, snr))
-        p = self.initialize_encoder(N, K, snr)
+        with self.subTest(N=N, K=K, L=L, snr=snr, decType=decType):
+            print("Decoder CPP test (N={}, K={}, L={}, type='{}') -> {}dB".format(N, K, L, decType, snr))
+            p = self.initialize_encoder(N, K, snr)
 
-        if not self.check_matrix_domination_contiguity(N, p.frozenBits()):
-            print('invalid code parameters!')
-            return
+            if not self.check_matrix_domination_contiguity(N, p.frozenBits()):
+                print('invalid code parameters!')
+                return
 
-        f = p.frozenBits()
-        dec0 = pypolar.PolarDecoder(N, L, f, decType)
+            f = p.frozenBits()
+            dec0 = pypolar.PolarDecoder(N, L, f, decType)
 
-        p.setErrorDetection(8)
-        dec0.setErrorDetection(8)
-        self.assertListEqual(f, dec0.frozenBits())
+            p.setErrorDetection(8)
+            dec0.setErrorDetection(8)
+            self.assertListEqual(f, dec0.frozenBits())
+            self.assertNotEqual(decType, "scan")
 
-        for i in np.arange(10):
-            u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
-            d = np.packbits(u)
+            for i in np.arange(10):
+                u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
+                d = np.packbits(u)
 
-            # The pythonic method
-            cw_pack = p.encode_vector(d)
-            b = np.unpackbits(cw_pack)
-            llrs = -2. * b + 1.
-            llrs += np.random.uniform(-.2, .2, size=llrs.size)
-            llrs = llrs.astype(dtype=np.float32)
+                # The pythonic method
+                cw_pack = p.encode_vector(d)
+                b = np.unpackbits(cw_pack)
+                llrs = -2. * b + 1.
+                llrs += np.random.uniform(-.2, .2, size=llrs.size)
+                llrs = llrs.astype(dtype=np.float32)
 
-            dhat0 = dec0.decode_vector(llrs)
-            np.testing.assert_equal(dhat0, d)
-            # self.assertTrue(np.all(d == dhat0))
+                dhat0 = dec0.decode_vector(llrs)
+                np.testing.assert_equal(dhat0, d)
 
 
 if __name__ == '__main__':
