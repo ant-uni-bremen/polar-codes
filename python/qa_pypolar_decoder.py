@@ -11,18 +11,11 @@ import unittest
 from polar_code_tools import (
     design_snr_to_bec_eta,
     calculate_bec_channel_capacities,
-    get_frozenBitMap,
     get_frozenBitPositions,
     get_polar_generator_matrix,
-    get_polar_encoder_matrix_systematic,
-    frozen_indices_to_map,
 )
-from polar_code_tools import get_info_indices, get_expanding_matrix, calculate_ga
-from channel_construction import (
-    ChannelConstructorBhattacharyyaBounds,
-    ChannelConstructorGaussianApproximationDai,
-    ChannelConstructorBetaExpansion,
-)
+from polar_code_tools import get_expanding_matrix
+from channel_construction import ChannelConstructorBetaExpansion
 import pypolar
 
 
@@ -77,27 +70,36 @@ class PolarDecoderTests(unittest.TestCase):
     def test_006_cpp_decoder_impls(self):
         print("TEST: CPP Decoder")
         snr = -1.0
-        test_size = np.arange(7, 11, dtype=int)
+        test_size = 2 ** np.arange(7, 11, dtype=int)
         # test_size = np.array([4, 5, 6, 8, 9, 10], dtype=int)
-        for i in test_size:
-            N = 2 ** i
+        for N in test_size:
             self.validate_decoder(N, int(N * 0.75), snr)
             self.validate_decoder(N, N // 2, snr)
             self.validate_decoder(N, N // 4, snr)
             self.validate_decoder(N, N // 8, snr)
 
-    def validate_decoder(self, N, K, snr, crc=None):
+    def validate_decoder(self, N, K, snr):
         self.run_decoder(N, K, 1, snr, "char")
         self.run_decoder(N, K, 1, snr, "float")
         self.run_decoder(N, K, 4, snr, "float")
         self.run_decoder(N, K, 8, snr, "float")
         self.run_decoder(N, K, 4, snr, "mixed")
-        if N < 600 and N // K == 2:
-            self.run_decoder(N, K, 4, snr, "scan", 16)
 
-    def run_decoder(self, N, K, L, snr, decType, detector_size=8):
+    def test_007_scan_decoder(self):
+        snr = -1.0
+        test_size = 2 ** np.arange(7, 10, dtype=int)
+        for N in test_size:
+            self.run_decoder(N, N // 2, 8, snr, "scan", 16, 3)
+
+    def run_decoder(self, N, K, L, snr, decType, detector_size=8, iterations=10):
         with self.subTest(
-            N=N, K=K, L=L, snr=snr, decType=decType, detector_size=detector_size
+            N=N,
+            K=K,
+            L=L,
+            snr=snr,
+            decType=decType,
+            detector_size=detector_size,
+            iterations=iterations,
         ):
             print(
                 f"Decoder CPP test ({N=:4}, {K=:3}, {L=}, {decType=:5}, CRC{detector_size:2}) -> {snr}dB"
@@ -115,7 +117,7 @@ class PolarDecoderTests(unittest.TestCase):
             dec0.setErrorDetection(detector_size)
             self.assertListEqual(f, dec0.frozenBits())
 
-            for i in np.arange(10):
+            for i in np.arange(iterations):
                 u = np.random.randint(0, 2, K).astype(dtype=np.uint8)
                 d = np.packbits(u)
 
