@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6325748.svg)](https://doi.org/10.5281/zenodo.6325748) [![Run CI tests](https://github.com/ant-uni-bremen/polar-codes/actions/workflows/run-test.yml/badge.svg)](https://github.com/ant-uni-bremen/polar-codes/actions/workflows/run-test.yml)
+
 # Polar Codes #
 This is a library and simulation tool for a Forward Error Correcting (FEC)
 scheme named "Polar Codes". A very promising group of codes that have low
@@ -116,8 +118,15 @@ in every terminal you open. Or put this in your `.bashrc` or `.zshrc` or your sh
 Theoretically, there is `libbenchmark-dev` in Ubuntu 20.04 but we need a newer [benchmark](https://github.com/google/benchmark) version. Thus, we must build and install from source.
 
 
+## References
+
+This implementation relies on prior publications. We'd like to point out some of them.
+
+* E. Arıkan, "Channel Polarization: A Method for Constructing Capacity-Achieving Codes for Symmetric Binary-Input Memoryless Channels", IEEE Transactions on Information Theory, July 2009, DOI: [10.1109/TIT.2009.2021379](https://doi.org/10.1109/TIT.2009.2021379)
+* P. Giard "High-Speed Decoders for Polar Codes", McGill University, Montreal, Canada, September 2016, DOI: [10.1007/978-3-319-59782-9](https://doi.org/10.1007/978-3-319-59782-9), https://escholarship.mcgill.ca/concern/theses/3r074x791
+
 ## License and Referencing
-This program is licensed under the GPLv3+ license.
+This program is licensed under the GPLv3+ license, see [[COPYING]].
 
 ### CRCpp
 Some CRCs are calculated with [CRC++](https://github.com/d-bahr/CRCpp).

@@ -1,6 +1,5 @@
 {
     "title": "polar-codes",
-    "description": "This is a library and simulation tool for a Forward Error Correcting (FEC) scheme named Polar Codes. A very promising group of codes that have low encoding and decoding latency with high BLER-performance.",
     "license": {
         "id": "GPL-3.0-or-later"
     },
@@ -13,6 +12,43 @@
         "error correction",
         "polar codes",
         "Python"
+    ],
+    "related_identifiers": [
+        {
+            "scheme": "doi",
+            "identifier": "10.1109/TIT.2009.2021379",
+            "relation": "isDocumentedBy",
+            "resource_type": "publication-article"
+        },
+        {
+            "scheme": "doi",
+            "identifier": "10.1109/VTCFall.2016.7880930",
+            "relation": "isDocumentedBy",
+            "resource_type": "publication-conferencepaper"
+        },
+        {
+            "identifier": "https://escholarship.mcgill.ca/concern/theses/3r074x791",
+            "relation": "isDocumentedBy",
+            "resource_type": "publication-thesis"
+        },
+        {
+            "scheme": "doi",
+            "identifier": "10.1109/LCOMM.2017.2740305",
+            "relation": "isDocumentedBy",
+            "resource_type": "publication-article"
+        },
+        {
+            "scheme": "doi",
+            "identifier": "10.1109/TIT.2015.2410251",
+            "relation": "isDocumentedBy",
+            "resource_type": "publication-article"
+        },
+        {
+            "scheme": "doi",
+            "identifier": "10.1109/TSP.2015.2439211",
+            "relation": "isDocumentedBy",
+            "resource_type": "publication-article"
+        }
     ],
     "creators": [
         {
