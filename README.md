@@ -120,10 +120,17 @@ Theoretically, there is `libbenchmark-dev` in Ubuntu 20.04 but we need a newer [
 
 ## References
 
-This implementation relies on prior publications. We'd like to point out some of them.
+This implementation relies on prior publications. We'd like to point out some of them. It should be noted that the number of publications on polar codes is enormous. This is a subjective selection of references that helped shape this implementation.
 
 * E. Arıkan, "Channel Polarization: A Method for Constructing Capacity-Achieving Codes for Symmetric Binary-Input Memoryless Channels", IEEE Transactions on Information Theory, July 2009, DOI: [10.1109/TIT.2009.2021379](https://doi.org/10.1109/TIT.2009.2021379)
+* H. Vangala, E. Viterbo, Y. Hong, ["A Comparative Study of Polar Code Constructions for the AWGN Channel"](https://arxiv.org/pdf/1501.02473.pdf), arXiv, January 2015, DOI: [10.48550/arXiv.1501.02473](https://doi.org/10.48550/arXiv.1501.02473)
+* I. Tal, A. Vardy, "List Decoding of Polar Codes", IEEE Transactions on Information Theory, May 2015, DOI: [10.1109/TIT.2015.2410251](https://doi.org/10.1109/TIT.2015.2410251)
+* A. Balatsoukas-Stimming, M. Parizi, A. Burg, "LLR-Based Successive Cancellation List Decoding of Polar Codes", IEEE Transactions on Signal Processing, October 2015, DOI: [10.1109/TSP.2015.2439211](https://doi.org/10.1109/TSP.2015.2439211)
+* H. Vangala, E. Viterbo, Y. Hong, "Efficient algorithms for systematic polar encoding", IEEE Communications Letters, January 2016, DOI: [10.1109/LCOMM.2015.2497220](https://doi.org/10.1109/LCOMM.2015.2497220)
 * P. Giard "High-Speed Decoders for Polar Codes", McGill University, Montreal, Canada, September 2016, DOI: [10.1007/978-3-319-59782-9](https://doi.org/10.1007/978-3-319-59782-9), https://escholarship.mcgill.ca/concern/theses/3r074x791
+* M. Sybis et al., "Channel coding for ultra-reliable low-latency communication in 5G systems", Vehicular Technology Conference (VTC Fall), Montreal, QC, Canada, September 2016, DOI: [10.1109/VTCFall.2016.7880930](https://doi.org/10.1109/VTCFall.2016.7880930)
+* M. Hanif, M Ardakani, "Fast Successive-Cancellation Decoding of Polar Codes: Identification and Decoding of New Nodes", IEEE Communications Letters, November 2017, DOI: [10.1109/LCOMM.2017.2740305](https://doi.org/10.1109/LCOMM.2017.2740305)
+* G. He et al., "Beta-Expansion: A Theoretical Framework for Fast and Recursive Construction of Polar Codes", Global Communications Conference (GLOBECOM), Singapore, December 2017, DOI: [10.1109/GLOCOM.2017.8254146](https://doi.org/10.1109/GLOCOM.2017.8254146)
 
 ## License and Referencing
 This program is licensed under the GPLv3+ license, see [[COPYING]].

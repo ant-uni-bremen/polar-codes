@@ -16,8 +16,6 @@ jobs:
     
     steps:
       - uses: actions/checkout@v3.1.0
-        # with:
-          # submodules: "recursive"
       - name: dependencies
         run: |
           sudo apt update

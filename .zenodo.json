@@ -15,39 +15,62 @@
     ],
     "related_identifiers": [
         {
+            "identifier": "https://github.com/ant-uni-bremen/polar-codes",
+            "relation": "isSupplementTo",
+            "resource_type": "software"
+        },
+        {
             "scheme": "doi",
             "identifier": "10.1109/TIT.2009.2021379",
-            "relation": "isDocumentedBy",
+            "relation": "references",
             "resource_type": "publication-article"
         },
         {
             "scheme": "doi",
-            "identifier": "10.1109/VTCFall.2016.7880930",
-            "relation": "isDocumentedBy",
-            "resource_type": "publication-conferencepaper"
-        },
-        {
-            "identifier": "https://escholarship.mcgill.ca/concern/theses/3r074x791",
-            "relation": "isDocumentedBy",
-            "resource_type": "publication-thesis"
-        },
-        {
-            "scheme": "doi",
-            "identifier": "10.1109/LCOMM.2017.2740305",
-            "relation": "isDocumentedBy",
+            "identifier": "10.48550/arXiv.1501.02473",
+            "relation": "references",
             "resource_type": "publication-article"
         },
         {
             "scheme": "doi",
             "identifier": "10.1109/TIT.2015.2410251",
-            "relation": "isDocumentedBy",
+            "relation": "references",
             "resource_type": "publication-article"
         },
         {
             "scheme": "doi",
             "identifier": "10.1109/TSP.2015.2439211",
-            "relation": "isDocumentedBy",
+            "relation": "references",
             "resource_type": "publication-article"
+        },
+        {
+            "scheme": "doi",
+            "identifier": "10.1109/LCOMM.2015.2497220",
+            "relation": "references",
+            "resource_type": "publication-article"
+        },
+        {
+            "identifier": "https://escholarship.mcgill.ca/concern/theses/3r074x791",
+            "relation": "references",
+            "resource_type": "publication-thesis"
+        },
+        {
+            "scheme": "doi",
+            "identifier": "10.1109/VTCFall.2016.7880930",
+            "relation": "references",
+            "resource_type": "publication-conferencepaper"
+        },
+        {
+            "scheme": "doi",
+            "identifier": "10.1109/LCOMM.2017.2740305",
+            "relation": "references",
+            "resource_type": "publication-article"
+        },
+        {
+            "scheme": "doi",
+            "identifier": "10.1109/GLOCOM.2017.8254146",
+            "relation": "references",
+            "resource_type": "publication-conferencepaper"
         }
     ],
     "creators": [
