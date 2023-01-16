@@ -37,8 +37,10 @@ find_package(OpenSSL REQUIRED)
 #find_package(cppunit)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(fmt REQUIRED)
+message(STATUS "fmt version: ${fmt_VERSION}")
 
 ## Check for TCLAP!
+set(CMAKE_REQUIRED_INCLUDES "${CMAKE_INSTALL_PREFIX}/include")
 include(CheckIncludeFileCXX)
 CHECK_INCLUDE_FILE_CXX("tclap/CmdLine.h" HAVE_TCLAP)
 IF(NOT HAVE_TCLAP)
@@ -56,7 +58,10 @@ SET(BUILD_SHARED_LIBS ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# We need to do a CMAKE_INSTALL_PREFIX include. Otherwise, we can't make the compiler happy in a conda env!
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(SYSTEM ${CMAKE_INSTALL_PREFIX}/include)
 
 
 add_definitions(-Wall -Wno-ignored-attributes)
