@@ -27,34 +27,36 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #make sure our local CMake Modules path comes first
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
 
-find_package(CppUnit REQUIRED)
-if(NOT CPPUNIT_FOUND)
-	message(FATAL_ERROR "CppUnit missing! (apt install libcppunit-dev)")
-endif()
+########################################################################
+# Find and configure all dependencies
+########################################################################
 #find_package(Threads)
 find_package(Doxygen)
 find_package(OpenSSL REQUIRED)
-#find_package(cppunit)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(fmt REQUIRED)
 message(STATUS "fmt version: ${fmt_VERSION}")
-
-## Check for TCLAP!
-set(CMAKE_REQUIRED_INCLUDES "${CMAKE_INSTALL_PREFIX}/include")
-include(CheckIncludeFileCXX)
-CHECK_INCLUDE_FILE_CXX("tclap/CmdLine.h" HAVE_TCLAP)
-IF(NOT HAVE_TCLAP)
-  message( FATAL_ERROR "TCLAP is not found (apt install libtclap-dev)" )
-ENDIF()
-
-# Probably the preferred way
 find_package(pybind11)
-if(NOT pybind11_FOUND)
-    add_subdirectory(pybind11)
+
+find_package(CppUnit REQUIRED)
+message(STATUS "CppUnit found? ${CPPUNIT_FOUND} ...")
+message(STATUS "CppUnit include:   ${CPPUNIT_INCLUDE_DIR}")
+message(STATUS "CppUnit libraries: ${CPPUNIT_LIBRARIES}")
+message(STATUS "CppUnit library:   ${CPPUNIT_LIBRARY}")
+if(NOT CPPUNIT_FOUND)
+	message(FATAL_ERROR "CppUnit missing! (e.g. apt install libcppunit-dev)")
+endif()
+
+find_package(TCLAP REQUIRED)
+message(STATUS "TCLAP found? ${TCLAP_FOUND} ...")
+message(STATUS "TCLAP include: ${TCLAP_INCLUDE_DIR}")
+set(TCLAP_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
+message(STATUS "TCLAP include: ${TCLAP_INCLUDE_DIR}")
+if(NOT TCLAP_FOUND)
+	message(FATAL_ERROR "TCLAP missing! (e.g. apt install libtclap-dev)")
 endif()
 
 SET(BUILD_SHARED_LIBS ON)
-
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

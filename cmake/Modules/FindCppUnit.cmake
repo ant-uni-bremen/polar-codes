@@ -13,7 +13,11 @@
 
 SET(CPPUNIT_FOUND "NO")
 
-FIND_PATH(CPPUNIT_INCLUDE_DIR cppunit/TestCase.h /usr/local/include /usr/include)
+FIND_PATH(CPPUNIT_INCLUDE_DIR 
+  NAMES cppunit/TestCase.h 
+  HINTS ${CMAKE_INSTALL_PREFIX}/include
+  PATHS /usr/local/include /usr/include
+) 
 
 # With Win32, important to have both
 IF(WIN32)

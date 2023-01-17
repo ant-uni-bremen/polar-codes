@@ -13,6 +13,7 @@
 #include <polarcode/decoding/decoder.h>
 #include <polarcode/decoding/fip_char.h>
 #include <polarcode/encoding/encoder.h>
+#include <array>
 #include <map>
 #include <vector>
 
