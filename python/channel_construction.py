@@ -11,7 +11,7 @@ from scipy import special as sps
 
 
 def db2lin(snr_db):
-    return 10. ** (snr_db / 10.)
+    return 10.0 ** (snr_db / 10.0)
 
 
 class ChannelConstructor:
@@ -21,7 +21,7 @@ class ChannelConstructor:
         self._block_power = int(np.log2(N))
         self._block_size = int(2 ** self._block_power)
         self._eta = self._design_snr2eta(design_snr)
-        self._sigma_sq = 1. * 10. ** (design_snr / 10.)
+        self._sigma_sq = 1.0 * 10.0 ** (design_snr / 10.0)
         self._sortedChannels = np.arange(self._block_size)
         self._capacities = np.zeros(self._block_size, dtype=np.float64)
 
@@ -82,7 +82,7 @@ class ChannelConstructorBhattacharyyaBoundsLog(ChannelConstructor):
         return 2 * vals
 
     def _upgrade_ln(self, vals):
-        l2 = np.log(2.)
+        l2 = np.log(2.0)
         # the last part with log 1-exp(vals - l2) needs a log domain approximation!
         return vals + l2 + np.log(1 - np.exp(vals - l2))
 
@@ -93,10 +93,15 @@ class ChannelConstructorBhattacharyyaBoundsLog(ChannelConstructor):
         return res
 
     def _calculate_capacities_ln(self):
-        vals = np.array([np.log(1. - self._eta), ], dtype=np.float128)
+        vals = np.array(
+            [
+                np.log(1.0 - self._eta),
+            ],
+            dtype=np.float128,
+        )
         for i in range(self._block_power):
             vals = self._calculate_channels_ln(vals)
-        r = 1. - np.exp(vals)
+        r = 1.0 - np.exp(vals)
         r = np.maximum(r, np.zeros_like(r))
         return r[::-1]
 
@@ -123,7 +128,12 @@ class ChannelConstructorBhattacharyyaBoundsLinear(ChannelConstructor):
         return res
 
     def _calculate_capacities_lin(self):
-        vals = np.array([1. - self._eta, ], dtype=np.float128)
+        vals = np.array(
+            [
+                1.0 - self._eta,
+            ],
+            dtype=np.float128,
+        )
         for i in range(self._block_power):
             vals = self._calculate_channels_lin(vals)
         return vals
@@ -152,7 +162,7 @@ class ChannelConstructorGaussianApproximationDai(ChannelConstructor):
 
     def calculate_capacities(self):
         v0 = self._calculate_capacities_llr()
-        self._capacities = sps.erf(np.sqrt(v0.astype(np.float64) / 2.))
+        self._capacities = sps.erf(np.sqrt(v0.astype(np.float64) / 2.0))
         return v0
 
     def _phi4inv(self, t):
@@ -167,9 +177,9 @@ class ChannelConstructorGaussianApproximationDai(ChannelConstructor):
         elif t > binv:
             return self._inverse_quadratic_exponential(t, a=0.05315, b=0.4795, r=0.9981)
         elif t > cinv:
-            return ((0.0218 - np.log(t)) / 0.4527) ** (1. / 0.86)
+            return ((0.0218 - np.log(t)) / 0.4527) ** (1.0 / 0.86)
         else:
-            return -1. * (np.log(t) + 0.4254) / 0.2832
+            return -1.0 * (np.log(t) + 0.4254) / 0.2832
 
     def _phi4(self, t):
         assert t >= 0.0
@@ -197,11 +207,11 @@ class ChannelConstructorGaussianApproximationDai(ChannelConstructor):
         return 2 * t
 
     def _inverse_quadratic_exponential(self, y, a=0.05315, b=0.4795, r=0.9981):
-        return (b - np.sqrt(4 * a * np.log(y / r) + b ** 2)) / (2. * a)
+        return (b - np.sqrt(4 * a * np.log(y / r) + b ** 2)) / (2.0 * a)
 
     def _calculate_capacities_llr(self):
         m = self._block_power
-        initial_val = 2. * self._sigma_sq
+        initial_val = 2.0 * self._sigma_sq
         z = np.full(self._block_size, initial_val, dtype=np.float128)
         assert z.dtype == np.float128
 
@@ -221,6 +231,7 @@ class ChannelConstructorBetaExpansion(ChannelConstructor):
     DOI: 10.1109/TSP.2014.2371781
     https://doi.org/10.1109/GLOCOM.2017.8254146
     """
+
     beta_value = 2.0 ** (1.0 / 4.0)
 
     def __init__(self, N, snr):
@@ -230,11 +241,9 @@ class ChannelConstructorBetaExpansion(ChannelConstructor):
     def calculate_capacities(self):
         channels = np.arange(self._block_size, dtype=np.uint64)
         betas = np.zeros(self._block_size, dtype=np.float64)
-        beta_weights = self.beta_value ** np.arange(
-            self._block_power - 1, -1, -1)
+        beta_weights = self.beta_value ** np.arange(self._block_power - 1, -1, -1)
         for i, idx in enumerate(channels):
-            bin_digits = [int(b)
-                          for b in np.binary_repr(idx, self._block_power)]
+            bin_digits = [int(b) for b in np.binary_repr(idx, self._block_power)]
             # print(bin_digits)
             weight = np.sum(beta_weights * bin_digits)
             # print(beta_weights * bin_digits, weight)
@@ -249,20 +258,21 @@ def plot_capacity_approx(N, snr):
     # Obviously, unless you want to plot things.
     from latex_plot_magic import set_size
     import matplotlib.pyplot as plt
+
     bb = ChannelConstructorBhattacharyyaBounds(N, snr)
     static_size = (4, 2)
     latex_size = set_size()
     fig_size = (latex_size[0], static_size[1] * (latex_size[0] / static_size[0]))
     plt.figure(figsize=fig_size)
     min_dsnr = -1.5917
-    for snr in (0, ):
+    for snr in (0,):
         bb = ChannelConstructorBhattacharyyaBoundsLog(N, snr)
         ga4 = ChannelConstructorGaussianApproximationDai(N, snr)
-        print(f'BB snr={snr}, capacity={np.sum(bb.getCapacities())}')
-        print(f'GA snr={snr}, capacity={np.sum(ga4.getCapacities())}')
-        plt.plot(bb.getCapacities(), label=f'BB')
+        print(f"BB snr={snr}, capacity={np.sum(bb.getCapacities())}")
+        print(f"GA snr={snr}, capacity={np.sum(ga4.getCapacities())}")
+        plt.plot(bb.getCapacities(), label=f"BB", c="C0")
         # plt.plot(ga.getCapacities(), label=f'GA, dSNR={snr}')
-        plt.plot(ga4.getCapacities(), label=f'GA')
+        plt.plot(ga4.getCapacities(), label=f"GA", c="C3")
 
     # for n in range(6, 9):
     #     nn = 2 ** n
@@ -274,19 +284,26 @@ def plot_capacity_approx(N, snr):
 
     # plt.plot(bb_caps)
     # plt.plot(ga_caps)
-    plt.xlabel('virtual bit channel')
-    plt.ylabel('capacity')
-    plt.legend(loc='lower right')
+    labelfontsize = "small"
+    plt.xlabel("virtual bit channel", fontsize=labelfontsize)
+    plt.ylabel("capacity", fontsize=labelfontsize)
+    plt.xticks(fontsize=labelfontsize)
+    plt.yticks(fontsize=labelfontsize)
+    plt.legend(loc="lower right", fontsize=labelfontsize)
     plt.xlim((0, N))
     plt.tight_layout()
-    plt.savefig(f'polar_channel_capacity_graph_dSNR0.0_N{N}.pgf', bbox_inches='tight', pad_inches=0)
+    plt.savefig(
+        f"polar_channel_capacity_graph_dSNR0.0_N{N}.pgf",
+        bbox_inches="tight",
+        pad_inches=0,
+    )
     plt.show()
 
 
 def main():
     n = 6
     N = int(2 ** n)
-    snr = 1.
+    snr = 1.0
     cc = ChannelConstructorBetaExpansion(N, 0.0)
     print(cc.beta_value)
     print(cc.getSortedChannels())
@@ -294,5 +311,5 @@ def main():
     # plot_dai_functions(N, snr)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
